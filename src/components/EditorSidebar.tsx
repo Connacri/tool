@@ -404,6 +404,69 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </p>
                 </div>
 
+                {/* Text Elements Resizing Controls */}
+                <div className="pt-2 border-t border-neutral-800 space-y-3">
+                  <span className="text-[11px] font-semibold text-neutral-300 block">
+                    Dimensions & Tailles des Textes (Échelle)
+                  </span>
+
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] mb-1">
+                      <span className="text-neutral-400">Taille Phrase Principale</span>
+                      <span className="font-mono text-neutral-300">
+                        {Math.round((activeSlide.phraseScale ?? 1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.1"
+                      value={activeSlide.phraseScale ?? 1}
+                      onChange={(e) => updateActiveSlide({ phraseScale: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] mb-1">
+                        <span className="text-neutral-400">Taille Kicker</span>
+                        <span className="font-mono text-neutral-300">
+                          {Math.round((activeSlide.kickerScale ?? 1) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2.5"
+                        step="0.1"
+                        value={activeSlide.kickerScale ?? 1}
+                        onChange={(e) => updateActiveSlide({ kickerScale: parseFloat(e.target.value) })}
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] mb-1">
+                        <span className="text-neutral-400">Taille Sous-titre</span>
+                        <span className="font-mono text-neutral-300">
+                          {Math.round((activeSlide.subtitleScale ?? 1) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2.5"
+                        step="0.1"
+                        value={activeSlide.subtitleScale ?? 1}
+                        onChange={(e) => updateActiveSlide({ subtitleScale: parseFloat(e.target.value) })}
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Scheduled time info */}
                 <div>
                   <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
@@ -553,6 +616,116 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     }
                     className="w-full accent-indigo-500"
                   />
+                </div>
+
+                {/* Background Image Pan & Zoom framing controls */}
+                <div className="pt-2 border-t border-neutral-800/80 space-y-2">
+                  <span className="text-xs font-semibold text-white block">
+                    Cadrage & Repositionnement Photo
+                  </span>
+
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-neutral-400">Zoom Image</span>
+                      <span className="font-mono text-neutral-200">
+                        {Math.round((activeSlide.imageZoom ?? 1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="3"
+                      step="0.05"
+                      value={activeSlide.imageZoom ?? 1}
+                      onChange={(e) =>
+                        updateActiveSlide({ imageZoom: parseFloat(e.target.value) })
+                      }
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Width / Height dimensions for custom shapes */}
+                  {(gradientBlur.direction === 'custom-rect' || gradientBlur.direction === 'custom-circle' || gradientBlur.direction === 'radial') && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800/60">
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] mb-1">
+                          <span className="text-neutral-400">Largeur / Diamètre</span>
+                          <span className="font-mono text-neutral-200">{gradientBlur.width ?? 80}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={gradientBlur.width ?? 80}
+                          onChange={(e) =>
+                            setGradientBlur({ ...gradientBlur, width: parseInt(e.target.value) })
+                          }
+                          className="w-full accent-indigo-500"
+                        />
+                      </div>
+
+                      {gradientBlur.direction === 'custom-rect' && (
+                        <div>
+                          <div className="flex items-center justify-between text-[10px] mb-1">
+                            <span className="text-neutral-400">Hauteur Zone</span>
+                            <span className="font-mono text-neutral-200">{gradientBlur.height ?? 40}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="10"
+                            max="100"
+                            step="5"
+                            value={gradientBlur.height ?? 40}
+                            onChange={(e) =>
+                              setGradientBlur({ ...gradientBlur, height: parseInt(e.target.value) })
+                            }
+                            className="w-full accent-indigo-500"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] mb-1">
+                        <span className="text-neutral-400">Pan H. (X)</span>
+                        <span className="font-mono text-neutral-300">
+                          {activeSlide.imagePanX ?? 50}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={activeSlide.imagePanX ?? 50}
+                        onChange={(e) =>
+                          updateActiveSlide({ imagePanX: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] mb-1">
+                        <span className="text-neutral-400">Pan V. (Y)</span>
+                        <span className="font-mono text-neutral-300">
+                          {activeSlide.imagePanY ?? 50}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={activeSlide.imagePanY ?? 50}
+                        onChange={(e) =>
+                          updateActiveSlide({ imagePanY: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -943,36 +1116,15 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {[
-                        {
-                          id: 'bottom',
-                          label: 'Vers le Bas',
-                          desc: 'Texte en bas (idéal)',
-                          gradientPreview: 'from-transparent via-cyan-500/20 to-cyan-500/60',
-                        },
-                        {
-                          id: 'top',
-                          label: 'Vers le Haut',
-                          desc: 'Texte en haut',
-                          gradientPreview: 'from-cyan-500/60 via-cyan-500/20 to-transparent',
-                        },
-                        {
-                          id: 'tilt-shift',
-                          label: 'Tilt-Shift',
-                          desc: 'Bande nette centrale',
-                          gradientPreview: 'from-cyan-500/50 via-transparent to-cyan-500/50',
-                        },
-                        {
-                          id: 'radial',
-                          label: 'Radial',
-                          desc: 'Vignette floue',
-                          gradientPreview: 'from-transparent to-cyan-500/50',
-                        },
-                        {
-                          id: 'full',
-                          label: 'Flou Complet',
-                          desc: 'Fond ultra-doux',
-                          gradientPreview: 'bg-cyan-500/40',
-                        },
+                        { id: 'bottom', label: 'Vers le Bas', desc: 'Bas du visuel' },
+                        { id: 'top', label: 'Vers le Haut', desc: 'Haut du visuel' },
+                        { id: 'left', label: 'Vers la Gauche', desc: 'Gauche du visuel' },
+                        { id: 'right', label: 'Vers la Droite', desc: 'Droite du visuel' },
+                        { id: 'tilt-shift', label: 'Tilt-Shift', desc: 'Bande nette' },
+                        { id: 'radial', label: 'Radial Center', desc: 'Vignette floue' },
+                        { id: 'custom-rect', label: 'Zone Rectangulaire', desc: 'Cadre déplaçable' },
+                        { id: 'custom-circle', label: 'Zone Circulaire', desc: 'Cercle déplaçable' },
+                        { id: 'full', label: 'Flou Complet', desc: 'Fond ultra-doux' },
                       ].map((dir) => {
                         const isSelected = gradientBlur.direction === dir.id;
                         return (
@@ -1740,6 +1892,29 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* Custom Logo Scale multiplier for active slide */}
+                {activeSlide && (
+                  <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-neutral-300">Échelle Sur-Mesure (Diapo #{activeSlide.number})</span>
+                      <span className="font-mono text-indigo-400">
+                        {Math.round((activeSlide.logoScale ?? 1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.1"
+                      value={activeSlide.logoScale ?? 1}
+                      onChange={(e) =>
+                        updateActiveSlide({ logoScale: parseFloat(e.target.value) })
+                      }
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

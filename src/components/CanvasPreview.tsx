@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Maximize2,
   Grid,
@@ -45,6 +45,7 @@ interface CanvasPreviewProps {
   onSelectSlide: (idx: number) => void;
   onOpenExportModal: () => void;
   gradientBlur?: GradientBlurConfig;
+  setGradientBlur?: React.Dispatch<React.SetStateAction<GradientBlurConfig>>;
   colorFilter?: ColorFilterConfig;
   overlayImage?: OverlayImageConfig;
   setOverlayImage?: React.Dispatch<React.SetStateAction<OverlayImageConfig>>;
@@ -63,6 +64,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   onSelectSlide,
   onOpenExportModal,
   gradientBlur,
+  setGradientBlur,
   colorFilter,
   overlayImage,
   setOverlayImage,
@@ -424,6 +426,43 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         {/* VIEW 2: SINGLE SLIDE FULL BLEED FOCUS */}
         {viewMode === 'single' && (
           <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center my-auto">
+            {/* Interactive Drag & Drop framing helper notification */}
+            <div className="mb-3 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-800 text-[11px] text-neutral-300 flex items-center gap-2 shadow-lg backdrop-blur">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+              <span>
+                Glissez l'image ou n'importe quelle phrase/logo pour repositionner · Molette pour zoomer
+              </span>
+              {(activeSlide.kickerPos || activeSlide.phrasePos || activeSlide.subtitlePos || activeSlide.logoPos || (activeSlide.imagePanX !== undefined && activeSlide.imagePanX !== 50) || (activeSlide.imagePanY !== undefined && activeSlide.imagePanY !== 50)) && setSlides && (
+                <button
+                  onClick={() => {
+                    setSlides((prev) =>
+                      prev.map((s, idx) =>
+                        idx === currentSlideIndex
+                          ? {
+                              ...s,
+                              kickerPos: undefined,
+                              phrasePos: undefined,
+                              subtitlePos: undefined,
+                              logoPos: undefined,
+                              kickerScale: 1,
+                              phraseScale: 1,
+                              subtitleScale: 1,
+                              logoScale: 1,
+                              imagePanX: 50,
+                              imagePanY: 50,
+                              imageZoom: 1,
+                            }
+                          : s
+                      )
+                    );
+                  }}
+                  className="ml-2 px-2 py-0.5 bg-neutral-800 hover:bg-neutral-700 text-indigo-300 rounded font-medium transition-colors"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+
             <div
               className="relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden border border-neutral-800 group"
               style={{ aspectRatio: cssAspectRatio }}
@@ -438,13 +477,24 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 blur={gradientBlur}
                 filter={colorFilter}
                 overlay={overlayImage}
+                isInteractive={true}
+                onUpdateSlide={(fields) => {
+                  if (setSlides) {
+                    setSlides((prev) =>
+                      prev.map((s, idx) => (idx === currentSlideIndex ? { ...s, ...fields } : s))
+                    );
+                  }
+                }}
+                onUpdateBlur={(newBlur) => {
+                  if (setGradientBlur) setGradientBlur(newBlur);
+                }}
               />
 
               {/* Navigation overlays */}
               <button
                 onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
                 disabled={currentSlideIndex === 0}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-neutral-950/70 hover:bg-neutral-950 text-white disabled:opacity-0 transition-opacity backdrop-blur border border-neutral-800"
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-neutral-950/70 hover:bg-neutral-950 text-white disabled:opacity-0 transition-opacity backdrop-blur border border-neutral-800 z-40"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -453,7 +503,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                   setCurrentSlideIndex(Math.min(slides.length - 1, currentSlideIndex + 1))
                 }
                 disabled={currentSlideIndex === slides.length - 1}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-neutral-950/70 hover:bg-neutral-950 text-white disabled:opacity-0 transition-opacity backdrop-blur border border-neutral-800"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-neutral-950/70 hover:bg-neutral-950 text-white disabled:opacity-0 transition-opacity backdrop-blur border border-neutral-800 z-40"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -580,6 +630,9 @@ interface SlideVisualContentProps {
   blur?: GradientBlurConfig;
   filter?: ColorFilterConfig;
   overlay?: OverlayImageConfig;
+  isInteractive?: boolean;
+  onUpdateSlide?: (fields: Partial<SlideItem>) => void;
+  onUpdateBlur?: (blur: GradientBlurConfig) => void;
 }
 
 const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
@@ -591,7 +644,19 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   blur,
   filter,
   overlay,
+  isInteractive = false,
+  onUpdateSlide,
+  onUpdateBlur,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Active dragging element
+  const [activeDrag, setActiveDrag] = useState<
+    'none' | 'bg-image' | 'kicker' | 'phrase' | 'subtitle' | 'logo' | 'blur'
+  >('none');
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [initialPos, setInitialPos] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+
   const effectiveBlur = slide.customBlur || blur;
   const effectiveFilter = slide.customFilter || filter;
   const effectiveOverlay = slide.customOverlayImage || overlay;
@@ -666,20 +731,98 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       ? 'text-xs sm:text-sm md:text-base leading-snug'
       : 'text-sm sm:text-base md:text-xl lg:text-2xl leading-relaxed';
 
+  // Mouse / Touch Dragging Handlers
+  const handlePointerDown = (
+    target: 'bg-image' | 'kicker' | 'phrase' | 'subtitle' | 'logo' | 'blur',
+    e: React.PointerEvent
+  ) => {
+    if (!isInteractive || !onUpdateSlide) return;
+    e.stopPropagation();
+    setActiveDrag(target);
+    setDragStart({ x: e.clientX, y: e.clientY });
+
+    if (target === 'bg-image') {
+      setInitialPos({ x: slide.imagePanX ?? 50, y: slide.imagePanY ?? 50 });
+    } else if (target === 'kicker') {
+      setInitialPos(slide.kickerPos || { x: 50, y: 20 });
+    } else if (target === 'phrase') {
+      setInitialPos(slide.phrasePos || { x: 50, y: 50 });
+    } else if (target === 'subtitle') {
+      setInitialPos(slide.subtitlePos || { x: 50, y: 80 });
+    } else if (target === 'logo') {
+      setInitialPos(slide.logoPos || { x: 15, y: 10 });
+    } else if (target === 'blur' && effectiveBlur) {
+      setInitialPos({ x: effectiveBlur.positionX ?? 50, y: effectiveBlur.positionY ?? 50 });
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (activeDrag === 'none' || !containerRef.current || !onUpdateSlide) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const deltaX = ((e.clientX - dragStart.x) / rect.width) * 100;
+    const deltaY = ((e.clientY - dragStart.y) / rect.height) * 100;
+
+    const newX = Math.max(0, Math.min(100, Math.round(initialPos.x + deltaX)));
+    const newY = Math.max(0, Math.min(100, Math.round(initialPos.y + deltaY)));
+
+    if (activeDrag === 'bg-image') {
+      onUpdateSlide({ imagePanX: newX, imagePanY: newY });
+    } else if (activeDrag === 'kicker') {
+      onUpdateSlide({ kickerPos: { x: newX, y: newY } });
+    } else if (activeDrag === 'phrase') {
+      onUpdateSlide({ phrasePos: { x: newX, y: newY } });
+    } else if (activeDrag === 'subtitle') {
+      onUpdateSlide({ subtitlePos: { x: newX, y: newY } });
+    } else if (activeDrag === 'logo') {
+      onUpdateSlide({ logoPos: { x: newX, y: newY } });
+    } else if (activeDrag === 'blur' && effectiveBlur && onUpdateBlur) {
+      onUpdateBlur({ ...effectiveBlur, positionX: newX, positionY: newY });
+    }
+  };
+
+  const handlePointerUp = () => {
+    setActiveDrag('none');
+  };
+
+  // Wheel zoom for background image
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!isInteractive || !onUpdateSlide) return;
+    e.preventDefault();
+    const currentZoom = slide.imageZoom ?? 1;
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    const newZoom = Math.max(1, Math.min(3, parseFloat((currentZoom + delta).toFixed(2))));
+    onUpdateSlide({ imageZoom: newZoom });
+  };
+
+  // Scale modifiers for phrases/elements
+  const kickerScale = slide.kickerScale ?? 1;
+  const phraseScale = slide.phraseScale ?? 1;
+  const subtitleScale = slide.subtitleScale ?? 1;
+  const logoScale = slide.logoScale ?? 1;
+
   return (
     <div
+      ref={containerRef}
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="relative w-full h-full overflow-hidden select-none bg-neutral-950"
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onWheel={handleWheel}
+      className={`relative w-full h-full overflow-hidden select-none bg-neutral-950 ${
+        isInteractive ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
     >
-      {/* Background Image */}
+      {/* Background Image with Pan & Zoom */}
       <img
         src={slide.imageUrl}
         alt={slide.imageAlt || 'Slide visual'}
+        onPointerDown={(e) => handlePointerDown('bg-image', e)}
         referrerPolicy="no-referrer"
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500"
+        className="absolute inset-0 w-full h-full object-cover transition-all duration-150 touch-none"
         style={{
           filter: `brightness(${slide.imageBrightness ?? 100}%)`,
           transform: `scale(${slide.imageZoom ?? 1})`,
+          objectPosition: `${slide.imagePanX ?? 50}% ${slide.imagePanY ?? 50}%`,
         }}
         onError={(e) => {
           (e.currentTarget as HTMLElement).style.display = 'none';
@@ -688,36 +831,77 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
       {/* Gradient Blur Layer if enabled */}
       {effectiveBlur && effectiveBlur.enabled && effectiveBlur.blurAmount > 0 && (
-        <img
-          src={slide.imageUrl}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 pointer-events-none"
-          style={{
-            filter: `brightness(${slide.imageBrightness ?? 100}%) blur(${effectiveBlur.blurAmount}px)`,
-            transform: `scale(${slide.imageZoom ?? 1})`,
-            WebkitMaskImage:
-              effectiveBlur.direction === 'bottom'
-                ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
-                : effectiveBlur.direction === 'top'
-                ? 'linear-gradient(to top, transparent 35%, black 100%)'
-                : effectiveBlur.direction === 'tilt-shift'
-                ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
-                : effectiveBlur.direction === 'radial'
-                ? 'radial-gradient(circle, transparent 20%, black 75%)'
-                : undefined,
-            maskImage:
-              effectiveBlur.direction === 'bottom'
-                ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
-                : effectiveBlur.direction === 'top'
-                ? 'linear-gradient(to top, transparent 35%, black 100%)'
-                : effectiveBlur.direction === 'tilt-shift'
-                ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
-                : effectiveBlur.direction === 'radial'
-                ? 'radial-gradient(circle, transparent 20%, black 75%)'
-                : undefined,
-          }}
-        />
+        <>
+          {effectiveBlur.direction === 'custom-rect' ? (
+            <div
+              onPointerDown={(e) => handlePointerDown('blur', e)}
+              className="absolute z-20 backdrop-blur-md rounded-2xl border border-white/20 transition-all cursor-move"
+              style={{
+                left: `${effectiveBlur.positionX ?? 50}%`,
+                top: `${effectiveBlur.positionY ?? 50}%`,
+                width: `${effectiveBlur.width ?? 80}%`,
+                height: `${effectiveBlur.height ?? 40}%`,
+                transform: 'translate(-50%, -50%)',
+                backdropFilter: `blur(${effectiveBlur.blurAmount}px)`,
+                WebkitBackdropFilter: `blur(${effectiveBlur.blurAmount}px)`,
+              }}
+            />
+          ) : effectiveBlur.direction === 'custom-circle' ? (
+            <div
+              onPointerDown={(e) => handlePointerDown('blur', e)}
+              className="absolute z-20 backdrop-blur-md rounded-full border border-white/20 transition-all cursor-move"
+              style={{
+                left: `${effectiveBlur.positionX ?? 50}%`,
+                top: `${effectiveBlur.positionY ?? 50}%`,
+                width: `${effectiveBlur.width ?? 50}%`,
+                height: `${effectiveBlur.width ?? 50}%`,
+                transform: 'translate(-50%, -50%)',
+                backdropFilter: `blur(${effectiveBlur.blurAmount}px)`,
+                WebkitBackdropFilter: `blur(${effectiveBlur.blurAmount}px)`,
+              }}
+            />
+          ) : (
+            <img
+              src={slide.imageUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 pointer-events-none"
+              style={{
+                filter: `brightness(${slide.imageBrightness ?? 100}%) blur(${effectiveBlur.blurAmount}px)`,
+                transform: `scale(${slide.imageZoom ?? 1})`,
+                objectPosition: `${slide.imagePanX ?? 50}% ${slide.imagePanY ?? 50}%`,
+                WebkitMaskImage:
+                  effectiveBlur.direction === 'bottom'
+                    ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'top'
+                    ? 'linear-gradient(to top, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'left'
+                    ? 'linear-gradient(to left, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'right'
+                    ? 'linear-gradient(to right, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'tilt-shift'
+                    ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
+                    : effectiveBlur.direction === 'radial'
+                    ? 'radial-gradient(circle, transparent 20%, black 75%)'
+                    : undefined,
+                maskImage:
+                  effectiveBlur.direction === 'bottom'
+                    ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'top'
+                    ? 'linear-gradient(to top, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'left'
+                    ? 'linear-gradient(to left, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'right'
+                    ? 'linear-gradient(to right, transparent 35%, black 100%)'
+                    : effectiveBlur.direction === 'tilt-shift'
+                    ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
+                    : effectiveBlur.direction === 'radial'
+                    ? 'radial-gradient(circle, transparent 20%, black 75%)'
+                    : undefined,
+              }}
+            />
+          )}
+        </>
       )}
 
       {/* Color Gradient Filter Overlay if enabled */}
@@ -793,11 +977,16 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         />
       )}
 
-      {/* Predefined or Custom Logo */}
+      {/* Predefined or Custom Logo with Interactive Dragging and Scaling */}
       {logo.enabled && (
         <div
-          className={`absolute z-10 flex items-center gap-2 pointer-events-none ${
-            logo.position === 'top-left'
+          onPointerDown={(e) => handlePointerDown('logo', e)}
+          className={`absolute z-30 flex items-center gap-2 transition-all ${
+            isInteractive ? 'cursor-grab hover:ring-2 hover:ring-indigo-400/80 p-1 rounded-lg' : 'pointer-events-none'
+          } ${
+            slide.logoPos
+              ? ''
+              : logo.position === 'top-left'
               ? 'top-4 left-4'
               : logo.position === 'top-right'
               ? 'top-4 right-4 text-right'
@@ -807,7 +996,18 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               ? 'bottom-4 right-4 text-right'
               : 'top-4 left-1/2 -translate-x-1/2 text-center'
           }`}
-          style={{ opacity: logo.opacity }}
+          style={{
+            opacity: logo.opacity,
+            ...(slide.logoPos
+              ? {
+                  left: `${slide.logoPos.x}%`,
+                  top: `${slide.logoPos.y}%`,
+                  transform: `translate(-50%, -50%) scale(${logoScale})`,
+                }
+              : {
+                  transform: `scale(${logoScale})`,
+                }),
+          }}
         >
           {logo.type === 'custom' && logo.customUrl ? (
             <img
@@ -874,26 +1074,84 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
       {/* Main Content Area */}
       <div
-        className={`relative z-10 w-full h-full p-6 sm:p-8 flex flex-col ${positionClass} ${alignClass}`}
+        className={`relative z-20 w-full h-full p-6 sm:p-8 flex flex-col ${
+          slide.phrasePos ? 'justify-start pt-0' : positionClass
+        } ${alignClass}`}
       >
-        <div className={`max-w-xl w-full flex flex-col ${alignClass} ${boxClasses}`}>
-          {/* Kicker tag with user chosen kicker alignment */}
-          {typography.showKicker && slide.kicker && (
+        {/* Kicker tag with custom drag position or flow */}
+        {typography.showKicker && slide.kicker && slide.kickerPos && (
+          <span
+            onPointerDown={(e) => handlePointerDown('kicker', e)}
+            className={`absolute z-30 text-[10px] sm:text-xs font-bold tracking-widest uppercase cursor-grab hover:ring-2 hover:ring-indigo-400/80 rounded px-1 ${
+              kickerAlign === 'center' ? 'text-center' : kickerAlign === 'right' ? 'text-right' : 'text-left'
+            }`}
+            style={{
+              color: typography.accentColor || '#818cf8',
+              left: `${slide.kickerPos.x}%`,
+              top: `${slide.kickerPos.y}%`,
+              transform: `translate(-50%, -50%) scale(${kickerScale})`,
+            }}
+          >
+            {slide.kicker}
+          </span>
+        )}
+
+        {/* Subtitle with custom drag position or flow */}
+        {typography.showSubtitle && slide.subtitle && slide.subtitlePos && (
+          <p
+            onPointerDown={(e) => handlePointerDown('subtitle', e)}
+            className={`absolute z-30 text-[11px] sm:text-xs text-neutral-300 font-normal leading-relaxed cursor-grab hover:ring-2 hover:ring-indigo-400/80 rounded px-1 ${
+              phraseAlign === 'center' ? 'text-center' : phraseAlign === 'right' ? 'text-right' : 'text-left'
+            }`}
+            style={{
+              left: `${slide.subtitlePos.x}%`,
+              top: `${slide.subtitlePos.y}%`,
+              transform: `translate(-50%, -50%) scale(${subtitleScale})`,
+            }}
+          >
+            {slide.subtitle}
+          </p>
+        )}
+
+        <div
+          onPointerDown={(e) => handlePointerDown('phrase', e)}
+          className={`max-w-xl w-full flex flex-col ${alignClass} ${boxClasses} transition-all ${
+            isInteractive ? 'cursor-grab hover:ring-2 hover:ring-indigo-400/80 rounded-xl p-2' : ''
+          }`}
+          style={
+            slide.phrasePos
+              ? {
+                  position: 'absolute',
+                  left: `${slide.phrasePos.x}%`,
+                  top: `${slide.phrasePos.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                }
+              : {}
+          }
+        >
+          {/* Kicker tag when in normal flow */}
+          {typography.showKicker && slide.kicker && !slide.kickerPos && (
             <span
+              onPointerDown={(e) => handlePointerDown('kicker', e)}
               className={`text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2 ${
+                isInteractive ? 'cursor-grab hover:ring-1 hover:ring-indigo-300 rounded px-1' : ''
+              } ${
                 kickerAlign === 'center'
                   ? 'text-center self-center'
                   : kickerAlign === 'right'
                   ? 'text-right self-end'
                   : 'text-left self-start'
               }`}
-              style={{ color: typography.accentColor || '#818cf8' }}
+              style={{
+                color: typography.accentColor || '#818cf8',
+                transform: `scale(${kickerScale})`,
+              }}
             >
               {slide.kicker}
             </span>
           )}
 
-          {/* Main Phrase Text with user chosen phrase alignment */}
+          {/* Main Phrase Text with custom phrase alignment & scale */}
           <h2
             className={`font-bold ${fontClass} ${textSizeClass} text-white tracking-tight ${
               phraseAlign === 'center'
@@ -904,21 +1162,29 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             }`}
             style={{
               color: typography.textColor || '#ffffff',
+              transform: `scale(${phraseScale})`,
+              transformOrigin: phraseAlign === 'center' ? 'center' : phraseAlign === 'right' ? 'right' : 'left',
             }}
           >
             {slide.text}
           </h2>
 
-          {/* Subtitle / Citation with phrase alignment */}
-          {typography.showSubtitle && slide.subtitle && (
+          {/* Subtitle / Citation when in normal flow */}
+          {typography.showSubtitle && slide.subtitle && !slide.subtitlePos && (
             <p
+              onPointerDown={(e) => handlePointerDown('subtitle', e)}
               className={`mt-2 text-[11px] sm:text-xs text-neutral-300 font-normal leading-relaxed ${
+                isInteractive ? 'cursor-grab hover:ring-1 hover:ring-indigo-300 rounded px-1' : ''
+              } ${
                 phraseAlign === 'center'
                   ? 'text-center'
                   : phraseAlign === 'right'
                   ? 'text-right'
                   : 'text-left'
               }`}
+              style={{
+                transform: `scale(${subtitleScale})`,
+              }}
             >
               {slide.subtitle}
             </p>

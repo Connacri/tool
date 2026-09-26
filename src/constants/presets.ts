@@ -225,10 +225,15 @@ export const INITIAL_LOGO: LogoConfig = {
   theme: 'white',
 };
 
-export const INITIAL_GRADIENT_BLUR = {
+export const INITIAL_GRADIENT_BLUR: GradientBlurConfig = {
   enabled: false,
-  direction: 'bottom' as const,
+  direction: 'bottom',
   blurAmount: 12,
+  positionX: 50,
+  positionY: 80,
+  width: 100,
+  height: 50,
+  feather: 50,
 };
 
 export const COLOR_FILTER_PRESETS = [

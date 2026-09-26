@@ -101,22 +101,31 @@ export async function renderSlideToCanvas(
   // 1. Draw Background Image or Fallback Gradient
   try {
     const bgImage = await loadImage(slide.imageUrl);
-    // Draw image object-fit: cover
+    // Draw image object-fit: cover with imagePanX, imagePanY and imageZoom
     const imgRatio = bgImage.naturalWidth / bgImage.naturalHeight;
     const canvasRatio = width / height;
 
-    let sWidth = bgImage.naturalWidth;
-    let sHeight = bgImage.naturalHeight;
-    let sx = 0;
-    let sy = 0;
+    const zoom = Math.max(1, slide.imageZoom ?? 1);
+    const panX = Math.max(0, Math.min(100, slide.imagePanX ?? 50)) / 100;
+    const panY = Math.max(0, Math.min(100, slide.imagePanY ?? 50)) / 100;
+
+    let baseSWidth = bgImage.naturalWidth;
+    let baseSHeight = bgImage.naturalHeight;
 
     if (imgRatio > canvasRatio) {
-      sWidth = bgImage.naturalHeight * canvasRatio;
-      sx = (bgImage.naturalWidth - sWidth) / 2;
+      baseSWidth = bgImage.naturalHeight * canvasRatio;
     } else {
-      sHeight = bgImage.naturalWidth / canvasRatio;
-      sy = (bgImage.naturalHeight - sHeight) / 2;
+      baseSHeight = bgImage.naturalWidth / canvasRatio;
     }
+
+    const sWidth = baseSWidth / zoom;
+    const sHeight = baseSHeight / zoom;
+
+    const maxSx = bgImage.naturalWidth - sWidth;
+    const maxSy = bgImage.naturalHeight - sHeight;
+
+    const sx = Math.max(0, Math.min(maxSx, panX * (bgImage.naturalWidth - sWidth)));
+    const sy = Math.max(0, Math.min(maxSy, panY * (bgImage.naturalHeight - sHeight)));
 
     const brightness = slide.imageBrightness ?? 100;
 
@@ -146,7 +155,7 @@ export async function renderSlideToCanvas(
 
           // Create mask gradient
           offCtx.globalCompositeOperation = 'destination-in';
-          let maskGrad: CanvasGradient;
+          let maskGrad: CanvasGradient | null = null;
 
           if (activeBlur.direction === 'bottom') {
             maskGrad = offCtx.createLinearGradient(0, height * 0.35, 0, height);
@@ -158,28 +167,57 @@ export async function renderSlideToCanvas(
             maskGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
             maskGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
             maskGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else if (activeBlur.direction === 'left') {
+            maskGrad = offCtx.createLinearGradient(0, 0, width * 0.65, 0);
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            maskGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else if (activeBlur.direction === 'right') {
+            maskGrad = offCtx.createLinearGradient(width * 0.35, 0, width, 0);
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            maskGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
           } else if (activeBlur.direction === 'tilt-shift') {
             maskGrad = offCtx.createLinearGradient(0, 0, 0, height);
             maskGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
             maskGrad.addColorStop(0.35, 'rgba(0, 0, 0, 0)');
             maskGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0)');
             maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
-          } else {
-            // radial
-            maskGrad = offCtx.createRadialGradient(
-              width / 2,
-              height / 2,
-              width * 0.2,
-              width / 2,
-              height / 2,
-              width * 0.7
-            );
+          } else if (activeBlur.direction === 'custom-rect') {
+            const posX = ((activeBlur.positionX ?? 50) / 100) * width;
+            const posY = ((activeBlur.positionY ?? 50) / 100) * height;
+            const rectW = ((activeBlur.width ?? 80) / 100) * width;
+            const rectH = ((activeBlur.height ?? 40) / 100) * height;
+            const rx = posX - rectW / 2;
+            const ry = posY - rectH / 2;
+
+            offCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+            roundRect(offCtx, rx, ry, rectW, rectH, 20);
+            offCtx.fill();
+          } else if (activeBlur.direction === 'custom-circle') {
+            const posX = ((activeBlur.positionX ?? 50) / 100) * width;
+            const posY = ((activeBlur.positionY ?? 50) / 100) * height;
+            const radius = (((activeBlur.width ?? 50) / 100) * width) / 2;
+
+            offCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+            offCtx.beginPath();
+            offCtx.arc(posX, posY, radius, 0, Math.PI * 2);
+            offCtx.fill();
+          } else if (activeBlur.direction === 'radial') {
+            const posX = ((activeBlur.positionX ?? 50) / 100) * width;
+            const posY = ((activeBlur.positionY ?? 50) / 100) * height;
+            const rInner = width * 0.15;
+            const rOuter = (width * ((activeBlur.width ?? 70) / 100)) / 2;
+
+            maskGrad = offCtx.createRadialGradient(posX, posY, rInner, posX, posY, rOuter);
             maskGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
             maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
           }
 
-          offCtx.fillStyle = maskGrad;
-          offCtx.fillRect(0, 0, width, height);
+          if (maskGrad) {
+            offCtx.fillStyle = maskGrad;
+            offCtx.fillRect(0, 0, width, height);
+          }
 
           // Composite blurred layer onto main canvas
           ctx.drawImage(offCanvas, 0, 0);
@@ -251,9 +289,9 @@ export async function renderSlideToCanvas(
 
   // Dynamic font configuration (supporting Arabic Google fonts)
   const fontFamily = getFontFamilyString(typography.fontStyle, typography.arabicFont, isRtl);
-  const baseSize = Math.round(width * 0.048 * typography.fontSize);
-  const kickerSize = Math.round(baseSize * 0.38);
-  const subtitleSize = Math.round(baseSize * 0.42);
+  const baseSize = Math.round(width * 0.048 * typography.fontSize * (slide.phraseScale ?? 1));
+  const kickerSize = Math.round(baseSize * 0.38 * (slide.kickerScale ?? 1));
+  const subtitleSize = Math.round(baseSize * 0.42 * (slide.subtitleScale ?? 1));
   const lineHeight = Math.round(baseSize * 1.35);
 
   // Set directional mode on 2D context for Arabic shaping and bidirectional numerals
@@ -286,7 +324,7 @@ export async function renderSlideToCanvas(
     (typography.showKicker ? kickerSize * 2 : 0) +
     (typography.showSubtitle ? subtitleSize * 2 : 0);
 
-  // Determine Y position
+  // Determine default Y position
   let startY = 0;
   if (typography.position === 'top') {
     startY = paddingY + (logo.enabled && logo.position.includes('top') ? 110 : 30);
@@ -307,8 +345,8 @@ export async function renderSlideToCanvas(
     ctx.fillRect(0, startY - 120, width, height - (startY - 120));
   } else if (typography.boxStyle === 'frosted') {
     const boxPad = 48;
-    const boxX = paddingX - boxPad / 2;
-    const boxY = startY - boxPad;
+    const boxX = slide.phrasePos ? (slide.phrasePos.x / 100) * width - contentWidth / 2 : paddingX - boxPad / 2;
+    const boxY = slide.phrasePos ? (slide.phrasePos.y / 100) * height - totalTextHeight / 2 : startY - boxPad;
     const boxW = contentWidth + boxPad;
     const boxH = totalTextHeight + boxPad * 2;
     const radius = 24;
@@ -323,8 +361,8 @@ export async function renderSlideToCanvas(
     ctx.restore();
   } else if (typography.boxStyle === 'solid-card') {
     const boxPad = 48;
-    const boxX = paddingX - boxPad / 2;
-    const boxY = startY - boxPad;
+    const boxX = slide.phrasePos ? (slide.phrasePos.x / 100) * width - contentWidth / 2 : paddingX - boxPad / 2;
+    const boxY = slide.phrasePos ? (slide.phrasePos.y / 100) * height - totalTextHeight / 2 : startY - boxPad;
     const boxW = contentWidth + boxPad;
     const boxH = totalTextHeight + boxPad * 2;
     const radius = 16;
@@ -342,31 +380,37 @@ export async function renderSlideToCanvas(
   ctx.textBaseline = 'top';
   let currentY = startY;
 
-  // 4. Draw Kicker with user-selected kickerAlign
+  // 4. Draw Kicker with user-selected kickerAlign or custom position
   if (typography.showKicker && slide.kicker) {
     ctx.save();
     ctx.direction = isRtl ? 'rtl' : 'ltr';
     ctx.textAlign = kickerAlign;
-    const kickerX = getAlignX(kickerAlign);
+    const kickerX = slide.kickerPos ? (slide.kickerPos.x / 100) * width : getAlignX(kickerAlign);
+    const kickerYPos = slide.kickerPos ? (slide.kickerPos.y / 100) * height : currentY;
+
     ctx.font = isRtl
       ? `700 ${kickerSize}px ${fontFamily}`
       : `700 ${kickerSize}px 'Plus Jakarta Sans', sans-serif`;
     ctx.fillStyle = typography.accentColor || '#818cf8';
     if (!isRtl) {
       ctx.letterSpacing = '2px';
-      ctx.fillText(slide.kicker.toUpperCase(), kickerX, currentY);
+      ctx.fillText(slide.kicker.toUpperCase(), kickerX, kickerYPos);
     } else {
-      ctx.fillText(slide.kicker, kickerX, currentY);
+      ctx.fillText(slide.kicker, kickerX, kickerYPos);
     }
     ctx.restore();
-    currentY += kickerSize + 20;
+    if (!slide.kickerPos) {
+      currentY += kickerSize + 20;
+    }
   }
 
-  // 5. Draw Main Phrase Lines with user-selected phraseAlign
+  // 5. Draw Main Phrase Lines with user-selected phraseAlign or custom position
   ctx.save();
   ctx.direction = isRtl ? 'rtl' : 'ltr';
   ctx.textAlign = phraseAlign;
-  const phraseX = getAlignX(phraseAlign);
+  const phraseX = slide.phrasePos ? (slide.phrasePos.x / 100) * width : getAlignX(phraseAlign);
+  let phraseYPos = slide.phrasePos ? (slide.phrasePos.y / 100) * height : currentY;
+
   ctx.font = `700 ${baseSize}px ${fontFamily}`;
   ctx.fillStyle = typography.textColor || '#ffffff';
 
@@ -388,28 +432,35 @@ export async function renderSlideToCanvas(
       }
       ctx.save();
       ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
-      roundRect(ctx, hlX, currentY - 4, lineMetrics.width + 24, lineHeight, 8);
+      roundRect(ctx, hlX, phraseYPos - 4, lineMetrics.width + 24, lineHeight, 8);
       ctx.fill();
       ctx.restore();
     }
 
-    ctx.fillText(line, phraseX, currentY);
-    currentY += lineHeight;
+    ctx.fillText(line, phraseX, phraseYPos);
+    phraseYPos += lineHeight;
   }
   ctx.restore();
+  if (!slide.phrasePos) {
+    currentY = phraseYPos;
+  }
 
-  // 6. Draw Subtitle / Citation with phrase alignment
+  // 6. Draw Subtitle / Citation with phrase alignment or custom position
   if (typography.showSubtitle && slide.subtitle) {
-    currentY += 16;
+    if (!slide.subtitlePos) {
+      currentY += 16;
+    }
     ctx.save();
     ctx.direction = isRtl ? 'rtl' : 'ltr';
     ctx.textAlign = phraseAlign;
-    const subX = getAlignX(phraseAlign);
+    const subX = slide.subtitlePos ? (slide.subtitlePos.x / 100) * width : getAlignX(phraseAlign);
+    const subYPos = slide.subtitlePos ? (slide.subtitlePos.y / 100) * height : currentY;
+
     ctx.font = isRtl
       ? `400 ${subtitleSize}px ${fontFamily}`
       : `400 ${subtitleSize}px 'Plus Jakarta Sans', sans-serif`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
-    ctx.fillText(slide.subtitle, subX, currentY);
+    ctx.fillText(slide.subtitle, subX, subYPos);
     ctx.restore();
   }
 
@@ -428,7 +479,7 @@ export async function renderSlideToCanvas(
 
   // 8. Draw Logo if Enabled
   if (logo.enabled) {
-    await renderLogoOnCanvas(ctx, logo, width, height, paddingX, paddingY);
+    await renderLogoOnCanvas(ctx, logo, width, height, paddingX, paddingY, slide);
   }
 
   return canvas;
@@ -443,10 +494,13 @@ async function renderLogoOnCanvas(
   width: number,
   height: number,
   paddingX: number,
-  paddingY: number
+  paddingY: number,
+  slide?: SlideItem
 ) {
   ctx.save();
   ctx.globalAlpha = logo.opacity;
+
+  const logoScale = slide?.logoScale ?? 1;
 
   // Determine logo position coordinates
   const marginX = paddingX;
@@ -456,7 +510,11 @@ async function renderLogoOnCanvas(
   let ly = marginY;
   let textAlign: CanvasTextAlign = 'left';
 
-  if (logo.position === 'top-left') {
+  if (slide?.logoPos) {
+    lx = (slide.logoPos.x / 100) * width;
+    ly = (slide.logoPos.y / 100) * height;
+    textAlign = 'left';
+  } else if (logo.position === 'top-left') {
     lx = marginX;
     ly = marginY;
     textAlign = 'left';
@@ -481,7 +539,7 @@ async function renderLogoOnCanvas(
   if (logo.type === 'custom' && logo.customUrl) {
     try {
       const customImg = await loadImage(logo.customUrl);
-      const maxW = logo.size === 'small' ? 100 : logo.size === 'medium' ? 160 : 220;
+      const maxW = (logo.size === 'small' ? 100 : logo.size === 'medium' ? 160 : 220) * logoScale;
       const scale = maxW / customImg.naturalWidth;
       const destW = customImg.naturalWidth * scale;
       const destH = customImg.naturalHeight * scale;
@@ -496,7 +554,7 @@ async function renderLogoOnCanvas(
     }
   } else {
     // Predefined Logo rendering
-    const emblemSize = logo.size === 'small' ? 24 : logo.size === 'medium' ? 32 : 40;
+    const emblemSize = Math.round((logo.size === 'small' ? 24 : logo.size === 'medium' ? 32 : 40) * logoScale);
     const textSize = Math.round(emblemSize * 0.65);
     const subTextSize = Math.round(textSize * 0.72);
 

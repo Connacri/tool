@@ -225,6 +225,7 @@ export default function App() {
           typography={typography}
           logo={logo}
           gradientBlur={gradientBlur}
+          setGradientBlur={setGradientBlur}
           colorFilter={colorFilter}
           overlayImage={overlayImage}
           setOverlayImage={setOverlayImage}

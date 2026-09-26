@@ -52,12 +52,27 @@ export interface LogoConfig {
   theme: 'white' | 'dark' | 'accent';
 }
 
-export type GradientBlurDirection = 'none' | 'bottom' | 'top' | 'radial' | 'tilt-shift' | 'full';
+export type GradientBlurDirection =
+  | 'none'
+  | 'bottom'
+  | 'top'
+  | 'left'
+  | 'right'
+  | 'radial'
+  | 'tilt-shift'
+  | 'custom-rect'
+  | 'custom-circle'
+  | 'full';
 
 export interface GradientBlurConfig {
   enabled: boolean;
   direction: GradientBlurDirection;
-  blurAmount: number; // in pixels, e.g. 0 to 24px
+  blurAmount: number; // in pixels, e.g. 0 to 40px
+  positionX?: number; // 0 to 100%
+  positionY?: number; // 0 to 100%
+  width?: number; // 10 to 100%
+  height?: number; // 10 to 100%
+  feather?: number; // 0 to 100%
 }
 
 export type ColorFilterPreset =
@@ -109,6 +124,11 @@ export interface OverlayImageConfig {
   applyToAll: boolean; // true = global, false = slide-specific
 }
 
+export interface ElementPosition {
+  x: number; // 0 - 100% relative position
+  y: number; // 0 - 100% relative position
+}
+
 export interface SlideItem {
   id: string;
   number: number;
@@ -118,9 +138,24 @@ export interface SlideItem {
   imageUrl: string;
   imageAlt?: string;
   imageZoom?: number;
+  imagePanX?: number; // 0 to 100%
+  imagePanY?: number; // 0 to 100%
   imageBrightness?: number;
   customOverlayOpacity?: number;
   scheduledTime?: string;
+
+  // Custom positioning & scale per phrase / element
+  kickerPos?: ElementPosition;
+  kickerScale?: number;
+  phrasePos?: ElementPosition;
+  phraseScale?: number;
+  subtitlePos?: ElementPosition;
+  subtitleScale?: number;
+  logoPos?: ElementPosition;
+  logoScale?: number;
+  blurPos?: ElementPosition;
+  blurSize?: { width: number; height: number };
+
   customBlur?: GradientBlurConfig;
   customFilter?: ColorFilterConfig;
   customOverlayImage?: OverlayImageConfig;
