@@ -23,15 +23,8 @@ import {
   FileText,
   ExternalLink,
 } from 'lucide-react';
-import {
-  AspectRatioOption,
-  AspectRatioType,
-  LogoConfig,
-  SlideItem,
-  TypographyConfig,
-  WebhookConfig,
-} from '../types';
-import { ASPECT_RATIOS, PREDEFINED_LOGOS } from '../constants/presets';
+import { AspectRatioOption, AspectRatioType, LogoConfig, SlideItem, TypographyConfig, WebhookConfig } from '../types';
+import { ASPECT_RATIOS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
 
 interface EditorSidebarProps {
   activeTab: string;
@@ -458,27 +451,27 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 {[
                   {
                     name: 'Studio Design',
-                    url: '/src/assets/images/card_studio_creativity_1790459712154.jpg',
+                    url: PRESET_IMAGES.creativity,
                   },
                   {
                     name: 'Architecture',
-                    url: '/src/assets/images/card_minimal_architecture_1790459725529.jpg',
+                    url: PRESET_IMAGES.architecture,
                   },
                   {
                     name: 'Nature Sereine',
-                    url: '/src/assets/images/card_serene_nature_1790459734331.jpg',
+                    url: PRESET_IMAGES.nature,
                   },
                   {
                     name: 'Artisanat',
-                    url: '/src/assets/images/card_design_craft_1790459743674.jpg',
+                    url: PRESET_IMAGES.craft,
                   },
                   {
                     name: 'Sculpture',
-                    url: '/src/assets/images/card_modern_structure_1790459754325.jpg',
+                    url: PRESET_IMAGES.structure,
                   },
                   {
                     name: 'Skyline Urbain',
-                    url: '/src/assets/images/card_golden_skyline_1790459764376.jpg',
+                    url: PRESET_IMAGES.skyline,
                   },
                 ].map((item, i) => (
                   <button

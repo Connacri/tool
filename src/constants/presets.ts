@@ -1,4 +1,19 @@
 import { AspectRatioOption, LogoConfig, SlideItem, TypographyConfig } from '../types';
+import imgCreativity from '../assets/images/card_studio_creativity_1790459712154.jpg';
+import imgArchitecture from '../assets/images/card_minimal_architecture_1790459725529.jpg';
+import imgNature from '../assets/images/card_serene_nature_1790459734331.jpg';
+import imgCraft from '../assets/images/card_design_craft_1790459743674.jpg';
+import imgStructure from '../assets/images/card_modern_structure_1790459754325.jpg';
+import imgSkyline from '../assets/images/card_golden_skyline_1790459764376.jpg';
+
+export const PRESET_IMAGES = {
+  creativity: imgCreativity,
+  architecture: imgArchitecture,
+  nature: imgNature,
+  craft: imgCraft,
+  structure: imgStructure,
+  skyline: imgSkyline,
+};
 
 export const ASPECT_RATIOS: AspectRatioOption[] = [
   {
@@ -86,7 +101,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "La créativité n'est pas un don rare, c'est une façon audacieuse de regarder le monde.",
     kicker: 'VISION & CRÉATION',
     subtitle: 'Épisode 01 · Studio Journal',
-    imageUrl: '/src/assets/images/card_studio_creativity_1790459712154.jpg',
+    imageUrl: PRESET_IMAGES.creativity,
     imageAlt: 'Studio design avec lumière naturelle',
     imageZoom: 1,
     imageBrightness: 100,
@@ -99,7 +114,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "Chaque grand accomplissement commence par une seule idée exécutée avec discipline.",
     kicker: 'MINDSET & EXECUTION',
     subtitle: 'Épisode 02 · Studio Journal',
-    imageUrl: '/src/assets/images/card_minimal_architecture_1790459725529.jpg',
+    imageUrl: PRESET_IMAGES.architecture,
     imageAlt: 'Pavillon architectural minimaliste à l aube',
     imageZoom: 1,
     imageBrightness: 100,
@@ -112,7 +127,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "La régularité bat l'intensité chaque jour de la semaine sans exception.",
     kicker: 'RÈGLE D OR',
     subtitle: 'Épisode 03 · Studio Journal',
-    imageUrl: '/src/assets/images/card_serene_nature_1790459734331.jpg',
+    imageUrl: PRESET_IMAGES.nature,
     imageAlt: 'Lac alpin brumeux au lever du jour',
     imageZoom: 1,
     imageBrightness: 100,
@@ -125,7 +140,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "Simplifiez sans compromis jusqu'à ce qu'il ne reste que la pure quintessence.",
     kicker: 'DESIGN ÉPURÉ',
     subtitle: 'Épisode 04 · Studio Journal',
-    imageUrl: '/src/assets/images/card_design_craft_1790459743674.jpg',
+    imageUrl: PRESET_IMAGES.craft,
     imageAlt: 'Vase céramique artisanal sur pierre travertine',
     imageZoom: 1,
     imageBrightness: 100,
@@ -138,7 +153,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "Construisez pour traverser les époques, pas seulement pour capter l'attention éphémère.",
     kicker: 'IMPACT DURABLE',
     subtitle: 'Épisode 05 · Studio Journal',
-    imageUrl: '/src/assets/images/card_modern_structure_1790459754325.jpg',
+    imageUrl: PRESET_IMAGES.structure,
     imageAlt: 'Sculpture d acier et de verre sous ciel crépusculaire',
     imageZoom: 1,
     imageBrightness: 100,
@@ -151,7 +166,7 @@ export const INITIAL_SLIDES: SlideItem[] = [
     text: "L'innovation émerge toujours à l'intersection exacte de la passion et de la rigueur.",
     kicker: 'FUTUR & CULTURE',
     subtitle: 'Épisode 06 · Studio Journal',
-    imageUrl: '/src/assets/images/card_golden_skyline_1790459764376.jpg',
+    imageUrl: PRESET_IMAGES.skyline,
     imageAlt: 'Horizon urbain et reflets dorés',
     imageZoom: 1,
     imageBrightness: 100,

@@ -21,7 +21,13 @@ export function loadSavedSlides(): SlideItem[] {
     if (!raw) return INITIAL_SLIDES;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      return parsed.map((s, idx) => {
+        if (s.imageUrl && s.imageUrl.startsWith('/src/assets/images/')) {
+          const fallback = INITIAL_SLIDES[idx % INITIAL_SLIDES.length];
+          return { ...s, imageUrl: fallback.imageUrl };
+        }
+        return s;
+      });
     }
   } catch (e) {
     console.warn('Erreur lors du chargement des slides depuis le localStorage:', e);
