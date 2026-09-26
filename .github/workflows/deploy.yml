@@ -29,10 +29,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Installer les dépendances
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm install --legacy-peer-deps
+          else
+            npm install --legacy-peer-deps --no-package-lock
+          fi
 
       - name: Compiler le site statique (Vite build)
         run: npm run build

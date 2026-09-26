@@ -15,6 +15,8 @@ import {
 import JSZip from 'jszip';
 import {
   AspectRatioOption,
+  ColorFilterConfig,
+  GradientBlurConfig,
   LogoConfig,
   SlideItem,
   TypographyConfig,
@@ -29,6 +31,8 @@ interface AutomatedExportModalProps {
   aspectRatio: AspectRatioOption;
   typography: TypographyConfig;
   logo: LogoConfig;
+  gradientBlur?: GradientBlurConfig;
+  colorFilter?: ColorFilterConfig;
 }
 
 export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
@@ -38,6 +42,8 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   aspectRatio,
   typography,
   logo,
+  gradientBlur,
+  colorFilter,
 }) => {
   const [activeTab, setActiveTab] = useState<'zip' | 'webhook' | 'calendar'>('zip');
   
@@ -79,7 +85,9 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
           aspectRatio,
           typography,
           logo,
-          slides.length
+          slides.length,
+          gradientBlur,
+          colorFilter
         );
 
         // Convert canvas to blob/data

@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import {
   AspectRatioOption,
+  ColorFilterConfig,
+  GradientBlurConfig,
   LogoConfig,
   SlideItem,
   TypographyConfig,
@@ -33,6 +35,8 @@ interface CanvasPreviewProps {
   logo: LogoConfig;
   onSelectSlide: (idx: number) => void;
   onOpenExportModal: () => void;
+  gradientBlur?: GradientBlurConfig;
+  colorFilter?: ColorFilterConfig;
   mobileView?: 'editor' | 'preview';
   setMobileView?: (view: 'editor' | 'preview') => void;
 }
@@ -46,6 +50,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   logo,
   onSelectSlide,
   onOpenExportModal,
+  gradientBlur,
+  colorFilter,
   mobileView = 'preview',
   setMobileView,
 }) => {
@@ -63,7 +69,9 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         aspectRatio,
         typography,
         logo,
-        slides.length
+        slides.length,
+        gradientBlur,
+        colorFilter
       );
       downloadCanvasAsPng(canvas, `autopost_slide_${slide.number}_${aspectRatio.id.replace(':', 'x')}.png`);
     } catch (err) {
@@ -81,7 +89,9 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         aspectRatio,
         typography,
         logo,
-        slides.length
+        slides.length,
+        gradientBlur,
+        colorFilter
       );
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -256,6 +266,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                         logo={logo}
                         totalSlides={slides.length}
                         scale="compact"
+                        blur={gradientBlur}
+                        filter={colorFilter}
                       />
 
                       {/* Hover action overlay */}
@@ -312,6 +324,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 logo={logo}
                 totalSlides={slides.length}
                 scale="normal"
+                blur={gradientBlur}
+                filter={colorFilter}
               />
 
               {/* Navigation overlays */}
@@ -403,6 +417,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 logo={logo}
                 totalSlides={slides.length}
                 scale="normal"
+                blur={gradientBlur}
+                filter={colorFilter}
               />
             </div>
 
@@ -448,6 +464,8 @@ interface SlideVisualContentProps {
   logo: LogoConfig;
   totalSlides: number;
   scale: 'compact' | 'normal';
+  blur?: GradientBlurConfig;
+  filter?: ColorFilterConfig;
 }
 
 const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
@@ -456,7 +474,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   logo,
   totalSlides,
   scale,
+  blur,
+  filter,
 }) => {
+  const effectiveBlur = slide.customBlur || blur;
+  const effectiveFilter = slide.customFilter || filter;
+
   // Font family class
   const fontClass =
     typography.fontStyle === 'editorial'
@@ -511,10 +534,55 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
           transform: `scale(${slide.imageZoom ?? 1})`,
         }}
         onError={(e) => {
-          // If image fails, fallback to subtle dark gradient
           (e.currentTarget as HTMLElement).style.display = 'none';
         }}
       />
+
+      {/* Gradient Blur Layer if enabled */}
+      {effectiveBlur && effectiveBlur.enabled && effectiveBlur.blurAmount > 0 && (
+        <img
+          src={slide.imageUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 pointer-events-none"
+          style={{
+            filter: `brightness(${slide.imageBrightness ?? 100}%) blur(${effectiveBlur.blurAmount}px)`,
+            transform: `scale(${slide.imageZoom ?? 1})`,
+            WebkitMaskImage:
+              effectiveBlur.direction === 'bottom'
+                ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
+                : effectiveBlur.direction === 'top'
+                ? 'linear-gradient(to top, transparent 35%, black 100%)'
+                : effectiveBlur.direction === 'tilt-shift'
+                ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
+                : effectiveBlur.direction === 'radial'
+                ? 'radial-gradient(circle, transparent 20%, black 75%)'
+                : undefined,
+            maskImage:
+              effectiveBlur.direction === 'bottom'
+                ? 'linear-gradient(to bottom, transparent 35%, black 100%)'
+                : effectiveBlur.direction === 'top'
+                ? 'linear-gradient(to top, transparent 35%, black 100%)'
+                : effectiveBlur.direction === 'tilt-shift'
+                ? 'linear-gradient(to bottom, black 0%, transparent 35%, transparent 65%, black 100%)'
+                : effectiveBlur.direction === 'radial'
+                ? 'radial-gradient(circle, transparent 20%, black 75%)'
+                : undefined,
+          }}
+        />
+      )}
+
+      {/* Color Gradient Filter Overlay if enabled */}
+      {effectiveFilter && effectiveFilter.enabled && effectiveFilter.preset !== 'none' && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(${effectiveFilter.angle ?? 135}deg, ${effectiveFilter.colorStart}, ${effectiveFilter.colorEnd})`,
+            mixBlendMode: effectiveFilter.blendMode === 'normal' ? 'normal' : effectiveFilter.blendMode,
+            opacity: effectiveFilter.opacity ?? 0.5,
+          }}
+        />
+      )}
 
       {/* Base Dark Dimming Tint */}
       <div

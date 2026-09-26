@@ -7,16 +7,20 @@ import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import {
   ASPECT_RATIOS,
+  INITIAL_COLOR_FILTER,
+  INITIAL_GRADIENT_BLUR,
   INITIAL_LOGO,
   INITIAL_SLIDES,
   INITIAL_TYPOGRAPHY,
 } from './constants/presets';
-import { AspectRatioOption, LogoConfig, SlideItem, TypographyConfig } from './types';
+import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, SlideItem, TypographyConfig } from './types';
 import {
   loadSavedSlides,
   loadSavedAspectRatio,
   loadSavedTypography,
   loadSavedLogo,
+  loadSavedGradientBlur,
+  loadSavedColorFilter,
   saveAllToLocalStorage,
   resetSavedData,
   getLastSavedTimestamp,
@@ -30,6 +34,10 @@ export default function App() {
   const [typography, setTypography] = useState<TypographyConfig>(() => loadSavedTypography());
   const [logo, setLogo] = useState<LogoConfig>(() => loadSavedLogo());
   const [activeTab, setActiveTab] = useState<string>('slides');
+
+  // Gradient blur and color gradient filters
+  const [gradientBlur, setGradientBlur] = useState<GradientBlurConfig>(() => loadSavedGradientBlur());
+  const [colorFilter, setColorFilter] = useState<ColorFilterConfig>(() => loadSavedColorFilter());
 
   // Mobile layout view switcher ('editor' vs 'preview')
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
@@ -46,7 +54,7 @@ export default function App() {
   // Ref to prevent initial double-save
   const isFirstRender = useRef(true);
 
-  // Automatic saving in localStorage whenever slides, aspect ratio, typography or logo change
+  // Automatic saving in localStorage whenever slides, aspect ratio, typography, logo, blur or filter change
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -54,14 +62,14 @@ export default function App() {
     }
 
     const timer = setTimeout(() => {
-      const result = saveAllToLocalStorage(slides, aspectRatio, typography, logo);
+      const result = saveAllToLocalStorage(slides, aspectRatio, typography, logo, gradientBlur, colorFilter);
       if (result.success) {
         setLastSaved(result.timestamp);
       }
     }, 300); // 300ms debounce for high performance
 
     return () => clearTimeout(timer);
-  }, [slides, aspectRatio, typography, logo]);
+  }, [slides, aspectRatio, typography, logo, gradientBlur, colorFilter]);
 
   // Reset all data back to original default templates
   const handleResetToDefaults = () => {
@@ -72,6 +80,8 @@ export default function App() {
       setAspectRatio(ASPECT_RATIOS[0]);
       setTypography(INITIAL_TYPOGRAPHY);
       setLogo(INITIAL_LOGO);
+      setGradientBlur(INITIAL_GRADIENT_BLUR);
+      setColorFilter(INITIAL_COLOR_FILTER);
       setLastSaved(Date.now());
     }
   };
@@ -184,6 +194,10 @@ export default function App() {
           onQuickAiGenerate={handleQuickAiGenerate}
           isAiGenerating={isAiGenerating}
           mobileView={mobileView}
+          gradientBlur={gradientBlur}
+          setGradientBlur={setGradientBlur}
+          colorFilter={colorFilter}
+          setColorFilter={setColorFilter}
         />
 
         <CanvasPreview
@@ -193,6 +207,8 @@ export default function App() {
           aspectRatio={aspectRatio}
           typography={typography}
           logo={logo}
+          gradientBlur={gradientBlur}
+          colorFilter={colorFilter}
           onSelectSlide={(idx) => {
             setCurrentSlideIndex(idx);
             setActiveTab('slides');
@@ -211,6 +227,8 @@ export default function App() {
         aspectRatio={aspectRatio}
         typography={typography}
         logo={logo}
+        gradientBlur={gradientBlur}
+        colorFilter={colorFilter}
       />
 
       <BatchInputModal

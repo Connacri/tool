@@ -46,6 +46,40 @@ export interface LogoConfig {
   theme: 'white' | 'dark' | 'accent';
 }
 
+export type GradientBlurDirection = 'none' | 'bottom' | 'top' | 'radial' | 'tilt-shift' | 'full';
+
+export interface GradientBlurConfig {
+  enabled: boolean;
+  direction: GradientBlurDirection;
+  blurAmount: number; // in pixels, e.g. 0 to 24px
+}
+
+export type ColorFilterPreset =
+  | 'none'
+  | 'sunset-gold'
+  | 'cyber-noir'
+  | 'warm-travertine'
+  | 'deep-indigo'
+  | 'rose-quartz'
+  | 'emerald-forest'
+  | 'monochrome'
+  | 'neon-violet'
+  | 'peach-sunset'
+  | 'cyber-pink'
+  | 'custom';
+
+export type BlendModeType = 'normal' | 'multiply' | 'overlay' | 'screen' | 'color' | 'soft-light';
+
+export interface ColorFilterConfig {
+  enabled: boolean;
+  preset: ColorFilterPreset;
+  colorStart: string;
+  colorEnd: string;
+  angle: number; // in degrees
+  opacity: number; // 0.1 to 1.0
+  blendMode: BlendModeType;
+}
+
 export interface SlideItem {
   id: string;
   number: number;
@@ -58,6 +92,8 @@ export interface SlideItem {
   imageBrightness?: number;
   customOverlayOpacity?: number;
   scheduledTime?: string;
+  customBlur?: GradientBlurConfig;
+  customFilter?: ColorFilterConfig;
 }
 
 export interface SocialCopyItem {

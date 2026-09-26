@@ -23,8 +23,8 @@ import {
   FileText,
   ExternalLink,
 } from 'lucide-react';
-import { AspectRatioOption, AspectRatioType, LogoConfig, SlideItem, TypographyConfig, WebhookConfig } from '../types';
-import { ASPECT_RATIOS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
+import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, SlideItem, TypographyConfig, WebhookConfig } from '../types';
+import { ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
 
 interface EditorSidebarProps {
   activeTab: string;
@@ -45,6 +45,10 @@ interface EditorSidebarProps {
   onQuickAiGenerate: () => void;
   isAiGenerating: boolean;
   mobileView?: 'editor' | 'preview';
+  gradientBlur: GradientBlurConfig;
+  setGradientBlur: React.Dispatch<React.SetStateAction<GradientBlurConfig>>;
+  colorFilter: ColorFilterConfig;
+  setColorFilter: React.Dispatch<React.SetStateAction<ColorFilterConfig>>;
 }
 
 export const EditorSidebar: React.FC<EditorSidebarProps> = ({
@@ -66,6 +70,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   onQuickAiGenerate,
   isAiGenerating,
   mobileView = 'editor',
+  gradientBlur,
+  setGradientBlur,
+  colorFilter,
+  setColorFilter,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
@@ -163,6 +171,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         {[
           { id: 'slides', label: 'Diapos' },
           { id: 'media', label: 'Médias' },
+          { id: 'filters', label: 'Filtres' },
           { id: 'ratios', label: 'Ratios' },
           { id: 'typography', label: 'Style' },
           { id: 'branding', label: 'Logo' },
@@ -493,6 +502,671 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Gradient Blur Section */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Filtre de Flou Dégradé</h4>
+                  <p className="text-[10px] text-neutral-400">
+                    Flou progressif pour sublimer la lisibilité du texte
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gradientBlur.enabled}
+                    onChange={(e) =>
+                      setGradientBlur({ ...gradientBlur, enabled: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              {gradientBlur.enabled && (
+                <div className="space-y-3 pt-2 border-t border-neutral-800/80">
+                  {/* Direction */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                      Direction du Dégradé
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5 text-xs">
+                      {[
+                        { id: 'bottom', label: 'Vers le Bas', desc: 'Texte en bas' },
+                        { id: 'top', label: 'Vers le Haut', desc: 'Texte en haut' },
+                        { id: 'tilt-shift', label: 'Tilt-Shift', desc: 'Bande nette' },
+                        { id: 'radial', label: 'Radial', desc: 'Vignette' },
+                        { id: 'full', label: 'Complet', desc: 'Flou total' },
+                      ].map((dir) => (
+                        <button
+                          key={dir.id}
+                          onClick={() =>
+                            setGradientBlur({ ...gradientBlur, direction: dir.id as any })
+                          }
+                          className={`p-2 rounded-lg border text-center transition-colors ${
+                            gradientBlur.direction === dir.id
+                              ? 'bg-neutral-800 border-indigo-500 text-white font-medium'
+                              : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          <span className="block text-[11px] font-semibold">{dir.label}</span>
+                          <span className="block text-[9px] text-neutral-400">{dir.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Blur Amount */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Intensité du flou</span>
+                      <span className="font-mono text-neutral-200">
+                        {gradientBlur.blurAmount}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="4"
+                      max="24"
+                      step="2"
+                      value={gradientBlur.blurAmount}
+                      onChange={(e) =>
+                        setGradientBlur({
+                          ...gradientBlur,
+                          blurAmount: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Color Gradient Filter Section */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Filtre de Couleurs Dégradées</h4>
+                  <p className="text-[10px] text-neutral-400">
+                    Voile bicolore artistique (*duotone / mood filter*)
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={colorFilter.enabled}
+                    onChange={(e) =>
+                      setColorFilter({ ...colorFilter, enabled: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              {colorFilter.enabled && (
+                <div className="space-y-3 pt-2 border-t border-neutral-800/80">
+                  {/* Preset Gradients */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                      Palettes Prédéfinies
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {COLOR_FILTER_PRESETS.map((p) => {
+                        const isSelected = colorFilter.preset === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() =>
+                              setColorFilter({
+                                ...colorFilter,
+                                preset: p.id,
+                                colorStart: p.colorStart,
+                                colorEnd: p.colorEnd,
+                                angle: p.angle,
+                                blendMode: p.blendMode,
+                                opacity: p.opacity,
+                              })
+                            }
+                            className={`p-2 rounded-lg border flex items-center gap-2 transition-all ${
+                              isSelected
+                                ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500'
+                                : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
+                            }`}
+                          >
+                            <div
+                              className="w-5 h-5 rounded-full shrink-0 border border-white/20"
+                              style={{
+                                background: `linear-gradient(${p.angle}deg, ${p.colorStart}, ${p.colorEnd})`,
+                              }}
+                            />
+                            <span className="text-xs font-medium text-white truncate">
+                              {p.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {/* Custom option */}
+                      <button
+                        onClick={() =>
+                          setColorFilter({ ...colorFilter, preset: 'custom' })
+                        }
+                        className={`p-2 rounded-lg border flex items-center gap-2 transition-all ${
+                          colorFilter.preset === 'custom'
+                            ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500'
+                            : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full shrink-0 border border-white/20"
+                          style={{
+                            background: `linear-gradient(${colorFilter.angle}deg, ${colorFilter.colorStart}, ${colorFilter.colorEnd})`,
+                          }}
+                        />
+                        <span className="text-xs font-medium text-white">Personnalisé</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Custom color pickers if custom is selected */}
+                  {colorFilter.preset === 'custom' && (
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
+                      <div>
+                        <span className="block text-[10px] text-neutral-400 mb-1">
+                          Couleur Début
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={colorFilter.colorStart}
+                            onChange={(e) =>
+                              setColorFilter({ ...colorFilter, colorStart: e.target.value })
+                            }
+                            className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
+                          />
+                          <span className="text-[11px] font-mono text-neutral-300">
+                            {colorFilter.colorStart}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-neutral-400 mb-1">
+                          Couleur Fin
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={colorFilter.colorEnd}
+                            onChange={(e) =>
+                              setColorFilter({ ...colorFilter, colorEnd: e.target.value })
+                            }
+                            className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
+                          />
+                          <span className="text-[11px] font-mono text-neutral-300">
+                            {colorFilter.colorEnd}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Blend Mode and Angle */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                        Mode de Fusion
+                      </label>
+                      <select
+                        value={colorFilter.blendMode}
+                        onChange={(e) =>
+                          setColorFilter({
+                            ...colorFilter,
+                            blendMode: e.target.value as any,
+                          })
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="overlay">Incrustation (Overlay)</option>
+                        <option value="soft-light">Lumière douce</option>
+                        <option value="multiply">Produit (Sombre)</option>
+                        <option value="screen">Superposition (Clair)</option>
+                        <option value="color">Couleur pure</option>
+                        <option value="normal">Normal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                        Angle ({colorFilter.angle}°)
+                      </label>
+                      <select
+                        value={colorFilter.angle}
+                        onChange={(e) =>
+                          setColorFilter({
+                            ...colorFilter,
+                            angle: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="0">0° (Horizontal)</option>
+                        <option value="45">45° (Diagonal)</option>
+                        <option value="90">90° (Vertical Haut)</option>
+                        <option value="135">135° (Diagonal inverse)</option>
+                        <option value="180">180° (Vertical Bas)</option>
+                        <option value="270">270° (Inversé)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Opacity Slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Intensité du voile</span>
+                      <span className="font-mono text-neutral-200">
+                        {Math.round(colorFilter.opacity * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="0.9"
+                      step="0.05"
+                      value={colorFilter.opacity}
+                      onChange={(e) =>
+                        setColorFilter({
+                          ...colorFilter,
+                          opacity: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB: FILTRES DÉGRADÉS (Flou & Couleurs)                         */}
+        {/* ============================================================== */}
+        {activeTab === 'filters' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Filtres Dégradés & Effets</h3>
+              <p className="text-xs text-neutral-400">
+                Flou directionnel progressif ou voiles de couleurs artistiques au choix pour sublimer vos visuels.
+              </p>
+            </div>
+
+            {/* SECTION 1: FILTRE DE FLOU DÉGRADÉ */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    <h4 className="text-xs font-semibold text-white">1. Filtre de Flou Dégradé</h4>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">
+                    Flou progressif pour créer un espace lisible élégant
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gradientBlur.enabled}
+                    onChange={(e) =>
+                      setGradientBlur({ ...gradientBlur, enabled: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                </label>
+              </div>
+
+              {gradientBlur.enabled ? (
+                <div className="space-y-4 pt-3 border-t border-neutral-800/80">
+                  {/* Direction buttons with visual hints */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-2">
+                      Direction du Flou Dégradé
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        {
+                          id: 'bottom',
+                          label: 'Vers le Bas',
+                          desc: 'Texte en bas (idéal)',
+                          gradientPreview: 'from-transparent via-cyan-500/20 to-cyan-500/60',
+                        },
+                        {
+                          id: 'top',
+                          label: 'Vers le Haut',
+                          desc: 'Texte en haut',
+                          gradientPreview: 'from-cyan-500/60 via-cyan-500/20 to-transparent',
+                        },
+                        {
+                          id: 'tilt-shift',
+                          label: 'Tilt-Shift',
+                          desc: 'Bande nette centrale',
+                          gradientPreview: 'from-cyan-500/50 via-transparent to-cyan-500/50',
+                        },
+                        {
+                          id: 'radial',
+                          label: 'Radial',
+                          desc: 'Vignette floue',
+                          gradientPreview: 'from-transparent to-cyan-500/50',
+                        },
+                        {
+                          id: 'full',
+                          label: 'Flou Complet',
+                          desc: 'Fond ultra-doux',
+                          gradientPreview: 'bg-cyan-500/40',
+                        },
+                      ].map((dir) => {
+                        const isSelected = gradientBlur.direction === dir.id;
+                        return (
+                          <button
+                            key={dir.id}
+                            onClick={() =>
+                              setGradientBlur({ ...gradientBlur, direction: dir.id as any })
+                            }
+                            className={`p-2.5 rounded-lg border text-left transition-all relative overflow-hidden ${
+                              isSelected
+                                ? 'bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500 text-white'
+                                : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                            }`}
+                          >
+                            <span className="block text-xs font-semibold">{dir.label}</span>
+                            <span className="block text-[9px] text-neutral-400 mt-0.5">{dir.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Blur intensity slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-neutral-400 font-medium">Intensité du flou</span>
+                      <span className="font-mono text-cyan-300 font-semibold">
+                        {gradientBlur.blurAmount} px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="4"
+                      max="28"
+                      step="2"
+                      value={gradientBlur.blurAmount}
+                      onChange={(e) =>
+                        setGradientBlur({
+                          ...gradientBlur,
+                          blurAmount: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full accent-cyan-500"
+                    />
+                    <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
+                      <span>Léger (4px)</span>
+                      <span>Moyen (14px)</span>
+                      <span>Prononcé (28px)</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-neutral-500 italic">
+                  Activez pour ajouter un flou dégradé progressif qui préserve les détails de l'image tout en rendant le texte parfaitement lisible.
+                </p>
+              )}
+            </div>
+
+            {/* SECTION 2: FILTRE DE COULEURS DÉGRADÉES */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    <h4 className="text-xs font-semibold text-white">2. Filtre de Couleurs Dégradées</h4>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">
+                    Voile bicolore artistique (*duotone mood filter*)
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={colorFilter.enabled}
+                    onChange={(e) =>
+                      setColorFilter({ ...colorFilter, enabled: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              {colorFilter.enabled ? (
+                <div className="space-y-4 pt-3 border-t border-neutral-800/80">
+                  {/* Preset Gradients Grid */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-2">
+                      Palettes Prédéfinies au Choix
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {COLOR_FILTER_PRESETS.map((p) => {
+                        const isSelected = colorFilter.preset === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() =>
+                              setColorFilter({
+                                ...colorFilter,
+                                preset: p.id,
+                                colorStart: p.colorStart,
+                                colorEnd: p.colorEnd,
+                                angle: p.angle,
+                                blendMode: p.blendMode,
+                                opacity: p.opacity,
+                              })
+                            }
+                            className={`p-2.5 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
+                              isSelected
+                                ? 'bg-indigo-950/50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm'
+                                : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
+                            }`}
+                          >
+                            <div
+                              className="w-6 h-6 rounded-md shrink-0 border border-white/20 shadow-sm"
+                              style={{
+                                background: `linear-gradient(${p.angle}deg, ${p.colorStart}, ${p.colorEnd})`,
+                              }}
+                            />
+                            <div className="min-w-0">
+                              <span className="text-xs font-semibold text-white block truncate">
+                                {p.name}
+                              </span>
+                              <span className="text-[9px] text-neutral-400 block font-mono">
+                                {p.blendMode}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom Picker button */}
+                      <button
+                        onClick={() =>
+                          setColorFilter({ ...colorFilter, preset: 'custom' })
+                        }
+                        className={`p-2.5 rounded-lg border flex items-center gap-2.5 transition-all text-left ${
+                          colorFilter.preset === 'custom'
+                            ? 'bg-indigo-950/50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm'
+                            : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
+                        }`}
+                      >
+                        <div
+                          className="w-6 h-6 rounded-md shrink-0 border border-white/20 shadow-sm"
+                          style={{
+                            background: `linear-gradient(${colorFilter.angle}deg, ${colorFilter.colorStart}, ${colorFilter.colorEnd})`,
+                          }}
+                        />
+                        <div className="min-w-0">
+                          <span className="text-xs font-semibold text-white block">
+                            Personnalisé
+                          </span>
+                          <span className="text-[9px] text-indigo-400 block">
+                            Vos 2 couleurs
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Custom color controls */}
+                  {colorFilter.preset === 'custom' && (
+                    <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 space-y-3">
+                      <span className="text-[11px] font-semibold text-neutral-300 block">
+                        Couleurs sur-mesure
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block text-[10px] text-neutral-400 mb-1">
+                            Couleur 1 (Début)
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={colorFilter.colorStart}
+                              onChange={(e) =>
+                                setColorFilter({ ...colorFilter, colorStart: e.target.value })
+                              }
+                              className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-neutral-200">
+                              {colorFilter.colorStart}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-neutral-400 mb-1">
+                            Couleur 2 (Fin)
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={colorFilter.colorEnd}
+                              onChange={(e) =>
+                                setColorFilter({ ...colorFilter, colorEnd: e.target.value })
+                              }
+                              className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-neutral-200">
+                              {colorFilter.colorEnd}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mode de Fusion & Angle */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                        Mode de Fusion
+                      </label>
+                      <select
+                        value={colorFilter.blendMode}
+                        onChange={(e) =>
+                          setColorFilter({
+                            ...colorFilter,
+                            blendMode: e.target.value as any,
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="overlay">Incrustation (Overlay)</option>
+                        <option value="soft-light">Lumière douce (Soft-light)</option>
+                        <option value="multiply">Produit sombre (Multiply)</option>
+                        <option value="screen">Superposition claire (Screen)</option>
+                        <option value="color">Couleur pure (Color)</option>
+                        <option value="normal">Normal (Opaque)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                        Angle ({colorFilter.angle}°)
+                      </label>
+                      <select
+                        value={colorFilter.angle}
+                        onChange={(e) =>
+                          setColorFilter({
+                            ...colorFilter,
+                            angle: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="0">0° (Horizontal G ➔ D)</option>
+                        <option value="45">45° (Diagonal)</option>
+                        <option value="90">90° (Vertical H ➔ B)</option>
+                        <option value="120">120° (Oblique)</option>
+                        <option value="135">135° (Diagonal inverse)</option>
+                        <option value="180">180° (Vertical B ➔ H)</option>
+                        <option value="270">270° (Inversé)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Opacity Slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400 font-medium">Opacité du voile</span>
+                      <span className="font-mono text-indigo-300 font-semibold">
+                        {Math.round(colorFilter.opacity * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="0.95"
+                      step="0.05"
+                      value={colorFilter.opacity}
+                      onChange={(e) =>
+                        setColorFilter({
+                          ...colorFilter,
+                          opacity: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-neutral-500 italic">
+                  Activez pour appliquer une harmonie bicolore stylisée sur l'ensemble de vos photos pour une charte visuelle uniforme.
+                </p>
+              )}
+            </div>
+
+            {/* Quick reset button */}
+            {(gradientBlur.enabled || colorFilter.enabled) && (
+              <button
+                onClick={() => {
+                  setGradientBlur({ ...gradientBlur, enabled: false });
+                  setColorFilter({ ...colorFilter, enabled: false });
+                }}
+                className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-lg text-xs font-medium transition-colors"
+              >
+                Désactiver tous les filtres
+              </button>
+            )}
           </div>
         )}
 

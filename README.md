@@ -1,113 +1,130 @@
 # 🚀 AutoPost Studio — Générateur Visuel & Export Réseaux Sociaux
 
-> Créez automatiquement des séries de visuels percutants avec texte superposé sur images, adaptation instantanée aux ratios des réseaux sociaux (1:1, 9:16, 4:5, 16:9, 2:3), logo personnalisable, sauvegarde automatique et exportation automatisée (ZIP HD, Webhook, Calendrier .ICS).
+> Créez automatiquement des séries de visuels percutants avec texte superposé sur images, filtres de flou dégradé cinématographique, voiles de couleurs dégradées artistiques (*duotone*), adaptation instantanée aux ratios des réseaux sociaux (1:1, 9:16, 4:5, 16:9, 2:3), logo personnalisable, sauvegarde automatique dans le `localStorage` et exportation automatisée (ZIP HD, Webhook, Calendrier .ICS).
 
 ---
 
 ## 🌟 Fonctionnalités Principales
 
-- **🖼️ 6 Phrases & 6 Images Superposées** :
-  - Génération visuelle avec typographie soignée (*Éditorial Serif, Avant-Garde Syne, Moderne Pro, Monospace*).
-  - Styles de contraste avancés : dégradé cinématographique (*scrim*), verre dépoli (*frosted glass*), ombre nette ou cadre minimaliste bordé.
-  - Placement du texte (Haut, Centre, Bas) et alignement (Gauche, Centré, Droite).
-  - Titres *kicker*, signatures d'auteur et numérotation automatique des diapositives (`01 / 06`).
-  - Importation par lot : collez vos phrases d'un coup ou téléversez vos 6 images simultanément.
+### 1. 🖼️ Gestion des Phrases & Images Superposées
+- **Édition complète par diapo** : Phrase principale, titre thématique (*kicker*), sous-titre / auteur et date/heure de publication.
+- **Importation par lot** : Collez vos 6 phrases d'un coup ou téléversez vos 6 images en 1 clic.
+- **Génération IA intégrée** : Générez 6 citations percutantes et accroches thématiques en un clic.
+- **Typographie soignée** : 4 styles au choix (*Éditorial Fraunces, Avant-Garde Syne, Moderne Plus Jakarta, Monospace JetBrains*), alignement (Gauche, Centre, Droite), position (Haut, Centre, Bas) et taille ajustable.
 
-- **📐 Adaptation Multi-Ratios pour Tous les Réseaux Sociaux** :
-  - **1:1 Carré** (1080 × 1080 px) : *Instagram Feed, LinkedIn Post, Facebook*
-  - **9:16 Story / Reel** (1080 × 1920 px) : *Instagram Stories, Reels, TikTok, YouTube Shorts*
-  - **4:5 Portrait Feed** (1080 × 1350 px) : *Format optimal pour maximiser la visibilité dans les flux Instagram et LinkedIn*
-  - **16:9 Paysage** (1920 × 1080 px) : *X / Twitter, LinkedIn Banner, YouTube*
-  - **2:3 Éditorial** (1000 × 1500 px) : *Pinterest Pin, Affiches*
+### 2. 🎨 Filtres Dégradés & Effets Visuels (Nouveau !)
+- **🌫️ Filtre de Flou Dégradé (Gradient Blur)** :
+  - Applique un flou directionnel progressif pour magnifier la lisibilité des textes tout en conservant le piqué de l'image.
+  - **5 directions au choix** :
+    - *Vers le Bas* (flou progressif en bas, parfait pour les phrases positionnées en bas).
+    - *Vers le Haut* (flou progressif en haut, idéal pour les phrases en haut).
+    - *Tilt-Shift* (bande nette centrale avec haut et bas floutés, effet miniature cinéma).
+    - *Radial* (vignettage flou circulaire centré).
+    - *Complet* (fond flouté doux et velouté).
+  - Curseur d'intensité du flou (4 px à 28 px).
+- **🌈 Filtre de Couleurs Dégradées (Duotone / Mood Filter)** :
+  - Voile bicolore artistique superposé pour donner une signature chromatique unique à votre carrousel.
+  - **10 Palettes Prédéfinies** : *Sunset Gold, Cyber Teal, Warm Amber, Deep Indigo, Rose Quartz, Emerald Mist, Néon Violet, Pêche Sunset, Cyberpunk, Film Noir*.
+  - **Mode Personnalisé** : Choix libre de la Couleur 1 et de la Couleur 2 avec sélecteur de couleurs interactif.
+  - Réglage de l'angle du dégradé (0° à 360°).
+  - Réglage de l'opacité (10% à 95%).
+  - Modes de fusion professionnels : *Incrustation (Overlay), Lumière douce (Soft-light), Produit sombre (Multiply), Superposition claire (Screen), Couleur pure (Color), Normal*.
+  - Rendu en direct dans le navigateur ET appliqué au pixel près dans les exports Canvas HD (PNG et ZIP).
 
-- **🏷️ Logo Prédéfini ou Personnalisé** :
-  - Intégration de logos prédéfinis minimalistes (*Studio Minimal, Aura Crest, Modern Bold, Clean Geometric*).
-  - Possibilité de téléverser votre propre logo transparent (PNG ou SVG).
-  - Emplacement paramétrable (*Haut Gauche, Haut Droite, Bas Gauche, Bas Droite, Haut Centré*), réglage d'échelle, d'opacité et de pseudo social (`@moncompte`).
+### 3. 📐 Adaptation Multi-Ratios pour Tous les Réseaux Sociaux
+- **1:1 Carré** (1080 × 1080 px) : *Instagram Feed, LinkedIn Post, Facebook*
+- **9:16 Story / Reel** (1080 × 1920 px) : *Instagram Stories, Reels, TikTok, YouTube Shorts*
+- **4:5 Portrait Feed** (1080 × 1350 px) : *Format portrait optimal pour maximiser la visibilité dans les flux Instagram et LinkedIn*
+- **16:9 Paysage** (1920 × 1080 px) : *X / Twitter, LinkedIn Banner, YouTube*
+- **2:3 Éditorial** (1000 × 1500 px) : *Pinterest Pin, Affiches*
 
-- **💾 Sauvegarde Automatique (`localStorage`)** :
-  - Chaque modification apportée aux textes, images, ratios, styles et logos est automatiquement enregistrée en continu dans votre navigateur.
-  - Restauration instantanée au rechargement de la page, avec indicateur d'horodatage en direct.
-  - Bouton de réinitialisation si vous souhaitez retrouver les modèles d'origine.
+### 4. 🏷️ Logo Prédéfini ou Personnalisé
+- Intégration de 4 logos prédéfinis minimalistes (*Studio Minimal, Aura Crest, Modern Bold, Clean Geometric*).
+- Téléversement de votre propre logo PNG/SVG transparent.
+- Positionnement (*Haut Gauche, Haut Droite, Bas Gauche, Bas Droite, Haut Centré*), échelle, opacité et gestion du pseudo social (`@moncompte`).
 
-- **⚡ Automatisation & Exportation** :
-  - **Export ZIP Haute Définition** : téléchargez en 1 clic l'ensemble des 6 visuels en PNG haute résolution dans une archive ZIP avec fichier de métadonnées `automation_manifest.json`.
-  - **Partage Direct** : partage direct vers Instagram, WhatsApp, X ou LinkedIn via l'API Web Share native de votre appareil.
-  - **Webhook Réseaux Sociaux** : déclenchez directement vos scénarios d'automatisation sur **Make.com**, **Zapier**, **Buffer** ou **n8n** avec le payload complet (visuels, textes, programmations).
-  - **Générateur de Légendes & Hashtags IA** : génère des légendes prêtes à publier pour Instagram, LinkedIn, X et TikTok.
-  - **Export Calendrier (.ICS)** : synchronisez votre planning de publication avec Google Calendar, Notion ou Apple Calendar.
+### 5. 💾 Sauvegarde Automatique (`localStorage`) & Responsive 100%
+- Sauvegarde continue de toutes vos données (textes, images, filtres, styles, ratios, logos) dans le stockage local du navigateur.
+- Restauration instantanée au rechargement de la page, avec horodatage en direct.
+- Bouton de réinitialisation vers les modèles d'origine.
+- Interface responsive fluide : bascule *Éditeur / Aperçu* sur smartphone et tablette tactile.
 
-- **📱 100% Responsive** :
-  - Interface adaptative pour mobile, tablette et grand écran.
-  - Sélecteur tactile rapide *Édition / Aperçu* sur smartphone.
-
----
-
-## 🛠️ Pourquoi le site ne s'affichait pas sur GitHub Pages et comment le régler ?
-
-Sur GitHub Pages, les sites sont hébergés sous un sous-dossier correspondant au nom de votre dépôt :
-`https://<votre-nom-d-utilisateur>.github.io/<nom-du-depot>/`
-
-Par défaut, Vite cherchait les fichiers JavaScript et CSS à la racine du domaine (`/assets/...` au lieu de `./assets/...`), ce qui provoquait une page blanche avec des erreurs **404 Not Found**.
-
-### ✅ Les corrections appliquées :
-1. **`base: './'`** a été configuré dans `vite.config.ts` : les chemins d'accès aux fichiers compilés sont désormais relatifs et fonctionnent quel que soit le nom de votre dépôt GitHub.
-2. Les images prédéfinies sont désormais directement importées en TypeScript, ce qui garantit qu'elles sont incluses et compressées dans le dossier `dist/assets/` lors du build.
-3. Un fichier de déploiement automatique **GitHub Actions** a été ajouté dans `.github/workflows/deploy.yml`.
-
----
-
-## 🌐 Guide de Déploiement sur GitHub Pages (Méthode Recommandée)
-
-### Option 1 : Déploiement Automatique via GitHub Actions (Le plus simple)
-
-1. **Poussez votre code sur GitHub** :
-   ```bash
-   git add .
-   git commit -m "Configuration GitHub Pages et base relative"
-   git push origin main
-   ```
-
-2. **Activez GitHub Actions dans les paramètres de votre dépôt GitHub** :
-   - Allez sur votre dépôt GitHub.
-   - Cliquez sur l'onglet **Settings** (Paramètres).
-   - Dans le menu de gauche, cliquez sur **Pages**.
-   - Dans la section **Build and deployment > Source**, sélectionnez **GitHub Actions** (au lieu de *Deploy from a branch*).
-
-3. **C'est tout !**
-   - GitHub va automatiquement lancer le workflow de compilation `.github/workflows/deploy.yml`.
-   - Dès que le workflow est vert (environ 1 minute), votre site sera accessible en ligne sur l'URL indiquée en haut de la page **Settings > Pages** !
+### 6. ⚡ Automatisation & Exportation
+- **Export ZIP Haute Définition** : Génère en 1 clic l'archive ZIP contenant les 6 images PNG haute résolution accompagnées d'un fichier `automation_manifest.json`.
+- **Partage Direct** : Partage natif vers Instagram, WhatsApp, LinkedIn ou X via l'API Web Share.
+- **Webhook d'automatisation** : Envoi direct du payload vers **Make.com**, **Zapier**, **Buffer** ou **n8n** avec programmation horaire.
+- **Légendes & Hashtags IA** : Descriptions optimisées prêtes à être copiées pour Instagram, LinkedIn, X et TikTok.
+- **Export Calendrier (.ICS)** : Synchronisation du calendrier éditorial avec Google Calendar, Notion ou Apple Calendar.
 
 ---
 
-### Option 2 : Déploiement Manuel avec la branche `gh-pages`
+## 🛠️ Résolution de l'Erreur GitHub Actions
 
-Si vous préférez compiler vous-même avant d'envoyer :
+### ❌ Description de l'erreur rencontrée :
+```text
+Run actions/setup-node@v4
+...
+Error: Dependencies lock file is not found in /home/runner/work/... Supported file patterns: package-lock.json,npm-shrinkwrap.json,yarn.lock
+```
 
-1. Installez `gh-pages` (facultatif mais pratique) :
-   ```bash
-   npm install --save-dev gh-pages
-   ```
-
-2. Compilez le projet :
-   ```bash
-   npm run build
-   ```
-
-3. Déployez le contenu du dossier `dist` :
-   ```bash
-   npx gh-pages -d dist
-   ```
-
-4. Dans **Settings > Pages**, sélectionnez la branche `gh-pages` et le dossier `/ (root)`.
+### 🔍 Pourquoi cette erreur s'est produite ?
+Lorsque vous activez GitHub Pages via l'interface web de GitHub avec un modèle générique, l'action `actions/setup-node@v4` est configurée avec l'option `cache: 'npm'`. 
+Cette option exige obligatoirement la présence du fichier `package-lock.json` dans le dépôt Git. Si ce fichier n'a pas été commité et poussé (`git push`), GitHub Actions s'arrête immédiatement avec cette erreur.
 
 ---
 
-## 💻 Installation et Lancement en Local
+### ✅ Comment corriger l'erreur en 2 étapes rapides :
+
+#### Étape 1 : Pousser le fichier `package-lock.json`
+Assurez-vous que le fichier `package-lock.json` est bien ajouté à Git et envoyé sur votre dépôt :
+
+```bash
+# Vérifier l'état des fichiers
+git status
+
+# Ajouter le fichier de lock
+git add package-lock.json .github/workflows/deploy.yml
+
+# Commiter
+git commit -m "Fix: ajout package-lock.json et workflow GitHub Pages"
+
+# Pousser sur GitHub
+git push origin main
+```
+*(Si votre branche principale s'appelle `master`, remplacez `main` par `master`)*.
+
+#### Étape 2 : Activer GitHub Actions pour GitHub Pages
+1. Allez sur votre dépôt GitHub : `https://github.com/<votre-pseudo>/<nom-du-repo>`
+2. Cliquez sur l'onglet **Settings** (Paramètres).
+3. Dans la colonne de gauche, cliquez sur **Pages**.
+4. Sous **Build and deployment > Source**, choisissez **GitHub Actions** (au lieu de *Deploy from a branch*).
+5. Rendez-vous dans l'onglet **Actions** de votre dépôt : le workflow **Déploiement GitHub Pages** se lance automatiquement.
+6. Une fois terminé (icône verte ✅, ~1 minute), votre site sera directement en ligne à l'adresse :
+   `https://<votre-pseudo>.github.io/<nom-du-repo>/`
+
+---
+
+## 🌐 Pourquoi le site ne s'affichait pas (page blanche) et comment c'est résolu ?
+
+Sur GitHub Pages, les applications sont servies dans un sous-dossier correspondant au nom de votre projet :
+`https://pseudo.github.io/nom-du-projet/`
+
+Par défaut, Vite utilise des chemins absolus (`/assets/...`). Sur GitHub Pages, le navigateur cherchait donc les scripts à la racine du domaine (`https://pseudo.github.io/assets/...`) au lieu du sous-dossier du projet, causant des erreurs **404 Not Found**.
+
+### 🔧 Solutions implémentées dans ce projet :
+1. **`base: './'`** dans `vite.config.ts` : tous les chemins d'assets générés sont désormais relatifs, fonctionnant sur n'importe quel domaine ou sous-dossier.
+2. **Workflow résilient dans `.github/workflows/deploy.yml`** :
+   - Installation tolérante : teste l'existence du lockfile (`npm install --legacy-peer-deps`).
+   - Compilation automatique du dossier statique `dist`.
+   - Déploiement automatique sécurisé via les actions officielles GitHub Pages (`actions/deploy-pages@v4`).
+
+---
+
+## 💻 Installation & Lancement en Local
 
 ### Prérequis
-- [Node.js](https://nodejs.org/) (version 18 ou supérieure recommandée)
-- npm ou yarn
+- [Node.js](https://nodejs.org/) (version 18, 20 ou 22)
+- npm
 
 ### Commandes
 
@@ -119,14 +136,14 @@ cd <nom-du-depot>
 # 2. Installer les dépendances
 npm install
 
-# 3. Lancer en mode développement (avec serveur full-stack Express + Vite)
+# 3. Lancer en mode développement
 npm run dev
 
-# 4. Compiler pour la production (génère le dossier statique /dist)
+# 4. Compiler pour la production
 npm run build
 ```
 
-Le serveur local sera accessible sur **http://localhost:3000**.
+Le serveur de développement est accessible à l'adresse : **http://localhost:3000**.
 
 ---
 
@@ -135,44 +152,46 @@ Le serveur local sera accessible sur **http://localhost:3000**.
 ```text
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml         # Workflow GitHub Actions pour déploiement auto sur GitHub Pages
+│       └── deploy.yml          # Workflow de déploiement GitHub Pages automatisé
 ├── src/
 │   ├── assets/
-│   │   └── images/            # Visuels photographiques haute résolution
+│   │   └── images/             # Bibliothèque d'images photographiques HD
 │   ├── components/
-│   │   ├── Header.tsx         # En-tête avec indicateur de sauvegarde auto et bascule mobile
-│   │   ├── EditorSidebar.tsx  # Panneau de contrôle (textes, images, ratios, styles, logos, export)
-│   │   ├── CanvasPreview.tsx  # Rendu interactif (Grille 6x, Diapo unique, Mockup smartphone)
-│   │   ├── AutomatedExportModal.tsx # Export ZIP, Webhooks (Make/Zapier), Calendrier .ICS
-│   │   ├── BatchInputModal.tsx      # Collage rapide en lot de phrases
-│   │   └── SocialCopyModal.tsx      # Générateur de légendes et hashtags IA
+│   │   ├── Header.tsx          # En-tête avec navigation, autosave et mode mobile
+│   │   ├── EditorSidebar.tsx   # Contrôles complets (phrases, photos, filtres dégradés, ratios, typographie, logo)
+│   │   ├── CanvasPreview.tsx   # Rendu interactif (Grille 6 diapos, Focus diapo unique, Mockup réseau)
+│   │   ├── AutomatedExportModal.tsx # Export ZIP HD, Webhooks (Make/Zapier), Calendrier .ICS
+│   │   ├── BatchInputModal.tsx       # Modal de collage en lot de 6 phrases
+│   │   └── SocialCopyModal.tsx       # Générateur de légendes et hashtags IA
 │   ├── constants/
-│   │   └── presets.ts         # Modèles de logos, ratios et 6 diapositives initiales
+│   │   └── presets.ts          # Palettes de filtres, ratios, 6 diapos initiales et logos
 │   ├── utils/
-│   │   ├── canvasRenderer.ts  # Moteur de rendu Canvas HD (1080p, 2K) pixel-perfect
-│   │   └── storage.ts         # Gestionnaire de sauvegarde automatique localStorage
-│   ├── types.ts               # Définitions TypeScript
-│   ├── App.tsx                # Composant racine
-│   ├── main.tsx               # Point d'entrée React
-│   └── index.css              # Styles Tailwind CSS
-├── server.ts                  # Serveur Express optionnel avec intégration Gemini API
-├── vite.config.ts             # Configuration Vite avec base: './'
-└── package.json
+│   │   ├── canvasRenderer.ts   # Moteur Canvas pixel-perfect avec flou dégradé et voiles de couleur
+│   │   └── storage.ts          # Module de sauvegarde automatique localStorage (debounce 300ms)
+│   ├── types.ts                # Typage TypeScript
+│   ├── App.tsx                 # Composant racine
+│   ├── main.tsx                # Entrée React
+│   └── index.css               # Feuilles de style Tailwind CSS
+├── package.json
+├── package-lock.json           # Fichier de verrouillage requis pour GitHub Actions
+├── server.ts                   # Serveur Express optionnel avec Gemini API
+├── tsconfig.json
+└── vite.config.ts              # Configuration Vite avec base: './'
 ```
 
 ---
 
-## 🛡️ Technologies Utilisées
+## 🛡️ Technologies
 
 - **React 19** & **TypeScript**
-- **Vite 8** (avec configuration `base: './'` pour support universel des hébergements statiques)
+- **Vite 8** (avec configuration relative `base: './'`)
 - **Tailwind CSS v4**
-- **JSZip** (compression et génération d'archives ZIP côté client)
-- **Lucide React** (icônes modernes)
-- **HTML5 Canvas API** (génération d'images haute fidélité sans dépendance tierce lourde)
+- **JSZip** (compression d'archives ZIP côté navigateur)
+- **Lucide React** (icônes)
+- **HTML5 Canvas 2D API** (rendu haute fidélité avec composition graphique et masques de flou)
 
 ---
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT. Libre d'utilisation pour vos projets personnels et professionnels.
+Projet sous licence MIT — Libre d'utilisation pour vos projets personnels et commerciaux.

@@ -1,4 +1,11 @@
-import { AspectRatioOption, LogoConfig, SlideItem, TypographyConfig } from '../types';
+import {
+  AspectRatioOption,
+  ColorFilterConfig,
+  GradientBlurConfig,
+  LogoConfig,
+  SlideItem,
+  TypographyConfig,
+} from '../types';
 
 /**
  * Loads an image from a URL or Data URL and returns an HTMLImageElement
@@ -49,7 +56,9 @@ export async function renderSlideToCanvas(
   aspectRatio: AspectRatioOption,
   typography: TypographyConfig,
   logo: LogoConfig,
-  totalSlides: number = 6
+  totalSlides: number = 6,
+  blurConfig?: GradientBlurConfig,
+  filterConfig?: ColorFilterConfig
 ): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
   canvas.width = aspectRatio.width;
@@ -59,6 +68,9 @@ export async function renderSlideToCanvas(
 
   const width = canvas.width;
   const height = canvas.height;
+
+  const activeBlur = slide.customBlur || blurConfig;
+  const activeColorFilter = slide.customFilter || filterConfig;
 
   // 1. Draw Background Image or Fallback Gradient
   try {
@@ -80,11 +92,74 @@ export async function renderSlideToCanvas(
       sy = (bgImage.naturalHeight - sHeight) / 2;
     }
 
-    // Apply brightness filter if specified
     const brightness = slide.imageBrightness ?? 100;
+
+    // Draw sharp base image
     ctx.filter = `brightness(${brightness}%)`;
     ctx.drawImage(bgImage, sx, sy, sWidth, sHeight, 0, 0, width, height);
     ctx.filter = 'none';
+
+    // Apply Gradient Blur if enabled
+    if (activeBlur && activeBlur.enabled && activeBlur.blurAmount > 0) {
+      const blurPx = Math.round(activeBlur.blurAmount * (width / 1000));
+      if (activeBlur.direction === 'full') {
+        // Redraw completely blurred
+        ctx.save();
+        ctx.filter = `blur(${blurPx}px) brightness(${brightness}%)`;
+        ctx.drawImage(bgImage, sx, sy, sWidth, sHeight, 0, 0, width, height);
+        ctx.restore();
+      } else {
+        // Progressive gradient blur using offscreen canvas mask
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offCtx = offCanvas.getContext('2d');
+        if (offCtx) {
+          offCtx.filter = `blur(${blurPx}px) brightness(${brightness}%)`;
+          offCtx.drawImage(bgImage, sx, sy, sWidth, sHeight, 0, 0, width, height);
+
+          // Create mask gradient
+          offCtx.globalCompositeOperation = 'destination-in';
+          let maskGrad: CanvasGradient;
+
+          if (activeBlur.direction === 'bottom') {
+            maskGrad = offCtx.createLinearGradient(0, height * 0.35, 0, height);
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            maskGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+          } else if (activeBlur.direction === 'top') {
+            maskGrad = offCtx.createLinearGradient(0, 0, 0, height * 0.65);
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            maskGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else if (activeBlur.direction === 'tilt-shift') {
+            maskGrad = offCtx.createLinearGradient(0, 0, 0, height);
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            maskGrad.addColorStop(0.35, 'rgba(0, 0, 0, 0)');
+            maskGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+          } else {
+            // radial
+            maskGrad = offCtx.createRadialGradient(
+              width / 2,
+              height / 2,
+              width * 0.2,
+              width / 2,
+              height / 2,
+              width * 0.7
+            );
+            maskGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            maskGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+          }
+
+          offCtx.fillStyle = maskGrad;
+          offCtx.fillRect(0, 0, width, height);
+
+          // Composite blurred layer onto main canvas
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      }
+    }
   } catch {
     // Elegant fallback gradient if image load fails
     const grad = ctx.createLinearGradient(0, 0, width, height);
@@ -93,6 +168,34 @@ export async function renderSlideToCanvas(
     grad.addColorStop(1, '#020617');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
+  }
+
+  // 1.5 Apply Color Gradient Filter Overlay if enabled
+  if (
+    activeColorFilter &&
+    activeColorFilter.enabled &&
+    activeColorFilter.preset !== 'none'
+  ) {
+    ctx.save();
+    const rad = ((activeColorFilter.angle ?? 135) * Math.PI) / 180;
+    const cx = width / 2;
+    const cy = height / 2;
+    const dist = Math.hypot(width, height) / 2;
+    const x1 = cx - Math.cos(rad) * dist;
+    const y1 = cy - Math.sin(rad) * dist;
+    const x2 = cx + Math.cos(rad) * dist;
+    const y2 = cy + Math.sin(rad) * dist;
+
+    const colorGrad = ctx.createLinearGradient(x1, y1, x2, y2);
+    colorGrad.addColorStop(0, activeColorFilter.colorStart);
+    colorGrad.addColorStop(1, activeColorFilter.colorEnd);
+
+    ctx.globalAlpha = activeColorFilter.opacity ?? 0.5;
+    ctx.globalCompositeOperation =
+      activeColorFilter.blendMode === 'normal' ? 'source-over' : activeColorFilter.blendMode;
+    ctx.fillStyle = colorGrad;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
   }
 
   // 2. Base Dark Tint Overlay

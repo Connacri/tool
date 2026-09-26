@@ -200,3 +200,113 @@ export const INITIAL_LOGO: LogoConfig = {
   opacity: 0.95,
   theme: 'white',
 };
+
+export const INITIAL_GRADIENT_BLUR = {
+  enabled: false,
+  direction: 'bottom' as const,
+  blurAmount: 12,
+};
+
+export const COLOR_FILTER_PRESETS = [
+  {
+    id: 'sunset-gold' as const,
+    name: 'Sunset Gold',
+    colorStart: '#f59e0b',
+    colorEnd: '#7c3aed',
+    angle: 135,
+    blendMode: 'overlay' as const,
+    opacity: 0.55,
+  },
+  {
+    id: 'cyber-noir' as const,
+    name: 'Cyber Teal',
+    colorStart: '#0284c7',
+    colorEnd: '#10b981',
+    angle: 135,
+    blendMode: 'overlay' as const,
+    opacity: 0.5,
+  },
+  {
+    id: 'warm-travertine' as const,
+    name: 'Warm Amber',
+    colorStart: '#ea580c',
+    colorEnd: '#fde047',
+    angle: 180,
+    blendMode: 'soft-light' as const,
+    opacity: 0.6,
+  },
+  {
+    id: 'deep-indigo' as const,
+    name: 'Deep Indigo',
+    colorStart: '#4338ca',
+    colorEnd: '#06b6d4',
+    angle: 45,
+    blendMode: 'multiply' as const,
+    opacity: 0.55,
+  },
+  {
+    id: 'rose-quartz' as const,
+    name: 'Rose Quartz',
+    colorStart: '#f43f5e',
+    colorEnd: '#a855f7',
+    angle: 90,
+    blendMode: 'overlay' as const,
+    opacity: 0.5,
+  },
+  {
+    id: 'emerald-forest' as const,
+    name: 'Emerald Mist',
+    colorStart: '#047857',
+    colorEnd: '#0284c7',
+    angle: 135,
+    blendMode: 'overlay' as const,
+    opacity: 0.5,
+  },
+  {
+    id: 'monochrome' as const,
+    name: 'Film Noir',
+    colorStart: '#000000',
+    colorEnd: '#ffffff',
+    angle: 180,
+    blendMode: 'color' as const,
+    opacity: 0.8,
+  },
+  {
+    id: 'neon-violet' as const,
+    name: 'Néon Violet',
+    colorStart: '#8b5cf6',
+    colorEnd: '#ec4899',
+    angle: 135,
+    blendMode: 'overlay' as const,
+    opacity: 0.55,
+  },
+  {
+    id: 'peach-sunset' as const,
+    name: 'Pêche Sunset',
+    colorStart: '#fb923c',
+    colorEnd: '#f43f5e',
+    angle: 120,
+    blendMode: 'soft-light' as const,
+    opacity: 0.6,
+  },
+  {
+    id: 'cyber-pink' as const,
+    name: 'Cyberpunk',
+    colorStart: '#06b6d4',
+    colorEnd: '#d946ef',
+    angle: 60,
+    blendMode: 'overlay' as const,
+    opacity: 0.55,
+  },
+];
+
+export const INITIAL_COLOR_FILTER = {
+  enabled: false,
+  preset: 'none' as const,
+  colorStart: '#f59e0b',
+  colorEnd: '#7c3aed',
+  angle: 135,
+  opacity: 0.5,
+  blendMode: 'overlay' as const,
+};
+

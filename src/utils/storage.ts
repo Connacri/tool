@@ -1,10 +1,19 @@
-import { AspectRatioOption, LogoConfig, SlideItem, TypographyConfig } from '../types';
-import { ASPECT_RATIOS, INITIAL_LOGO, INITIAL_SLIDES, INITIAL_TYPOGRAPHY } from '../constants/presets';
+import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, SlideItem, TypographyConfig } from '../types';
+import {
+  ASPECT_RATIOS,
+  INITIAL_COLOR_FILTER,
+  INITIAL_GRADIENT_BLUR,
+  INITIAL_LOGO,
+  INITIAL_SLIDES,
+  INITIAL_TYPOGRAPHY,
+} from '../constants/presets';
 
 const STORAGE_KEY_SLIDES = 'autopost_studio_slides_v1';
 const STORAGE_KEY_RATIO = 'autopost_studio_ratio_v1';
 const STORAGE_KEY_TYPOGRAPHY = 'autopost_studio_typography_v1';
 const STORAGE_KEY_LOGO = 'autopost_studio_logo_v1';
+const STORAGE_KEY_BLUR = 'autopost_studio_blur_v1';
+const STORAGE_KEY_FILTER = 'autopost_studio_filter_v1';
 const STORAGE_KEY_TIMESTAMP = 'autopost_studio_last_saved_v1';
 
 export interface StorageStatus {
@@ -82,13 +91,45 @@ export function loadSavedLogo(): LogoConfig {
 }
 
 /**
+ * Loads gradient blur config from localStorage
+ */
+export function loadSavedGradientBlur(): GradientBlurConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_BLUR);
+    if (raw) {
+      return { ...INITIAL_GRADIENT_BLUR, ...JSON.parse(raw) };
+    }
+  } catch (e) {
+    console.warn('Erreur lors du chargement du flou dégradé:', e);
+  }
+  return INITIAL_GRADIENT_BLUR;
+}
+
+/**
+ * Loads color filter config from localStorage
+ */
+export function loadSavedColorFilter(): ColorFilterConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FILTER);
+    if (raw) {
+      return { ...INITIAL_COLOR_FILTER, ...JSON.parse(raw) };
+    }
+  } catch (e) {
+    console.warn('Erreur lors du chargement du filtre de couleur:', e);
+  }
+  return INITIAL_COLOR_FILTER;
+}
+
+/**
  * Automatically saves all applet state to localStorage with quota-safety
  */
 export function saveAllToLocalStorage(
   slides: SlideItem[],
   aspectRatio: AspectRatioOption,
   typography: TypographyConfig,
-  logo: LogoConfig
+  logo: LogoConfig,
+  blur?: GradientBlurConfig,
+  filter?: ColorFilterConfig
 ): { success: boolean; timestamp: number } {
   const timestamp = Date.now();
   try {
@@ -96,13 +137,13 @@ export function saveAllToLocalStorage(
     localStorage.setItem(STORAGE_KEY_RATIO, aspectRatio.id);
     localStorage.setItem(STORAGE_KEY_TYPOGRAPHY, JSON.stringify(typography));
     localStorage.setItem(STORAGE_KEY_LOGO, JSON.stringify(logo));
+    if (blur) localStorage.setItem(STORAGE_KEY_BLUR, JSON.stringify(blur));
+    if (filter) localStorage.setItem(STORAGE_KEY_FILTER, JSON.stringify(filter));
     localStorage.setItem(STORAGE_KEY_TIMESTAMP, timestamp.toString());
     return { success: true, timestamp };
   } catch (err: any) {
-    // Handle QuotaExceededError (e.g. if user uploaded large base64 images)
     console.warn('LocalStorage quota warning, attempt saving lightweight state:', err);
     try {
-      // Strip large data-urls if quota exceeded to still preserve text & configuration
       const lightweightSlides = slides.map((s, idx) => ({
         ...s,
         imageUrl: s.imageUrl.startsWith('data:') && s.imageUrl.length > 500000
@@ -112,6 +153,8 @@ export function saveAllToLocalStorage(
       localStorage.setItem(STORAGE_KEY_SLIDES, JSON.stringify(lightweightSlides));
       localStorage.setItem(STORAGE_KEY_RATIO, aspectRatio.id);
       localStorage.setItem(STORAGE_KEY_TYPOGRAPHY, JSON.stringify(typography));
+      if (blur) localStorage.setItem(STORAGE_KEY_BLUR, JSON.stringify(blur));
+      if (filter) localStorage.setItem(STORAGE_KEY_FILTER, JSON.stringify(filter));
       localStorage.setItem(STORAGE_KEY_TIMESTAMP, timestamp.toString());
       return { success: true, timestamp };
     } catch {
@@ -129,6 +172,8 @@ export function resetSavedData(): void {
     localStorage.removeItem(STORAGE_KEY_RATIO);
     localStorage.removeItem(STORAGE_KEY_TYPOGRAPHY);
     localStorage.removeItem(STORAGE_KEY_LOGO);
+    localStorage.removeItem(STORAGE_KEY_BLUR);
+    localStorage.removeItem(STORAGE_KEY_FILTER);
     localStorage.removeItem(STORAGE_KEY_TIMESTAMP);
   } catch (e) {
     console.warn('Erreur lors de la réinitialisation du localStorage:', e);
