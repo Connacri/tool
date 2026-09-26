@@ -1,4 +1,4 @@
-import { AspectRatioOption, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from '../types';
+import { AspectRatioOption, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from '../types';
 import imgCreativity from '../assets/images/card_studio_creativity_1790459712154.jpg';
 import imgArchitecture from '../assets/images/card_minimal_architecture_1790459725529.jpg';
 import imgNature from '../assets/images/card_serene_nature_1790459734331.jpg';
@@ -104,6 +104,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.creativity,
     imageAlt: 'Studio design avec lumière naturelle',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-09-28T09:00',
@@ -117,6 +119,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.architecture,
     imageAlt: 'Pavillon architectural minimaliste à l aube',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-09-29T12:30',
@@ -130,6 +134,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.nature,
     imageAlt: 'Lac alpin brumeux au lever du jour',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-09-30T18:00',
@@ -143,6 +149,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.craft,
     imageAlt: 'Vase céramique artisanal sur pierre travertine',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-10-01T09:00',
@@ -156,6 +164,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.structure,
     imageAlt: 'Sculpture d acier et de verre sous ciel crépusculaire',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-10-02T12:00',
@@ -169,6 +179,8 @@ export const INITIAL_SLIDES: SlideItem[] = [
     imageUrl: PRESET_IMAGES.skyline,
     imageAlt: 'Horizon urbain et reflets dorés',
     imageZoom: 1,
+    imagePanX: 0,
+    imagePanY: 0,
     imageBrightness: 100,
     customOverlayOpacity: 0.45,
     scheduledTime: '2026-10-03T17:30',
@@ -176,22 +188,43 @@ export const INITIAL_SLIDES: SlideItem[] = [
 ];
 
 export const ARABIC_FONTS = [
-  { id: 'cairo' as const, name: 'Cairo (Moderne & Net)', family: "'Cairo', sans-serif" },
-  { id: 'noto-arabic' as const, name: 'Noto Sans Arabic (Universel)', family: "'Noto Sans Arabic', sans-serif" },
-  { id: 'tajawal' as const, name: 'Tajawal (Élégant & Épuré)', family: "'Tajawal', sans-serif" },
-  { id: 'amiri' as const, name: 'Amiri (Calligraphie Traditionnelle)', family: "'Amiri', serif" },
+  { id: 'cairo' as const, name: 'Cairo (القاهرة - Moderne)', family: "'Cairo', sans-serif" },
+  { id: 'alexandria' as const, name: 'Alexandria (الإسكندرية - هندسي)', family: "'Alexandria', sans-serif" },
+  { id: 'almarai' as const, name: 'Almarai (المراعي - إخباري)', family: "'Almarai', sans-serif" },
+  { id: 'readex' as const, name: 'Readex Pro (ريدكس - معاصر)', family: "'Readex Pro', sans-serif" },
+  { id: 'el-messiri' as const, name: 'El Messiri (المسيري - منحني)', family: "'El Messiri', sans-serif" },
+  { id: 'tajawal' as const, name: 'Tajawal (تجوال - متوازن)', family: "'Tajawal', sans-serif" },
+  { id: 'amiri' as const, name: 'Amiri (أميري - نسخ كلاسيكي)', family: "'Amiri', serif" },
+  { id: 'noto-arabic' as const, name: 'Noto Sans Arabic (شامل)', family: "'Noto Sans Arabic', sans-serif" },
+];
+
+export const FRENCH_FONTS = [
+  { id: 'editorial' as const, name: 'Fraunces (Éditorial Serif)', family: "'Fraunces', serif" },
+  { id: 'avant-garde' as const, name: 'Syne (Avant-Garde Bold)', family: "'Syne', sans-serif" },
+  { id: 'modern' as const, name: 'Plus Jakarta Sans (Moderne)', family: "'Plus Jakarta Sans', sans-serif" },
+  { id: 'playfair' as const, name: 'Playfair Display (Luxe & Prestige)', family: "'Playfair Display', serif" },
+  { id: 'outfit' as const, name: 'Outfit (Contemporain Clean)', family: "'Outfit', sans-serif" },
+  { id: 'cinzel' as const, name: 'Cinzel (Monolithique & Archi)', family: "'Cinzel', serif" },
+  { id: 'mono' as const, name: 'JetBrains Mono (Code & Tech)', family: "'JetBrains Mono', monospace" },
 ];
 
 export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   fontStyle: 'editorial',
   arabicFont: 'cairo',
   direction: 'auto',
+  easternNumerals: false,
+  lineHeight: 1.35,
   boxStyle: 'scrim',
   position: 'bottom',
+  freePositionX: 50,
+  freePositionY: 78,
   align: 'left',
   kickerAlign: 'inherit',
   phraseAlign: 'inherit',
   fontSize: 1.1,
+  kickerSize: 1.0,
+  subtitleSize: 1.0,
+  textWidth: 88,
   textColor: '#ffffff',
   accentColor: '#6366f1',
   showKicker: true,
@@ -220,16 +253,104 @@ export const INITIAL_LOGO: LogoConfig = {
   brandText: 'STUDIO HORIZON',
   brandHandle: '@studio.horizon',
   position: 'top-left',
+  customX: 10,
+  customY: 8,
   size: 'medium',
+  scale: 1.0,
   opacity: 0.95,
   theme: 'white',
 };
 
-export const INITIAL_GRADIENT_BLUR = {
+export const INITIAL_GRADIENT_BLUR: GradientBlurConfig = {
   enabled: false,
-  direction: 'bottom' as const,
-  blurAmount: 12,
+  direction: 'bottom',
+  blurAmount: 14,
+  positionY: 75,
+  positionX: 50,
+  blurSize: 50,
+  blurWidth: 85,
+  opacity: 1.0,
 };
+
+export const GRADIENT_BLUR_PRESETS = [
+  {
+    id: 'editorial-bottom',
+    name: 'Pied de page doux (Bas)',
+    desc: 'Flou progressif en bas sous la phrase',
+    direction: 'bottom' as const,
+    blurAmount: 16,
+    positionY: 75,
+    positionX: 50,
+    blurSize: 50,
+    blurWidth: 100,
+  },
+  {
+    id: 'header-top',
+    name: 'En-tête épuré (Haut)',
+    desc: 'Flou progressif en haut pour titre',
+    direction: 'top' as const,
+    blurAmount: 16,
+    positionY: 25,
+    positionX: 50,
+    blurSize: 50,
+    blurWidth: 100,
+  },
+  {
+    id: 'center-band',
+    name: 'Bandeau central',
+    desc: 'Bande floue horizontale au milieu',
+    direction: 'center' as const,
+    blurAmount: 18,
+    positionY: 50,
+    positionX: 50,
+    blurSize: 42,
+    blurWidth: 100,
+  },
+  {
+    id: 'tilt-shift',
+    name: 'Tilt-Shift Cinéma',
+    desc: 'Centre net, bandes haut & bas floutées',
+    direction: 'tilt-shift' as const,
+    blurAmount: 18,
+    positionY: 50,
+    positionX: 50,
+    blurSize: 65,
+    blurWidth: 100,
+  },
+  {
+    id: 'radial-vignette',
+    name: 'Vignette Radiale',
+    desc: 'Halo circulaire périphérique',
+    direction: 'radial' as const,
+    blurAmount: 18,
+    positionY: 50,
+    positionX: 50,
+    blurSize: 60,
+    blurWidth: 60,
+  },
+  {
+    id: 'frosted-card',
+    name: 'Zone dépolie (Glass Box)',
+    desc: 'Rectangle de flou ciblé sous le texte',
+    direction: 'box' as const,
+    blurAmount: 20,
+    positionY: 75,
+    positionX: 50,
+    blurSize: 35,
+    blurWidth: 85,
+  },
+  {
+    id: 'full-soft',
+    name: 'Flou intégral d’arrière-plan',
+    desc: 'Fond ultra-doux avec focus maximal sur le texte',
+    direction: 'full' as const,
+    blurAmount: 22,
+    positionY: 50,
+    positionX: 50,
+    blurSize: 100,
+    blurWidth: 100,
+  },
+];
 
 export const COLOR_FILTER_PRESETS = [
   {
@@ -333,4 +454,136 @@ export const INITIAL_COLOR_FILTER = {
   opacity: 0.5,
   blendMode: 'overlay' as const,
 };
+
+export interface PresetOverlayItem {
+  id: string;
+  name: string;
+  category: 'trust' | 'promo' | 'arabic' | 'social';
+  url: string;
+}
+
+export const PRESET_OVERLAYS: PresetOverlayItem[] = [
+  // 1. Confiance & Certifications
+  {
+    id: 'verified',
+    name: 'Certifié Bleu',
+    category: 'trust',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="%236366f1"/><circle cx="60" cy="60" r="46" fill="%234f46e5"/><path d="M40 60 L54 74 L82 46" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
+  },
+  {
+    id: 'verified-gold',
+    name: 'Certifié VIP Or',
+    category: 'trust',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="%23f59e0b"/><circle cx="60" cy="60" r="46" fill="%23d97706"/><path d="M40 60 L54 74 L82 46" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
+  },
+  {
+    id: 'arabic-official',
+    name: 'معتمد / Certifié Vert',
+    category: 'trust',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="%23059669"/><circle cx="60" cy="60" r="46" fill="%23047857"/><path d="M40 60 L54 74 L82 46" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
+  },
+  {
+    id: 'stars',
+    name: '5 Étoiles (Avis Clients)',
+    category: 'trust',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 45"><rect width="200" height="45" rx="10" fill="rgba(15,23,42,0.88)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/><g fill="%23f59e0b"><polygon points="25,10 29,22 41,22 31,29 35,40 25,33 15,40 19,29 9,22 21,22"/><polygon points="62,10 66,22 78,22 68,29 72,40 62,33 52,40 56,29 46,22 58,22"/><polygon points="100,10 104,22 116,22 106,29 110,40 100,33 90,40 94,29 84,22 96,22"/><polygon points="138,10 142,22 154,22 144,29 148,40 138,33 128,40 132,29 122,22 134,22"/><polygon points="175,10 179,22 191,22 181,29 185,40 175,33 165,40 169,29 159,22 171,22"/></g></svg>',
+  },
+  {
+    id: 'quality-100',
+    name: '100% Qualité & Succès',
+    category: 'trust',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130"><circle cx="65" cy="65" r="58" fill="none" stroke="%23ec4899" stroke-width="4" stroke-dasharray="6,4"/><circle cx="65" cy="65" r="50" fill="%230f172a"/><text x="65" y="58" font-family="sans-serif" font-weight="900" font-size="22" fill="%23ec4899" text-anchor="middle">100%</text><text x="65" y="80" font-family="sans-serif" font-weight="700" font-size="11" fill="white" text-anchor="middle" letter-spacing="1">QUALITÉ</text></svg>',
+  },
+
+  // 2. Promotions & Marketing
+  {
+    id: 'nouveau',
+    name: 'NOUVEAU (Pilule Rose)',
+    category: 'promo',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="22" fill="%23ec4899" stroke="white" stroke-width="2"/><text x="70" y="28" font-family="sans-serif" font-weight="800" font-size="14" fill="white" text-anchor="middle" letter-spacing="1.5">NOUVEAU</text></svg>',
+  },
+  {
+    id: 'bestseller',
+    name: '★ BEST SELLER',
+    category: 'promo',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 44"><rect width="150" height="44" rx="12" fill="%23f59e0b"/><text x="75" y="27" font-family="sans-serif" font-weight="800" font-size="13" fill="%230f172a" text-anchor="middle" letter-spacing="1">★ BEST SELLER</text></svg>',
+  },
+  {
+    id: 'exclusif',
+    name: 'EXCLUSIF (Néon)',
+    category: 'promo',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 44"><rect width="130" height="44" rx="8" fill="rgba(10,10,10,0.92)" stroke="%23818cf8" stroke-width="2"/><text x="65" y="27" font-family="sans-serif" font-weight="700" font-size="13" fill="%23818cf8" text-anchor="middle" letter-spacing="2">EXCLUSIF</text></svg>',
+  },
+  {
+    id: 'promo-50',
+    name: '-50% OFFRE SPÉCIALE',
+    category: 'promo',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 44"><rect width="150" height="44" rx="22" fill="%23ef4444" stroke="white" stroke-width="1.5"/><text x="75" y="27" font-family="sans-serif" font-weight="800" font-size="13" fill="white" text-anchor="middle" letter-spacing="1">-50% PROMO</text></svg>',
+  },
+  {
+    id: 'coup-de-coeur',
+    name: '❤️ COUP DE CŒUR',
+    category: 'promo',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 44"><rect width="160" height="44" rx="22" fill="rgba(15,23,42,0.9)" stroke="%23f43f5e" stroke-width="2"/><text x="80" y="27" font-family="sans-serif" font-weight="700" font-size="12" fill="%23fda4af" text-anchor="middle">❤️ COUP DE CŒUR</text></svg>',
+  },
+
+  // 3. Arabe & Calligraphie
+  {
+    id: 'arabic-jadid',
+    name: 'جديد / Nouveau (Arabe)',
+    category: 'arabic',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 44"><rect width="130" height="44" rx="22" fill="%2310b981" stroke="white" stroke-width="2"/><text x="65" y="28" font-family="sans-serif" font-weight="800" font-size="16" fill="white" text-anchor="middle">جديد ★</text></svg>',
+  },
+  {
+    id: 'arabic-hasri',
+    name: 'حصرياً / Exclusif (Arabe)',
+    category: 'arabic',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="12" fill="%236366f1" stroke="white" stroke-width="1.5"/><text x="70" y="28" font-family="sans-serif" font-weight="800" font-size="15" fill="white" text-anchor="middle">حصرياً</text></svg>',
+  },
+  {
+    id: 'arabic-urgent',
+    name: 'عاجل / Urgent (Arabe)',
+    category: 'arabic',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 44"><rect width="130" height="44" rx="10" fill="%23dc2626"/><text x="65" y="28" font-family="sans-serif" font-weight="800" font-size="16" fill="white" text-anchor="middle">● عـاجـل</text></svg>',
+  },
+  {
+    id: 'arabic-best',
+    name: 'الأكثر طلباً / Populaire',
+    category: 'arabic',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 44"><rect width="150" height="44" rx="12" fill="%23d97706"/><text x="75" y="28" font-family="sans-serif" font-weight="700" font-size="14" fill="white" text-anchor="middle">★ الأكثر طلباً</text></svg>',
+  },
+  {
+    id: 'arabic-offer',
+    name: 'عرض خاص / Offre Spéciale',
+    category: 'arabic',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 44"><rect width="150" height="44" rx="22" fill="rgba(15,23,42,0.92)" stroke="%2310b981" stroke-width="2"/><text x="75" y="28" font-family="sans-serif" font-weight="700" font-size="14" fill="%236ee7b7" text-anchor="middle">عرض خاص ⚡</text></svg>',
+  },
+
+  // 4. Réseaux Sociaux & Call To Action
+  {
+    id: 'swipe-left',
+    name: 'Swipe / Glisser 👈',
+    category: 'social',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="22" fill="rgba(0,0,0,0.85)" stroke="white" stroke-width="1.5"/><text x="70" y="27" font-family="sans-serif" font-weight="700" font-size="12" fill="white" text-anchor="middle">Glisser 👈</text></svg>',
+  },
+  {
+    id: 'listen-audio',
+    name: 'Écouter 🎧 Podcast',
+    category: 'social',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="22" fill="%237c3aed" stroke="white" stroke-width="1.5"/><text x="70" y="27" font-family="sans-serif" font-weight="700" font-size="12" fill="white" text-anchor="middle">🎧 Écouter</text></svg>',
+  },
+  {
+    id: 'save-post',
+    name: 'Enregistrer 📌 Post',
+    category: 'social',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="22" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"/><text x="70" y="27" font-family="sans-serif" font-weight="700" font-size="12" fill="white" text-anchor="middle">Enregistrer 📌</text></svg>',
+  },
+  {
+    id: 'trending',
+    name: 'Tendance 🔥 Hot',
+    category: 'social',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44"><rect width="140" height="44" rx="22" fill="%23ea580c"/><text x="70" y="27" font-family="sans-serif" font-weight="800" font-size="12" fill="white" text-anchor="middle">🔥 TENDANCE</text></svg>',
+  },
+];
+
 

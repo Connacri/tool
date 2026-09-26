@@ -223,9 +223,13 @@ export default function App() {
           setCurrentSlideIndex={setCurrentSlideIndex}
           aspectRatio={aspectRatio}
           typography={typography}
+          setTypography={setTypography}
           logo={logo}
+          setLogo={setLogo}
           gradientBlur={gradientBlur}
+          setGradientBlur={setGradientBlur}
           colorFilter={colorFilter}
+          setColorFilter={setColorFilter}
           overlayImage={overlayImage}
           setOverlayImage={setOverlayImage}
           onSelectSlide={(idx) => {

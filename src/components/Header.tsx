@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Zone 2: Desktop Navigation Links */}
-      <nav className="hidden xl:flex items-center gap-1 bg-neutral-900/60 p-1 rounded-lg border border-neutral-800">
+      <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 bg-neutral-900/60 p-1 rounded-lg border border-neutral-800 overflow-x-auto max-w-full custom-scrollbar">
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
                 setActiveTab(tab.id);
                 setMobileView('editor');
               }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+              className={`px-2 xl:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                 isActive
                   ? 'bg-neutral-800 text-white shadow-sm'
                   : 'text-neutral-400 hover:text-white'

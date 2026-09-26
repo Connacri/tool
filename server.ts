@@ -154,7 +154,7 @@ Réponds UNIQUEMENT avec un objet JSON valide:
     });
   }
 
-  app.listen(port, () => {
+  app.listen(Number(port), '0.0.0.0', () => {
     console.log(`AutoPost Studio server running on port ${port}`);
   });
 }

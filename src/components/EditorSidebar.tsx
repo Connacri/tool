@@ -27,10 +27,18 @@ import {
   Move,
   Stamp,
   HelpCircle,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Droplets,
+  Search,
+  Globe,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WebhookConfig } from '../types';
-import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
+import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES, GRADIENT_BLUR_PRESETS, PRESET_OVERLAYS } from '../constants/presets';
 import { isArabicText } from '../utils/canvasRenderer';
+import { CURATED_FRENCH_FONTS, CURATED_ARABIC_FONTS, loadGoogleFont } from '../utils/googleFonts';
 
 interface EditorSidebarProps {
   activeTab: string;
@@ -90,7 +98,70 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   const logoInputRef = useRef<HTMLInputElement>(null);
   const overlayFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [fontLanguageTab, setFontLanguageTab] = useState<'french' | 'arabic'>('french');
+  const [customFontInput, setCustomFontInput] = useState('');
+  const [isLoadingFont, setIsLoadingFont] = useState(false);
+  const [fontLoadSuccess, setFontLoadSuccess] = useState<string | null>(null);
+
+  const [overlayCategoryTab, setOverlayCategoryTab] = useState<'all' | 'trust' | 'promo' | 'arabic' | 'social'>('all');
+  const [overlayUrlInput, setOverlayUrlInput] = useState('');
+
   const activeSlide = slides[currentSlideIndex] || slides[0];
+
+  const currentOverlay = activeSlide.customOverlayImage || overlayImage;
+
+  const updateOverlayConfig = (fields: Partial<OverlayImageConfig>) => {
+    if (overlayImage.applyToAll === false) {
+      updateActiveSlide({
+        customOverlayImage: {
+          ...currentOverlay,
+          ...fields,
+        },
+      });
+    } else {
+      setOverlayImage((prev) => ({
+        ...prev,
+        ...fields,
+      }));
+    }
+  };
+
+  const handleOverlayFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      updateOverlayConfig({ url: dataUrl, fileName: file.name, enabled: true });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleApplyCustomGoogleFont = async (fontName: string, isArabicTarget: boolean) => {
+    if (!fontName.trim()) return;
+    setIsLoadingFont(true);
+    setFontLoadSuccess(null);
+    try {
+      await loadGoogleFont(fontName.trim());
+      if (isArabicTarget) {
+        setTypography((prev) => ({
+          ...prev,
+          customArabicFontFamily: fontName.trim(),
+        }));
+      } else {
+        setTypography((prev) => ({
+          ...prev,
+          customFontFamily: fontName.trim(),
+        }));
+      }
+      setFontLoadSuccess(`Police "${fontName.trim()}" appliquée avec succès !`);
+      setTimeout(() => setFontLoadSuccess(null), 3000);
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingFont(false);
+    }
+  };
 
   // Helper to update active slide
   const updateActiveSlide = (fields: Partial<SlideItem>) => {
@@ -404,6 +475,134 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </p>
                 </div>
 
+                {/* Text Resizing & Dimensions for this Slide */}
+                <div className="pt-2 border-t border-neutral-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-neutral-300">
+                      Dimensions & Tailles des Textes
+                    </span>
+                    <button
+                      onClick={() =>
+                        updateActiveSlide({
+                          customTextScale: 1.1,
+                          customKickerScale: 1.0,
+                          customSubtitleScale: 1.0,
+                        })
+                      }
+                      className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Réinitialiser</span>
+                    </button>
+                  </div>
+
+                  {/* Phrase scale slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-neutral-400">Taille de la Phrase</span>
+                      <span className="font-mono text-indigo-300 font-medium">
+                        {Math.round((activeSlide.customTextScale ?? typography.fontSize ?? 1.1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.6"
+                      max="2.2"
+                      step="0.05"
+                      value={activeSlide.customTextScale ?? typography.fontSize ?? 1.1}
+                      onChange={(e) => updateActiveSlide({ customTextScale: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Kicker scale slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-neutral-400">Taille du Titre (Kicker)</span>
+                      <span className="font-mono text-neutral-200">
+                        {Math.round((activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.05"
+                      value={activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0}
+                      onChange={(e) => updateActiveSlide({ customKickerScale: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Subtitle scale slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-neutral-400">Taille du Sous-titre / Signature</span>
+                      <span className="font-mono text-neutral-200">
+                        {Math.round((activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.05"
+                      value={activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0}
+                      onChange={(e) => updateActiveSlide({ customSubtitleScale: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Free Drag & Drop Positioning on Canvas */}
+                <div className="pt-2 border-t border-neutral-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-neutral-300">
+                      Position sur le Visuel (Drag & Drop)
+                    </span>
+                    <button
+                      onClick={() => updateActiveSlide({ customTextX: 50, customTextY: 75 })}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Recentrer</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-neutral-400">
+                    💡 Vous pouvez glisser directement le texte sur le canevas en mode "Aperçu Unique" !
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="block text-neutral-400 mb-0.5">
+                        Position X: {activeSlide.customTextX ?? typography.freePositionX ?? 50}%
+                      </span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
+                        step="1"
+                        value={activeSlide.customTextX ?? typography.freePositionX ?? 50}
+                        onChange={(e) => updateActiveSlide({ customTextX: parseInt(e.target.value) })}
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-neutral-400 mb-0.5">
+                        Position Y: {activeSlide.customTextY ?? typography.freePositionY ?? 75}%
+                      </span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
+                        step="1"
+                        value={activeSlide.customTextY ?? typography.freePositionY ?? 75}
+                        onChange={(e) => updateActiveSlide({ customTextY: parseInt(e.target.value) })}
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Scheduled time info */}
                 <div>
                   <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
@@ -554,6 +753,107 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     className="w-full accent-indigo-500"
                   />
                 </div>
+
+                {/* Image Pan & Zoom Crop Controls */}
+                <div className="pt-2 border-t border-neutral-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-neutral-300 flex items-center gap-1.5">
+                      <Move className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Cadrage & Position de la Photo</span>
+                    </span>
+                    <button
+                      onClick={() => updateActiveSlide({ imageZoom: 1, imagePanX: 0, imagePanY: 0 })}
+                      className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1"
+                      title="Réinitialiser zoom et cadrage"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Recentrer</span>
+                    </button>
+                  </div>
+
+                  {/* Zoom slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Zoom / Échelle</span>
+                      <span className="font-mono text-indigo-300">
+                        {Math.round((activeSlide.imageZoom ?? 1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="3"
+                      step="0.05"
+                      value={activeSlide.imageZoom ?? 1}
+                      onChange={(e) => updateActiveSlide({ imageZoom: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Horizontal Pan X */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Déplacement Horizontal (X)</span>
+                      <span className="font-mono text-neutral-200">
+                        {activeSlide.imagePanX ?? 0}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      step="1"
+                      value={activeSlide.imagePanX ?? 0}
+                      onChange={(e) => updateActiveSlide({ imagePanX: parseInt(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Vertical Pan Y */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Déplacement Vertical (Y)</span>
+                      <span className="font-mono text-neutral-200">
+                        {activeSlide.imagePanY ?? 0}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      step="1"
+                      value={activeSlide.imagePanY ?? 0}
+                      onChange={(e) => updateActiveSlide({ imagePanY: parseInt(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Quick crop presets */}
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button
+                      onClick={() => updateActiveSlide({ imagePanY: -30 })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                    >
+                      Haut
+                    </button>
+                    <button
+                      onClick={() => updateActiveSlide({ imagePanX: 0, imagePanY: 0 })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                    >
+                      Centre
+                    </button>
+                    <button
+                      onClick={() => updateActiveSlide({ imagePanY: 30 })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                    >
+                      Bas
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-neutral-400">
+                    💡 Vous pouvez aussi glisser directement la photo sur l'aperçu avec l'outil <strong>Cadrer l'image</strong>.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -609,290 +909,508 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </div>
             </div>
 
-            {/* Gradient Blur Section */}
-            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 3: IMAGE DE SUPERPOSITION (Stickers, Badges, Filigranes)  */}
+        {/* ============================================================== */}
+        {activeTab === 'overlay' && (
+          <div className="space-y-6">
+            <div>
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Filtre de Flou Dégradé</h4>
-                  <p className="text-[10px] text-neutral-400">
-                    Flou progressif pour sublimer la lisibilité du texte
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <span>Image de Superposition</span>
+                  </h3>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Stickers, badges, filigranes, cadres ou visuels PNG transparents
                   </p>
                 </div>
+                {/* Master Enable Toggle */}
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={gradientBlur.enabled}
-                    onChange={(e) =>
-                      setGradientBlur({ ...gradientBlur, enabled: e.target.checked })
-                    }
+                    checked={currentOverlay.enabled}
+                    onChange={(e) => updateOverlayConfig({ enabled: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
               </div>
-
-              {gradientBlur.enabled && (
-                <div className="space-y-3 pt-2 border-t border-neutral-800/80">
-                  {/* Direction */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
-                      Direction du Dégradé
-                    </label>
-                    <div className="grid grid-cols-3 gap-1.5 text-xs">
-                      {[
-                        { id: 'bottom', label: 'Vers le Bas', desc: 'Texte en bas' },
-                        { id: 'top', label: 'Vers le Haut', desc: 'Texte en haut' },
-                        { id: 'tilt-shift', label: 'Tilt-Shift', desc: 'Bande nette' },
-                        { id: 'radial', label: 'Radial', desc: 'Vignette' },
-                        { id: 'full', label: 'Complet', desc: 'Flou total' },
-                      ].map((dir) => (
-                        <button
-                          key={dir.id}
-                          onClick={() =>
-                            setGradientBlur({ ...gradientBlur, direction: dir.id as any })
-                          }
-                          className={`p-2 rounded-lg border text-center transition-colors ${
-                            gradientBlur.direction === dir.id
-                              ? 'bg-neutral-800 border-indigo-500 text-white font-medium'
-                              : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
-                          }`}
-                        >
-                          <span className="block text-[11px] font-semibold">{dir.label}</span>
-                          <span className="block text-[9px] text-neutral-400">{dir.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Blur Amount */}
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-neutral-400">Intensité du flou</span>
-                      <span className="font-mono text-neutral-200">
-                        {gradientBlur.blurAmount}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="4"
-                      max="24"
-                      step="2"
-                      value={gradientBlur.blurAmount}
-                      onChange={(e) =>
-                        setGradientBlur({
-                          ...gradientBlur,
-                          blurAmount: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full accent-indigo-500"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Color Gradient Filter Section */}
-            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Filtre de Couleurs Dégradées</h4>
-                  <p className="text-[10px] text-neutral-400">
-                    Voile bicolore artistique (*duotone / mood filter*)
+            {/* Scope: Apply to All Slides vs This Slide Only */}
+            <div className="p-3 bg-neutral-900/70 border border-neutral-800 rounded-xl space-y-2">
+              <span className="text-[11px] font-semibold text-neutral-300 block">
+                Portée de l'effet
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverlayImage((prev) => ({ ...prev, applyToAll: true }));
+                  }}
+                  className={`py-2 px-3 rounded-lg border text-left transition-colors ${
+                    overlayImage.applyToAll !== false
+                      ? 'bg-indigo-950/50 border-indigo-500 text-white font-medium ring-1 ring-indigo-500'
+                      : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <span className="block font-medium">Tout le lot</span>
+                  <span className="text-[10px] text-neutral-400">Toutes les {slides.length} diapos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverlayImage((prev) => ({ ...prev, applyToAll: false }));
+                  }}
+                  className={`py-2 px-3 rounded-lg border text-left transition-colors ${
+                    overlayImage.applyToAll === false
+                      ? 'bg-indigo-950/50 border-indigo-500 text-white font-medium ring-1 ring-indigo-500'
+                      : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <span className="block font-medium">Diapo #{activeSlide.number}</span>
+                  <span className="text-[10px] text-neutral-400">Uniquement cette diapo</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Status notification banner if disabled */}
+            {!currentOverlay.enabled && (
+              <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/50 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse"></span>
+                  <p className="text-xs text-amber-200">
+                    Superposition en veille. Choisissez un badge ou téléversez une image pour l'activer.
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={colorFilter.enabled}
-                    onChange={(e) =>
-                      setColorFilter({ ...colorFilter, enabled: e.target.checked })
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
+                <button
+                  type="button"
+                  onClick={() => updateOverlayConfig({ enabled: true })}
+                  className="px-2.5 py-1 text-[11px] bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold rounded-md transition-colors shrink-0"
+                >
+                  Activer
+                </button>
               </div>
+            )}
 
-              {colorFilter.enabled && (
-                <div className="space-y-3 pt-2 border-t border-neutral-800/80">
-                  {/* Preset Gradients */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
-                      Palettes Prédéfinies
-                    </label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {COLOR_FILTER_PRESETS.map((p) => {
-                        const isSelected = colorFilter.preset === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() =>
-                              setColorFilter({
-                                ...colorFilter,
-                                preset: p.id,
-                                colorStart: p.colorStart,
-                                colorEnd: p.colorEnd,
-                                angle: p.angle,
-                                blendMode: p.blendMode,
-                                opacity: p.opacity,
-                              })
-                            }
-                            className={`p-2 rounded-lg border flex items-center gap-2 transition-all ${
-                              isSelected
-                                ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500'
-                                : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
-                            }`}
-                          >
-                            <div
-                              className="w-5 h-5 rounded-full shrink-0 border border-white/20"
-                              style={{
-                                background: `linear-gradient(${p.angle}deg, ${p.colorStart}, ${p.colorEnd})`,
-                              }}
-                            />
-                            <span className="text-xs font-medium text-white truncate">
-                              {p.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                      {/* Custom option */}
-                      <button
-                        onClick={() =>
-                          setColorFilter({ ...colorFilter, preset: 'custom' })
-                        }
-                        className={`p-2 rounded-lg border flex items-center gap-2 transition-all ${
-                          colorFilter.preset === 'custom'
-                            ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500'
-                            : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700'
-                        }`}
-                      >
-                        <div
-                          className="w-5 h-5 rounded-full shrink-0 border border-white/20"
-                          style={{
-                            background: `linear-gradient(${colorFilter.angle}deg, ${colorFilter.colorStart}, ${colorFilter.colorEnd})`,
-                          }}
-                        />
-                        <span className="text-xs font-medium text-white">Personnalisé</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Custom color pickers if custom is selected */}
-                  {colorFilter.preset === 'custom' && (
-                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
-                      <div>
-                        <span className="block text-[10px] text-neutral-400 mb-1">
-                          Couleur Début
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={colorFilter.colorStart}
-                            onChange={(e) =>
-                              setColorFilter({ ...colorFilter, colorStart: e.target.value })
-                            }
-                            className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
-                          />
-                          <span className="text-[11px] font-mono text-neutral-300">
-                            {colorFilter.colorStart}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-neutral-400 mb-1">
-                          Couleur Fin
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={colorFilter.colorEnd}
-                            onChange={(e) =>
-                              setColorFilter({ ...colorFilter, colorEnd: e.target.value })
-                            }
-                            className="w-8 h-8 rounded border border-neutral-700 bg-transparent cursor-pointer"
-                          />
-                          <span className="text-[11px] font-mono text-neutral-300">
-                            {colorFilter.colorEnd}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Blend Mode and Angle */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                        Mode de Fusion
-                      </label>
-                      <select
-                        value={colorFilter.blendMode}
-                        onChange={(e) =>
-                          setColorFilter({
-                            ...colorFilter,
-                            blendMode: e.target.value as any,
-                          })
-                        }
-                        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="overlay">Incrustation (Overlay)</option>
-                        <option value="soft-light">Lumière douce</option>
-                        <option value="multiply">Produit (Sombre)</option>
-                        <option value="screen">Superposition (Clair)</option>
-                        <option value="color">Couleur pure</option>
-                        <option value="normal">Normal</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                        Angle ({colorFilter.angle}°)
-                      </label>
-                      <select
-                        value={colorFilter.angle}
-                        onChange={(e) =>
-                          setColorFilter({
-                            ...colorFilter,
-                            angle: parseInt(e.target.value),
-                          })
-                        }
-                        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="0">0° (Horizontal)</option>
-                        <option value="45">45° (Diagonal)</option>
-                        <option value="90">90° (Vertical Haut)</option>
-                        <option value="135">135° (Diagonal inverse)</option>
-                        <option value="180">180° (Vertical Bas)</option>
-                        <option value="270">270° (Inversé)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Opacity Slider */}
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-neutral-400">Intensité du voile</span>
-                      <span className="font-mono text-neutral-200">
-                        {Math.round(colorFilter.opacity * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="0.9"
-                      step="0.05"
-                      value={colorFilter.opacity}
-                      onChange={(e) =>
-                        setColorFilter({
-                          ...colorFilter,
-                          opacity: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full accent-indigo-500"
+            <div className="space-y-5">
+              {/* Active Overlay Card if set */}
+              {currentOverlay.url && (
+                <div className="p-3.5 rounded-xl bg-neutral-900/90 border border-neutral-800 flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden shrink-0 shadow-inner">
+                    <img
+                      src={currentOverlay.url}
+                      alt="Aperçu superposition"
+                      className="max-w-full max-h-full object-contain"
+                      style={{
+                        transform: currentOverlay.rotation ? `rotate(${currentOverlay.rotation}deg)` : undefined,
+                      }}
                     />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-white truncate block">
+                        {currentOverlay.fileName || 'Superposition active'}
+                      </span>
+                      {currentOverlay.enabled ? (
+                        <span className="text-[9px] bg-emerald-950 border border-emerald-800 text-emerald-400 px-1.5 py-0.2 rounded">
+                          Visible
+                        </span>
+                      ) : (
+                        <span className="text-[9px] bg-neutral-800 text-neutral-400 px-1.5 py-0.2 rounded">
+                          Masqué
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-indigo-400 font-mono block mt-0.5">
+                      Taille: {Math.round((currentOverlay.scale ?? 1) * 100)}% · Rot: {currentOverlay.rotation ?? 0}° · Opacité: {Math.round((currentOverlay.opacity ?? 1) * 100)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => overlayFileInputRef.current?.click()}
+                      className="px-2 py-1 text-[11px] bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-md transition-colors"
+                      title="Changer de fichier"
+                    >
+                      Changer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateOverlayConfig({ url: '', fileName: undefined })}
+                      className="p-1 text-neutral-400 hover:text-rose-400 transition-colors"
+                      title="Supprimer la superposition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               )}
+
+              {/* 1. Curated Badges & Stickers Library */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Stamp className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-xs font-semibold text-white">
+                      Catalogue de Stickers & Badges
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-neutral-400 font-mono">
+                    {PRESET_OVERLAYS.length} modèles
+                  </span>
+                </div>
+
+                {/* Category Tabs: All, Confiance, Promo, Arabe, Social */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar text-[11px]">
+                  {[
+                    { id: 'all', label: 'Tous' },
+                    { id: 'trust', label: 'Confiance & Avis' },
+                    { id: 'promo', label: 'Promos & Vente' },
+                    { id: 'arabic', label: 'العربية / Arabe' },
+                    { id: 'social', label: 'Réseaux & CTA' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setOverlayCategoryTab(cat.id as any)}
+                      className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap ${
+                        overlayCategoryTab === cat.id
+                          ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                          : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stickers Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto custom-scrollbar p-0.5">
+                  {PRESET_OVERLAYS.filter(
+                    (b) => overlayCategoryTab === 'all' || b.category === overlayCategoryTab
+                  ).map((badge) => {
+                    const isSelected = currentOverlay.url === badge.url;
+                    return (
+                      <button
+                        key={badge.id}
+                        type="button"
+                        onClick={() =>
+                          updateOverlayConfig({
+                            url: badge.url,
+                            fileName: badge.name,
+                            enabled: true,
+                          })
+                        }
+                        className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all text-center group ${
+                          isSelected
+                            ? 'bg-indigo-950/60 border-indigo-500 ring-1 ring-indigo-500'
+                            : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/60'
+                        }`}
+                      >
+                        <div className="w-12 h-10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <img
+                            src={badge.url}
+                            alt={badge.name}
+                            className="max-w-full max-h-full object-contain drop-shadow"
+                          />
+                        </div>
+                        <span className="text-[10px] font-medium text-neutral-300 line-clamp-1">
+                          {badge.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Custom Upload & Direct URL */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <UploadCloud className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Importer votre Propre Visuel ou Filigrane</span>
+                </span>
+
+                {/* Upload button & drop zone */}
+                <input
+                  type="file"
+                  ref={overlayFileInputRef}
+                  onChange={handleOverlayFileUpload}
+                  accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => overlayFileInputRef.current?.click()}
+                  className="w-full py-3 px-3 border-2 border-dashed border-neutral-800 hover:border-indigo-500 rounded-xl bg-neutral-950 hover:bg-neutral-900 transition-all flex flex-col items-center justify-center gap-1 text-center group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-indigo-950/60 border border-indigo-800/80 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-medium text-neutral-200">
+                    Glisser ou cliquer pour téléverser
+                  </span>
+                  <span className="text-[10px] text-neutral-500">
+                    PNG transparent, SVG, sticker, filigrane
+                  </span>
+                </button>
+
+                {/* Direct Image URL input */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <input
+                    type="url"
+                    placeholder="Ou coller une URL d'image (PNG/SVG)..."
+                    value={overlayUrlInput}
+                    onChange={(e) => setOverlayUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && overlayUrlInput.trim()) {
+                        updateOverlayConfig({
+                          url: overlayUrlInput.trim(),
+                          fileName: 'Image Web',
+                          enabled: true,
+                        });
+                        setOverlayUrlInput('');
+                      }
+                    }}
+                    className="flex-1 px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    disabled={!overlayUrlInput.trim()}
+                    onClick={() => {
+                      if (overlayUrlInput.trim()) {
+                        updateOverlayConfig({
+                          url: overlayUrlInput.trim(),
+                          fileName: 'Image Web',
+                          enabled: true,
+                        });
+                        setOverlayUrlInput('');
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Charger
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Position Controls (9-Anchor Grid + Custom) */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-white">
+                    Position de la superposition
+                  </span>
+                  {currentOverlay.position === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => updateOverlayConfig({ customX: 50, customY: 50, enabled: true })}
+                      className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1 bg-neutral-800 px-2 py-0.5 rounded"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Centrer</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 9-position anchor grid + custom */}
+                <div className="grid grid-cols-3 gap-1.5 text-xs">
+                  {[
+                    { id: 'top-left', label: 'Haut Gauche' },
+                    { id: 'top-center', label: 'Haut Centre' },
+                    { id: 'top-right', label: 'Haut Droite' },
+                    { id: 'center', label: 'Plein Centre' },
+                    { id: 'bottom-left', label: 'Bas Gauche' },
+                    { id: 'bottom-center', label: 'Bas Centre' },
+                    { id: 'bottom-right', label: 'Bas Droite' },
+                    { id: 'custom', label: 'Libre (X/Y)' },
+                  ].map((pos) => (
+                    <button
+                      key={pos.id}
+                      type="button"
+                      onClick={() => updateOverlayConfig({ position: pos.id as any, enabled: true })}
+                      className={`py-1.5 px-2 rounded-lg border text-center transition-colors ${
+                        currentOverlay.position === pos.id
+                          ? 'bg-indigo-600 text-white font-medium border-indigo-500'
+                          : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom X & Y sliders if position === 'custom' */}
+                {currentOverlay.position === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-neutral-800/80 text-xs">
+                    <div>
+                      <div className="flex items-center justify-between mb-1 text-[10px] text-neutral-400">
+                        <span>Axe X</span>
+                        <span className="font-mono text-indigo-300">
+                          {currentOverlay.customX ?? 50}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="95"
+                        step="1"
+                        value={currentOverlay.customX ?? 50}
+                        onChange={(e) =>
+                          updateOverlayConfig({ customX: parseInt(e.target.value), enabled: true })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1 text-[10px] text-neutral-400">
+                        <span>Axe Y</span>
+                        <span className="font-mono text-indigo-300">
+                          {currentOverlay.customY ?? 50}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="95"
+                        step="1"
+                        value={currentOverlay.customY ?? 50}
+                        onChange={(e) =>
+                          updateOverlayConfig({ customY: parseInt(e.target.value), enabled: true })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-neutral-500 italic">
+                  💡 En mode « Aperçu Unique », vous pouvez aussi glisser-déposer le sticker avec la souris.
+                </p>
+              </div>
+
+              {/* 4. Scale & Dimensions */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-neutral-300">Dimension / Échelle</span>
+                  <span className="font-mono text-indigo-300 font-medium">
+                    {Math.round((currentOverlay.scale ?? 1.0) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.8"
+                  step="0.05"
+                  value={currentOverlay.scale ?? 1.0}
+                  onChange={(e) =>
+                    updateOverlayConfig({ scale: parseFloat(e.target.value), enabled: true })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  {[
+                    { label: 'Mini (20%)', val: 0.2 },
+                    { label: 'Normal (35%)', val: 0.35 },
+                    { label: 'Grand (55%)', val: 0.55 },
+                    { label: 'Max (100%)', val: 1.0 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => updateOverlayConfig({ scale: p.val, enabled: true })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Rotation Slider & Presets */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-neutral-300">Rotation / Inclinaison</span>
+                  <span className="font-mono text-indigo-300 font-medium">
+                    {currentOverlay.rotation ?? 0}°
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  value={currentOverlay.rotation ?? 0}
+                  onChange={(e) =>
+                    updateOverlayConfig({ rotation: parseInt(e.target.value), enabled: true })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  {[
+                    { label: 'Droit (0°)', val: 0 },
+                    { label: '-12° Incliné', val: -12 },
+                    { label: '+12° Incliné', val: 12 },
+                    { label: 'Diagonal (45°)', val: 45 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => updateOverlayConfig({ rotation: p.val, enabled: true })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. Opacity & Blend Mode */}
+              <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3.5">
+                {/* Opacity */}
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-neutral-300">Opacité</span>
+                    <span className="font-mono text-neutral-200">
+                      {Math.round((currentOverlay.opacity ?? 1.0) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.05"
+                    value={currentOverlay.opacity ?? 1.0}
+                    onChange={(e) =>
+                      updateOverlayConfig({ opacity: parseFloat(e.target.value), enabled: true })
+                    }
+                    className="w-full accent-indigo-500"
+                  />
+                </div>
+
+                {/* Blend Mode */}
+                <div>
+                  <label className="block text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                    Mode de Fusion
+                  </label>
+                  <select
+                    value={currentOverlay.blendMode || 'normal'}
+                    onChange={(e) =>
+                      updateOverlayConfig({ blendMode: e.target.value as any, enabled: true })
+                    }
+                    className="w-full px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="normal">Normal (Opaque)</option>
+                    <option value="screen">Superposition claire (Screen)</option>
+                    <option value="overlay">Incrustation (Overlay)</option>
+                    <option value="multiply">Produit sombre (Multiply)</option>
+                    <option value="soft-light">Lumière douce (Soft-light)</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -936,43 +1454,65 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
               {gradientBlur.enabled ? (
                 <div className="space-y-4 pt-3 border-t border-neutral-800/80">
+                  {/* Presets rapides de flou */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-2">
+                      Modèles Prédéfinis au Choix
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {GRADIENT_BLUR_PRESETS.map((preset) => {
+                        const isCurrent =
+                          gradientBlur.direction === preset.direction &&
+                          gradientBlur.positionY === preset.positionY;
+                        return (
+                          <button
+                            key={preset.id}
+                            onClick={() =>
+                              setGradientBlur({
+                                ...gradientBlur,
+                                direction: preset.direction,
+                                blurAmount: preset.blurAmount,
+                                positionY: preset.positionY,
+                                positionX: preset.positionX,
+                                blurSize: preset.blurSize,
+                                blurWidth: preset.blurWidth ?? 85,
+                              })
+                            }
+                            className={`p-2 rounded-lg border text-left transition-all ${
+                              isCurrent
+                                ? 'bg-cyan-950/50 border-cyan-500 ring-1 ring-cyan-500 text-white'
+                                : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                            }`}
+                          >
+                            <span className="block text-[11px] font-semibold text-white truncate">
+                              {preset.name}
+                            </span>
+                            <span className="block text-[9px] text-neutral-400 line-clamp-1">
+                              {preset.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Direction buttons with visual hints */}
                   <div>
                     <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-2">
-                      Direction du Flou Dégradé
+                      Style & Direction du Flou
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                       {[
-                        {
-                          id: 'bottom',
-                          label: 'Vers le Bas',
-                          desc: 'Texte en bas (idéal)',
-                          gradientPreview: 'from-transparent via-cyan-500/20 to-cyan-500/60',
-                        },
-                        {
-                          id: 'top',
-                          label: 'Vers le Haut',
-                          desc: 'Texte en haut',
-                          gradientPreview: 'from-cyan-500/60 via-cyan-500/20 to-transparent',
-                        },
-                        {
-                          id: 'tilt-shift',
-                          label: 'Tilt-Shift',
-                          desc: 'Bande nette centrale',
-                          gradientPreview: 'from-cyan-500/50 via-transparent to-cyan-500/50',
-                        },
-                        {
-                          id: 'radial',
-                          label: 'Radial',
-                          desc: 'Vignette floue',
-                          gradientPreview: 'from-transparent to-cyan-500/50',
-                        },
-                        {
-                          id: 'full',
-                          label: 'Flou Complet',
-                          desc: 'Fond ultra-doux',
-                          gradientPreview: 'bg-cyan-500/40',
-                        },
+                        { id: 'bottom', label: 'Bas (Pied)', desc: 'Texte en bas' },
+                        { id: 'top', label: 'Haut (En-tête)', desc: 'Texte en haut' },
+                        { id: 'center', label: 'Bandeau Central', desc: 'Bande médiane' },
+                        { id: 'tilt-shift', label: 'Tilt-Shift Horiz', desc: 'Centre net' },
+                        { id: 'tilt-shift-vertical', label: 'Tilt-Shift Vert', desc: 'Colonne nette' },
+                        { id: 'radial', label: 'Vignette Radiale', desc: 'Halo circulaire' },
+                        { id: 'box', label: 'Zone Dépolie', desc: 'Boîte sous texte' },
+                        { id: 'left', label: 'Vers la Gauche', desc: 'Dégradé latéral' },
+                        { id: 'right', label: 'Vers la Droite', desc: 'Dégradé latéral' },
+                        { id: 'full', label: 'Flou Intégral', desc: 'Fond complet' },
                       ].map((dir) => {
                         const isSelected = gradientBlur.direction === dir.id;
                         return (
@@ -981,46 +1521,161 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                             onClick={() =>
                               setGradientBlur({ ...gradientBlur, direction: dir.id as any })
                             }
-                            className={`p-2.5 rounded-lg border text-left transition-all relative overflow-hidden ${
+                            className={`p-2 rounded-lg border text-left transition-all ${
                               isSelected
                                 ? 'bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500 text-white'
                                 : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
                             }`}
                           >
-                            <span className="block text-xs font-semibold">{dir.label}</span>
-                            <span className="block text-[9px] text-neutral-400 mt-0.5">{dir.desc}</span>
+                            <span className="block text-[11px] font-semibold">{dir.label}</span>
+                            <span className="block text-[9px] text-neutral-400">{dir.desc}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Blur intensity slider */}
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-neutral-400 font-medium">Intensité du flou</span>
-                      <span className="font-mono text-cyan-300 font-semibold">
-                        {gradientBlur.blurAmount} px
-                      </span>
+                  {/* Position Y and Position X */}
+                  <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 space-y-3">
+                    <span className="text-[11px] font-semibold text-neutral-300 block">
+                      Positionnement & Dimensions de la Zone
+                    </span>
+
+                    {/* Position Y Slider */}
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-neutral-400">Position Verticale (Hauteur Y)</span>
+                        <span className="font-mono text-cyan-300 font-medium">
+                          {gradientBlur.positionY ?? 75}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="95"
+                        step="1"
+                        value={gradientBlur.positionY ?? 75}
+                        onChange={(e) =>
+                          setGradientBlur({ ...gradientBlur, positionY: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-cyan-500"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="4"
-                      max="28"
-                      step="2"
-                      value={gradientBlur.blurAmount}
-                      onChange={(e) =>
-                        setGradientBlur({
-                          ...gradientBlur,
-                          blurAmount: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full accent-cyan-500"
-                    />
-                    <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
-                      <span>Léger (4px)</span>
-                      <span>Moyen (14px)</span>
-                      <span>Prononcé (28px)</span>
+
+                    {/* Position X Slider for radial/box */}
+                    {['radial', 'box', 'left', 'right'].includes(gradientBlur.direction) && (
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-neutral-400">Position Horizontale (Centrage X)</span>
+                          <span className="font-mono text-cyan-300 font-medium">
+                            {gradientBlur.positionX ?? 50}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="95"
+                          step="1"
+                          value={gradientBlur.positionX ?? 50}
+                          onChange={(e) =>
+                            setGradientBlur({ ...gradientBlur, positionX: parseInt(e.target.value) })
+                          }
+                          className="w-full accent-cyan-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* Blur Spread / Height Dimension */}
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-neutral-400">Envergure / Hauteur du Flou</span>
+                        <span className="font-mono text-cyan-300 font-medium">
+                          {gradientBlur.blurSize ?? 50}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        step="5"
+                        value={gradientBlur.blurSize ?? 50}
+                        onChange={(e) =>
+                          setGradientBlur({ ...gradientBlur, blurSize: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-cyan-500"
+                      />
+                    </div>
+
+                    {/* Blur Width Dimension for box or radial */}
+                    {['box', 'radial', 'center'].includes(gradientBlur.direction) && (
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-neutral-400">Largeur de la Zone Floue</span>
+                          <span className="font-mono text-cyan-300 font-medium">
+                            {gradientBlur.blurWidth ?? 85}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="100"
+                          step="5"
+                          value={gradientBlur.blurWidth ?? 85}
+                          onChange={(e) =>
+                            setGradientBlur({ ...gradientBlur, blurWidth: parseInt(e.target.value) })
+                          }
+                          className="w-full accent-cyan-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Blur intensity and opacity sliders */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-neutral-400">Rayon de flou</span>
+                        <span className="font-mono text-cyan-300 font-semibold">
+                          {gradientBlur.blurAmount} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="2"
+                        max="36"
+                        step="2"
+                        value={gradientBlur.blurAmount}
+                        onChange={(e) =>
+                          setGradientBlur({
+                            ...gradientBlur,
+                            blurAmount: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full accent-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-neutral-400">Opacité</span>
+                        <span className="font-mono text-neutral-200">
+                          {Math.round((gradientBlur.opacity ?? 1.0) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.2"
+                        max="1.0"
+                        step="0.05"
+                        value={gradientBlur.opacity ?? 1.0}
+                        onChange={(e) =>
+                          setGradientBlur({
+                            ...gradientBlur,
+                            opacity: parseFloat(e.target.value),
+                          })
+                        }
+                        className="w-full accent-cyan-500"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1324,6 +1979,102 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               })}
             </div>
 
+            {/* Image Pan & Zoom Crop for this Ratio */}
+            {activeSlide && (
+              <div className="p-4 rounded-xl bg-neutral-900/70 border border-neutral-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <Move className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Recadrer l'Image (Diapo #{activeSlide.number})</span>
+                  </span>
+                  <button
+                    onClick={() => updateActiveSlide({ imageZoom: 1, imagePanX: 0, imagePanY: 0 })}
+                    className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1 bg-neutral-800 px-2 py-0.5 rounded"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>Recentrer</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-neutral-400 leading-normal">
+                  Lors du changement de format ({aspectRatio.id}), ajustez la zone de la photo à afficher en zoomant ou en glissant l'image :
+                </p>
+
+                {/* Zoom */}
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-neutral-400">Zoom / Échelle</span>
+                    <span className="font-mono text-indigo-300 font-medium">
+                      {Math.round((activeSlide.imageZoom ?? 1) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.05"
+                    value={activeSlide.imageZoom ?? 1}
+                    onChange={(e) => updateActiveSlide({ imageZoom: parseFloat(e.target.value) })}
+                    className="w-full accent-indigo-500"
+                  />
+                </div>
+
+                {/* Pan X and Pan Y */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="block text-neutral-400 mb-0.5">Pan X: {activeSlide.imagePanX ?? 0}%</span>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      step="1"
+                      value={activeSlide.imagePanX ?? 0}
+                      onChange={(e) => updateActiveSlide({ imagePanX: parseInt(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <span className="block text-neutral-400 mb-0.5">Pan Y: {activeSlide.imagePanY ?? 0}%</span>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="50"
+                      step="1"
+                      value={activeSlide.imagePanY ?? 0}
+                      onChange={(e) => updateActiveSlide({ imagePanY: parseInt(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Preset shortcuts */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    onClick={() => updateActiveSlide({ imagePanY: -35 })}
+                    className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                  >
+                    Haut
+                  </button>
+                  <button
+                    onClick={() => updateActiveSlide({ imagePanX: 0, imagePanY: 0 })}
+                    className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                  >
+                    Centre
+                  </button>
+                  <button
+                    onClick={() => updateActiveSlide({ imagePanY: 35 })}
+                    className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white"
+                  >
+                    Bas
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-neutral-500 italic">
+                  💡 En mode "Aperçu Unique", cliquez sur <strong>Cadrer l'image</strong> pour glisser directement avec la souris ou le doigt.
+                </p>
+              </div>
+            )}
+
             <div className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 space-y-1">
               <span className="font-semibold text-white">Astuce format :</span>
               <p className="text-neutral-400 leading-relaxed text-[11px]">
@@ -1337,47 +2088,453 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         {/* TAB 4: TYPOGRAPHY & TEXT STYLES */}
         {/* ============================================================== */}
         {activeTab === 'typography' && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-white">Typographie & Cadre</h3>
-              <p className="text-xs text-neutral-400">
-                Personnalisez la police, le positionnement et l'effet de superposition
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Type className="w-4 h-4 text-indigo-400" />
+                <span>Typographie, Arabe & Dimensions</span>
+              </h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Polices Google Fonts instantanées (FR & Arabe), orientation BiDi et calibrage des dimensions
               </p>
             </div>
 
-            {/* Font Style Selection */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-2">
-                Famille de Police
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'editorial', label: 'Éditorial Serif', sample: 'Fraunces' },
-                  { id: 'avant-garde', label: 'Avant-Garde Bold', sample: 'Syne' },
-                  { id: 'modern', label: 'Moderne Pro', sample: 'Jakarta' },
-                  { id: 'mono', label: 'Code & Tech', sample: 'JetBrains' },
-                ].map((f) => (
+            {/* SECTION 1: GOOGLE FONTS INSTANT LOADING & SELECTION */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Polices Google Fonts</span>
+                </span>
+                {/* Language Switcher: Français vs Arabe */}
+                <div className="flex items-center gap-1 p-0.5 bg-neutral-950 rounded-lg border border-neutral-800 text-xs">
                   <button
-                    key={f.id}
-                    onClick={() =>
-                      setTypography({ ...typography, fontStyle: f.id as any })
-                    }
-                    className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
-                      typography.fontStyle === f.id
-                        ? 'bg-neutral-800 border-indigo-500 text-white'
-                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
+                    type="button"
+                    onClick={() => setFontLanguageTab('french')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      fontLanguageTab === 'french'
+                        ? 'bg-neutral-800 text-white font-medium shadow-sm'
+                        : 'text-neutral-400 hover:text-white'
                     }`}
                   >
-                    <p className="font-semibold text-white">{f.label}</p>
-                    <p className="text-[10px] text-neutral-400">{f.sample}</p>
+                    Français / Latin
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setFontLanguageTab('arabic')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      fontLanguageTab === 'arabic'
+                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-medium shadow-sm'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    العربية / Arabe
+                  </button>
+                </div>
+              </div>
+
+              {/* Instant Search or Custom Google Font input */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder={fontLanguageTab === 'arabic' ? 'Ex: Cairo, Amiri, Alexandria...' : 'Ex: Playfair Display, Outfit, Cinzel...'}
+                      value={customFontInput}
+                      onChange={(e) => setCustomFontInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleApplyCustomGoogleFont(customFontInput, fontLanguageTab === 'arabic');
+                        }
+                      }}
+                      className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!customFontInput.trim() || isLoadingFont}
+                    onClick={() => handleApplyCustomGoogleFont(customFontInput, fontLanguageTab === 'arabic')}
+                    className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    {isLoadingFont ? 'Chargement...' : 'Appliquer'}
+                  </button>
+                </div>
+
+                {fontLoadSuccess && (
+                  <div className="text-[11px] text-emerald-400 flex items-center gap-1 bg-emerald-950/40 p-1.5 rounded border border-emerald-800/50">
+                    <CheckCircle2 className="w-3 h-3 shrink-0" />
+                    <span>{fontLoadSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Curated Fonts Grid */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider block">
+                  {fontLanguageTab === 'arabic' ? 'Catalogue Google Fonts Arabe' : 'Catalogue Google Fonts Recommandé'}
+                </span>
+
+                <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto custom-scrollbar p-0.5">
+                  {(fontLanguageTab === 'arabic' ? CURATED_ARABIC_FONTS : CURATED_FRENCH_FONTS).map((f) => {
+                    const isSelected = fontLanguageTab === 'arabic'
+                      ? (typography.customArabicFontFamily === f.name || (!typography.customArabicFontFamily && typography.arabicFont === f.name.toLowerCase().replace(/\s+/g, '-')))
+                      : (typography.customFontFamily === f.name || (!typography.customFontFamily && typography.fontStyle === f.name.toLowerCase().replace(/\s+/g, '-')));
+
+                    return (
+                      <button
+                        key={f.name}
+                        type="button"
+                        onClick={async () => {
+                          await handleApplyCustomGoogleFont(f.name, fontLanguageTab === 'arabic');
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? fontLanguageTab === 'arabic'
+                              ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500 text-white'
+                              : 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 text-white'
+                            : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700 text-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-white truncate">{f.name}</span>
+                          {isSelected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+                          )}
+                        </div>
+                        <p
+                          className="text-xs text-neutral-300 mt-1 truncate"
+                          style={{ fontFamily: `'${f.name}', sans-serif` }}
+                        >
+                          {fontLanguageTab === 'arabic' ? (f.sampleTextAr || 'العربية جميلة') : (f.sampleTextFr || 'Aperçu Élégant')}
+                        </p>
+                        <span className="text-[9px] text-neutral-500 line-clamp-1 mt-0.5">
+                          {f.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Box Style / Scrim */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-2">
+            {/* SECTION 2: TEXT DIRECTION & ARABIC NUMBER ORIENTATION */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3.5">
+              <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Languages className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Direction du Texte & Nombres</span>
+              </span>
+
+              {/* Text Direction: Auto / RTL / LTR */}
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                  Orientation du texte
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 text-xs">
+                  {[
+                    { id: 'auto', label: 'Auto (Détection)', desc: 'Détecte l\'arabe' },
+                    { id: 'rtl', label: 'RTL (Arabe)', desc: 'Droite à gauche' },
+                    { id: 'ltr', label: 'LTR (Français)', desc: 'Gauche à droite' },
+                  ].map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, direction: d.id as any })}
+                      className={`p-2 rounded-lg border text-left transition-colors ${
+                        (typography.direction || 'auto') === d.id
+                          ? 'bg-neutral-800 border-indigo-500 text-white font-medium'
+                          : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold">{d.label}</span>
+                      <span className="block text-[9px] text-neutral-500">{d.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Number Format: Western (1, 2, 3 ordered LTR) vs Eastern Arabic (١، ٢، ٣) */}
+              <div className="pt-2 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-medium text-neutral-300">Format des Chiffres</span>
+                  <span className="text-[10px] text-neutral-400 font-mono">
+                    {typography.easternNumerals ? '٠١٢٣٤٥٦٧٨٩' : '1 2 3 4 5... (LTR)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setTypography({ ...typography, easternNumerals: false })}
+                    className={`py-2 px-3 rounded-lg border text-left transition-colors ${
+                      !typography.easternNumerals
+                        ? 'bg-neutral-800 border-indigo-500 text-white font-medium'
+                        : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="block font-medium">Chiffres Occidentaux</span>
+                    <span className="text-[10px] text-neutral-400">1, 2, 3 (Ordre LTR garanti)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTypography({ ...typography, easternNumerals: true })}
+                    className={`py-2 px-3 rounded-lg border text-left transition-colors ${
+                      typography.easternNumerals
+                        ? 'bg-neutral-800 border-indigo-500 text-white font-medium'
+                        : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="block font-medium">Chiffres Arabes Orientaux</span>
+                    <span className="text-[10px] text-neutral-400">١، ٢، ٣، ٤...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: TEXT DIMENSIONS & SCALING (Phrase, Kicker, Subtitle, Line Height) */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+              <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Dimensions & Proportions des Textes</span>
+              </span>
+
+              {/* 1. Main Phrase Size Slider & Quick Presets */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-300 font-medium">Dimension Phrase Principale</span>
+                  <span className="font-mono text-indigo-300 font-bold">
+                    {Math.round(typography.fontSize * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.5"
+                  step="0.05"
+                  value={typography.fontSize}
+                  onChange={(e) =>
+                    setTypography({ ...typography, fontSize: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 mt-1 text-[10px]">
+                  {[
+                    { label: 'Compact (75%)', val: 0.75 },
+                    { label: 'Équilibré (100%)', val: 1.0 },
+                    { label: 'Grand (130%)', val: 1.3 },
+                    { label: 'Impact Affiche (160%)', val: 1.6 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, fontSize: p.val })}
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Kicker Title Size */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-300">Dimension Titre Kicker</span>
+                  <span className="font-mono text-neutral-200">
+                    {Math.round((typography.kickerSize ?? 1.0) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.05"
+                  value={typography.kickerSize ?? 1.0}
+                  onChange={(e) =>
+                    setTypography({ ...typography, kickerSize: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+              </div>
+
+              {/* 3. Subtitle Size */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-300">Dimension Sous-titre / Signature</span>
+                  <span className="font-mono text-neutral-200">
+                    {Math.round((typography.subtitleSize ?? 1.0) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.05"
+                  value={typography.subtitleSize ?? 1.0}
+                  onChange={(e) =>
+                    setTypography({ ...typography, subtitleSize: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+              </div>
+
+              {/* 4. Line Height / Interligne */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-300">Interligne (Hauteur de ligne)</span>
+                  <span className="font-mono text-neutral-200">
+                    {typography.lineHeight ?? 1.35}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1.1"
+                  max="1.8"
+                  step="0.05"
+                  value={typography.lineHeight ?? 1.35}
+                  onChange={(e) =>
+                    setTypography({ ...typography, lineHeight: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+              </div>
+
+              {/* 5. Text Block Max Width */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-300">Largeur Maximale du Bloc Texte</span>
+                  <span className="font-mono text-neutral-200">
+                    {typography.textWidth ?? 88}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="100"
+                  step="2"
+                  value={typography.textWidth ?? 88}
+                  onChange={(e) =>
+                    setTypography({ ...typography, textWidth: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* SECTION 4: PLACEMENT & ALIGNMENT */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3.5">
+              <span className="text-xs font-semibold text-white block">
+                Position & Alignement
+              </span>
+
+              {/* Vertical Position */}
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                  Position Verticale
+                </label>
+                <div className="grid grid-cols-4 bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-xs">
+                  {(['top', 'center', 'bottom', 'free'] as const).map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, position: pos })}
+                      className={`py-1.5 rounded transition-colors ${
+                        typography.position === pos
+                          ? 'bg-neutral-800 text-white shadow-sm font-medium'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {pos === 'top' ? 'Haut' : pos === 'center' ? 'Milieu' : pos === 'bottom' ? 'Bas' : 'Libre'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Free drag & drop position sliders */}
+              {typography.position === 'free' && (
+                <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-neutral-300 font-medium">Position Libre (X & Y)</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTypography((prev) => ({ ...prev, freePositionX: 50, freePositionY: 75 }))
+                      }
+                      className="text-[10px] text-neutral-400 hover:text-white bg-neutral-800 px-2 py-0.5 rounded"
+                    >
+                      Recentrer
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="block text-[10px] text-neutral-400">Position X: {typography.freePositionX ?? 50}%</span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
+                        step="1"
+                        value={typography.freePositionX ?? 50}
+                        onChange={(e) =>
+                          setTypography({ ...typography, freePositionX: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-neutral-400">Position Y: {typography.freePositionY ?? 75}%</span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
+                        step="1"
+                        value={typography.freePositionY ?? 75}
+                        onChange={(e) =>
+                          setTypography({ ...typography, freePositionY: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Text Alignment */}
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">
+                  Alignement du Texte
+                </label>
+                <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                  {[
+                    { id: 'left', icon: AlignLeft, label: 'Gauche' },
+                    { id: 'center', icon: AlignCenter, label: 'Centré' },
+                    { id: 'right', icon: AlignRight, label: 'Droite' },
+                  ].map((al) => {
+                    const Icon = al.icon;
+                    return (
+                      <button
+                        key={al.id}
+                        type="button"
+                        onClick={() =>
+                          setTypography({ ...typography, align: al.id as any, phraseAlign: al.id as any })
+                        }
+                        className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs rounded transition-colors ${
+                          (typography.phraseAlign || typography.align) === al.id
+                            ? 'bg-neutral-800 text-white shadow-sm font-medium'
+                            : 'text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{al.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 5: BOX STYLE / SCRIM */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+              <label className="block text-xs font-semibold text-white mb-1">
                 Style d'Arrière-plan du Texte
               </label>
               <div className="grid grid-cols-1 gap-2">
@@ -1389,13 +2546,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 ].map((b) => (
                   <button
                     key={b.id}
-                    onClick={() =>
-                      setTypography({ ...typography, boxStyle: b.id as any })
-                    }
+                    type="button"
+                    onClick={() => setTypography({ ...typography, boxStyle: b.id as any })}
                     className={`p-2.5 rounded-lg border text-left transition-colors ${
                       typography.boxStyle === b.id
-                        ? 'bg-indigo-950/40 border-indigo-500 text-white'
-                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
+                        ? 'bg-indigo-950/40 border-indigo-500 text-white ring-1 ring-indigo-500'
+                        : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
                     }`}
                   >
                     <p className="text-xs font-medium text-white">{b.label}</p>
@@ -1405,82 +2561,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </div>
             </div>
 
-            {/* Placement & Alignment */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Position Verticale
-                </label>
-                <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
-                  {(['top', 'center', 'bottom'] as const).map((pos) => (
-                    <button
-                      key={pos}
-                      onClick={() => setTypography({ ...typography, position: pos })}
-                      className={`flex-1 py-1 text-xs capitalize rounded ${
-                        typography.position === pos
-                          ? 'bg-neutral-800 text-white shadow-sm'
-                          : 'text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      {pos === 'top' ? 'Haut' : pos === 'center' ? 'Milieu' : 'Bas'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                  Alignement Texte
-                </label>
-                <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
-                  {[
-                    { id: 'left', icon: AlignLeft },
-                    { id: 'center', icon: AlignCenter },
-                    { id: 'right', icon: AlignRight },
-                  ].map((al) => {
-                    const Icon = al.icon;
-                    return (
-                      <button
-                        key={al.id}
-                        onClick={() =>
-                          setTypography({ ...typography, align: al.id as any })
-                        }
-                        className={`flex-1 py-1 flex items-center justify-center rounded ${
-                          typography.align === al.id
-                            ? 'bg-neutral-800 text-white shadow-sm'
-                            : 'text-neutral-400 hover:text-white'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Font Size Slider */}
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-neutral-300">Taille de police relative</span>
-                <span className="font-mono text-neutral-400">
-                  {Math.round(typography.fontSize * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.8"
-                max="1.5"
-                step="0.05"
-                value={typography.fontSize}
-                onChange={(e) =>
-                  setTypography({ ...typography, fontSize: parseFloat(e.target.value) })
-                }
-                className="w-full accent-indigo-500"
-              />
-            </div>
-
-            {/* Meta Elements Toggles */}
+            {/* SECTION 6: META ELEMENTS TOGGLES */}
             <div className="space-y-2 pt-2 border-t border-neutral-800">
               <label className="flex items-center justify-between text-xs cursor-pointer">
                 <span className="text-neutral-300">Afficher le titre Kicker</span>
