@@ -1,149 +1,87 @@
 # 🚀 AutoPost Studio — Générateur Visuel & Export Réseaux Sociaux
 
-> Créez automatiquement des séries de visuels percutants avec texte superposé sur images, filtres de flou dégradé cinématographique, voiles de couleurs dégradées artistiques (*duotone*), adaptation instantanée aux ratios des réseaux sociaux (1:1, 9:16, 4:5, 16:9, 2:3), logo personnalisable, sauvegarde automatique dans le `localStorage` et exportation automatisée (ZIP HD, Webhook, Calendrier .ICS).
+> Studio de création visuelle automatisée pour réseaux sociaux : carrousels et séries de visuels à fort impact avec typographie multilingue (Français & Arabe BiDi), polices Google Fonts instantanées, stickers et badges superposés, filtres de flou progressif et voiles de couleur (*duotone*), cadrage interactif multi-ratios, repositionnement par glisser-déposer et exportation automatisée (ZIP HD, Webhook Make/Zapier, Calendrier .ICS).
 
 ---
 
 ## 🌟 Fonctionnalités Principales
 
-### 1. 🖼️ Gestion des Phrases & Images Superposées
-- **Édition complète par diapo** : Phrase principale, titre thématique (*kicker*), sous-titre / auteur et date/heure de publication.
-- **Importation par lot** : Collez vos 6 phrases d'un coup ou téléversez vos 6 images en 1 clic.
-- **Génération IA intégrée** : Générez 6 citations percutantes et accroches thématiques en un clic.
-- **Typographie soignée** : 4 styles au choix (*Éditorial Fraunces, Avant-Garde Syne, Moderne Plus Jakarta, Monospace JetBrains*), alignement (Gauche, Centre, Droite), position (Haut, Centre, Bas) et taille ajustable.
-
-### 2. 🎨 Filtres Dégradés & Effets Visuels (Nouveau !)
-- **🌫️ Filtre de Flou Dégradé (Gradient Blur)** :
-  - Applique un flou directionnel progressif pour magnifier la lisibilité des textes tout en conservant le piqué de l'image.
-  - **5 directions au choix** :
-    - *Vers le Bas* (flou progressif en bas, parfait pour les phrases positionnées en bas).
-    - *Vers le Haut* (flou progressif en haut, idéal pour les phrases en haut).
-    - *Tilt-Shift* (bande nette centrale avec haut et bas floutés, effet miniature cinéma).
-    - *Radial* (vignettage flou circulaire centré).
-    - *Complet* (fond flouté doux et velouté).
-  - Curseur d'intensité du flou (4 px à 28 px).
-- **🌈 Filtre de Couleurs Dégradées (Duotone / Mood Filter)** :
-  - Voile bicolore artistique superposé pour donner une signature chromatique unique à votre carrousel.
-  - **10 Palettes Prédéfinies** : *Sunset Gold, Cyber Teal, Warm Amber, Deep Indigo, Rose Quartz, Emerald Mist, Néon Violet, Pêche Sunset, Cyberpunk, Film Noir*.
-  - **Mode Personnalisé** : Choix libre de la Couleur 1 et de la Couleur 2 avec sélecteur de couleurs interactif.
-  - Réglage de l'angle du dégradé (0° à 360°).
-  - Réglage de l'opacité (10% à 95%).
-  - Modes de fusion professionnels : *Incrustation (Overlay), Lumière douce (Soft-light), Produit sombre (Multiply), Superposition claire (Screen), Couleur pure (Color), Normal*.
-  - Rendu en direct dans le navigateur ET appliqué au pixel près dans les exports Canvas HD (PNG et ZIP).
-
-### 3. 📐 Adaptation Multi-Ratios pour Tous les Réseaux Sociaux
-- **1:1 Carré** (1080 × 1080 px) : *Instagram Feed, LinkedIn Post, Facebook*
-- **9:16 Story / Reel** (1080 × 1920 px) : *Instagram Stories, Reels, TikTok, YouTube Shorts*
-- **4:5 Portrait Feed** (1080 × 1350 px) : *Format portrait optimal pour maximiser la visibilité dans les flux Instagram et LinkedIn*
-- **16:9 Paysage** (1920 × 1080 px) : *X / Twitter, LinkedIn Banner, YouTube*
-- **2:3 Éditorial** (1000 × 1500 px) : *Pinterest Pin, Affiches*
-
-### 4. 🏷️ Logo Prédéfini ou Personnalisé
-- Intégration de 4 logos prédéfinis minimalistes (*Studio Minimal, Aura Crest, Modern Bold, Clean Geometric*).
-- Téléversement de votre propre logo PNG/SVG transparent.
-- Positionnement (*Haut Gauche, Haut Droite, Bas Gauche, Bas Droite, Haut Centré*), échelle, opacité et gestion du pseudo social (`@moncompte`).
-
-### 5. 💾 Sauvegarde Automatique (`localStorage`) & Responsive 100%
-- Sauvegarde continue de toutes vos données (textes, images, filtres, styles, ratios, logos) dans le stockage local du navigateur.
-- Restauration instantanée au rechargement de la page, avec horodatage en direct.
-- Bouton de réinitialisation vers les modèles d'origine.
-- Interface responsive fluide : bascule *Éditeur / Aperçu* sur smartphone et tablette tactile.
-
-### 6. ⚡ Automatisation & Exportation
-- **Export ZIP Haute Définition** : Génère en 1 clic l'archive ZIP contenant les 6 images PNG haute résolution accompagnées d'un fichier `automation_manifest.json`.
-- **Partage Direct** : Partage natif vers Instagram, WhatsApp, LinkedIn ou X via l'API Web Share.
-- **Webhook d'automatisation** : Envoi direct du payload vers **Make.com**, **Zapier**, **Buffer** ou **n8n** avec programmation horaire.
-- **Légendes & Hashtags IA** : Descriptions optimisées prêtes à être copiées pour Instagram, LinkedIn, X et TikTok.
-- **Export Calendrier (.ICS)** : Synchronisation du calendrier éditorial avec Google Calendar, Notion ou Apple Calendar.
+### 1. ✍️ Typographie Avancée, Français & Arabe (Google Fonts & BiDi)
+- **Chargement dynamique Google Fonts instantané** :
+  - **Catalogue Français / Latin** : *Plus Jakarta Sans, Syne, Fraunces, Playfair Display, Montserrat, Inter, Poppins, Outfit, Space Grotesk, Bebas Neue, Oswald, Cinzel, DM Serif, Lora, JetBrains Mono*.
+  - **Catalogue Arabe** : *Cairo (القاهرة), Amiri (أميري), Tajawal (تجوال), Alexandria (الإسكندرية), Almarai (المراعي), Readex Pro (ريدكس), El Messiri (المسيري), Noto Sans Arabic, Noto Kufi Arabic, Changa, Lalezar, Marhey, Aref Ruqaa, Scheherazade New, IBM Plex Sans Arabic, Reem Kufi*.
+  - **Moteur de recherche libre** : Appliquez n'importe quelle police du catalogue Google Fonts en tapant simplement son nom.
+- **Gestion Bidirectionnelle (BiDi) & Chiffres LTR** :
+  - Détection automatique ou forcée de l'orientation (**RTL** pour l'arabe, **LTR** pour le français/latin).
+  - **Préservation stricte de l'ordre LTR pour les chiffres** : les numéros, dates, pourcentages et statistiques dans les textes arabes restent parfaitement ordonnés de gauche à droite sans inversion.
+  - Bascule entre chiffres occidentaux (1, 2, 3...) et chiffres arabes orientaux (٠، ١، ٢، ٣...).
+- **Contrôles dimensionnels précis** :
+  - Échelle de la phrase principale (50% à 250%) avec presets rapides (*Compact 75%, Équilibré 100%, Grand 130%, Impact Affiche 160%*).
+  - Dimension indépendante du titre (*kicker*) et du sous-titre / auteur (50% à 200%).
+  - Interligne / hauteur de ligne réglable (1.1x à 1.8x).
+  - Largeur maximale du bloc texte (40% à 100%).
+  - Alignements indépendants pour le titre et la phrase (Gauche, Centre, Droite).
+  - Habillages de texte : *Voile Scrim, Verre dépoli (Frosted Glass), Carte sombre contrastée, Ombre portée minimale*.
 
 ---
 
-## 🛠️ Résolution de l'Erreur GitHub Actions
-
-### ❌ Description de l'erreur rencontrée :
-```text
-Run actions/setup-node@v4
-...
-Error: Dependencies lock file is not found in /home/runner/work/... Supported file patterns: package-lock.json,npm-shrinkwrap.json,yarn.lock
-```
-
-### 🔍 Pourquoi cette erreur s'est produite ?
-Lorsque vous activez GitHub Pages via l'interface web de GitHub avec un modèle générique, l'action `actions/setup-node@v4` est configurée avec l'option `cache: 'npm'`. 
-Cette option exige obligatoirement la présence du fichier `package-lock.json` dans le dépôt Git. Si ce fichier n'a pas été commité et poussé (`git push`), GitHub Actions s'arrête immédiatement avec cette erreur.
+### 2. 🎯 Drag & Drop et Manipulation Interactive Directe sur Canvas
+En mode « Aperçu Unique », manipulez directement vos éléments à la souris ou au doigt :
+- **Cadrer la photo** : Glissez l'image de fond pour ajuster la zone visible et zoomez à la molette (Pan X / Pan Y de -50% à +50%, Zoom de 100% à 350%).
+- **Repositionner le texte** : Déplacez librement la phrase et les titres n'importe où sur le visuel.
+- **Déplacer le logo** : Glissez le logo à l'emplacement souhaité avec indicateur d'échelle en direct.
+- **Ajuster le sticker / filigrane** : Déplacez le badge superposé directement sur le canevas.
+- **Barre d'outils interactive** : Basculez en un clic entre les modes *Interactif (Auto), Cadrer l'image, Texte & Titre, Logo, Sticker* et *Flou*.
 
 ---
 
-### ✅ Comment corriger l'erreur en 2 étapes rapides :
-
-#### Étape 1 : Pousser le fichier `package-lock.json`
-Assurez-vous que le fichier `package-lock.json` est bien ajouté à Git et envoyé sur votre dépôt :
-
-```bash
-# Vérifier l'état des fichiers
-git status
-
-# Ajouter le fichier de lock
-git add package-lock.json .github/workflows/deploy.yml
-
-# Commiter
-git commit -m "Fix: ajout package-lock.json et workflow GitHub Pages"
-
-# Pousser sur GitHub
-git push origin main
-```
-*(Si votre branche principale s'appelle `master`, remplacez `main` par `master`)*.
-
-#### Étape 2 : Activer GitHub Actions pour GitHub Pages
-1. Allez sur votre dépôt GitHub : `https://github.com/<votre-pseudo>/<nom-du-repo>`
-2. Cliquez sur l'onglet **Settings** (Paramètres).
-3. Dans la colonne de gauche, cliquez sur **Pages**.
-4. Sous **Build and deployment > Source**, choisissez **GitHub Actions** (au lieu de *Deploy from a branch*).
-5. Rendez-vous dans l'onglet **Actions** de votre dépôt : le workflow **Déploiement GitHub Pages** se lance automatiquement.
-6. Une fois terminé (icône verte ✅, ~1 minute), votre site sera directement en ligne à l'adresse :
-   `https://<votre-pseudo>.github.io/<nom-du-repo>/`
+### 3. 🏷️ Image de Superposition (Badges, Stickers & Filigranes)
+- **Catalogue vectoriel SVG intégré par thématiques** :
+  - 🛡️ **Confiance & Avis** : *Badge Certifié Bleu, Certifié VIP Or, معتمد Arabe Vert, Avis 5 Étoiles, Macaron 100% Qualité*.
+  - ⚡ **Promotions & Vente** : *NOUVEAU (Pilule Rose), ★ BEST SELLER, EXCLUSIF (Néon), -50% PROMO, ❤️ COUP DE CŒUR*.
+  - 🌙 **Arabe & Calligraphie** : *جديد (Nouveau), حصرياً (Exclusif), عـاجـل (Urgent), الأكثر طلباً (Populaire), عرض خاص (Offre Spéciale)*.
+  - 📲 **Réseaux & Call to Action** : *Glisser 👈 (Swipe), Écouter 🎧 (Podcast), Enregistrer 📌, Tendance 🔥 (Hot)*.
+- **Import personnalisé** : Téléversement de fichiers PNG transparents, SVG, WebP ou collage direct d'URL d'image web.
+- **Positionnement complet** : Grille de 9 ancres (*Haut-Gauche, Haut-Centre, Haut-Droite, Centre-Gauche, Plein Centre, Centre-Droite, Bas-Gauche, Bas-Centre, Bas-Droite*) et mode libre X/Y.
+- **Ajustements graphiques** : Échelle (10% à 180%), rotation / inclinaison (-180° à +180°), opacité (10% à 100%) et modes de fusion (*Normal, Screen, Overlay, Multiply, Soft-light*).
+- **Portée ajustable** : Appliquez le sticker à l'ensemble du lot ou exclusivement à la diapo active.
 
 ---
 
-## 🌐 Pourquoi le site ne s'affichait pas (page blanche) et comment c'est résolu ?
-
-Sur GitHub Pages, les applications sont servies dans un sous-dossier correspondant au nom de votre projet :
-`https://pseudo.github.io/nom-du-projet/`
-
-Par défaut, Vite utilise des chemins absolus (`/assets/...`). Sur GitHub Pages, le navigateur cherchait donc les scripts à la racine du domaine (`https://pseudo.github.io/assets/...`) au lieu du sous-dossier du projet, causant des erreurs **404 Not Found**.
-
-### 🔧 Solutions implémentées dans ce projet :
-1. **`base: './'`** dans `vite.config.ts` : tous les chemins d'assets générés sont désormais relatifs, fonctionnant sur n'importe quel domaine ou sous-dossier.
-2. **Workflow résilient dans `.github/workflows/deploy.yml`** :
-   - Installation tolérante : teste l'existence du lockfile (`npm install --legacy-peer-deps`).
-   - Compilation automatique du dossier statique `dist`.
-   - Déploiement automatique sécurisé via les actions officielles GitHub Pages (`actions/deploy-pages@v4`).
+### 4. 🌫️ Filtres Dégradés & Voiles de Couleurs Artistiques
+- **Filtre de Flou Dégradé (Gradient Blur)** :
+  - 10 directions et formes : *Bas, Haut, Centre, Tilt-Shift horizontal, Tilt-Shift vertical, Radial centré, Boîte/Ellipse, Gauche, Droite, Fond complet*.
+  - Rayon de flou réglable (2 px à 36 px), opacité et étalement progressif.
+- **Filtre de Couleurs Dégradées (Duotone / Mood Filter)** :
+  - 10 palettes prédéfinies : *Sunset Gold, Cyber Teal, Warm Amber, Deep Indigo, Rose Quartz, Emerald Mist, Néon Violet, Pêche Sunset, Cyberpunk, Film Noir*.
+  - Sélecteur bicolore personnalisé avec orientation d'angle (0° à 360°) et opacité.
 
 ---
 
-## 💻 Installation & Lancement en Local
+### 5. 📐 Formats Multi-Ratios pour Tous les Réseaux
+- **1:1 Carré** (1080 × 1080 px) : *Instagram Feed, LinkedIn, Facebook*
+- **9:16 Vertical** (1080 × 1920 px) : *Instagram Stories, Reels, TikTok, YouTube Shorts*
+- **4:5 Portrait Feed** (1080 × 1350 px) : *Format portrait avec visibilité maximale dans le fil d'actualité*
+- **16:9 Paysage** (1920 × 1080 px) : *X / Twitter, bannières LinkedIn, YouTube*
+- **2:3 Éditorial** (1000 × 1500 px) : *Pinterest, affiches artistiques*
 
-### Prérequis
-- [Node.js](https://nodejs.org/) (version 18, 20 ou 22)
-- npm
+---
 
-### Commandes
+### 6. 🗂️ Grille du Lot & Rendu Visuel Équilibré
+- **Sélecteur de densité** :
+  - **Grandes cartes** (*Vue confortable 1 à 3 colonnes*) : idéal pour visualiser les textes détaillés et les cadrages.
+  - **Vue d'ensemble** (*Vue compacte 3 à 6 colonnes*) : parfait pour apprécier la cohérence d'un carrousel complet.
+- **Calibrage proportionnel** : Marges internes automatiques, échelles de polices sécurisées et protection contre les débordements de texte.
 
-```bash
-# 1. Cloner le projet
-git clone https://github.com/<votre-utilisateur>/<nom-du-depot>.git
-cd <nom-du-depot>
+---
 
-# 2. Installer les dépendances
-npm install
-
-# 3. Lancer en mode développement
-npm run dev
-
-# 4. Compiler pour la production
-npm run build
-```
-
-Le serveur de développement est accessible à l'adresse : **http://localhost:3000**.
+### 7. 💾 Sauvegarde Automatique & Exportations
+- **Persistance locale (`localStorage`)** : Sauvegarde instantanée débouncée (300 ms) de toutes les diapos, polices, filtres, cadrages et logos avec horodatage.
+- **Export ZIP Haute Définition** : Génère en 1 clic l'archive ZIP des visuels PNG HD accompagnés du fichier `automation_manifest.json`.
+- **Partage Web Share natif** : Envoi direct vers Instagram, WhatsApp, X ou LinkedIn.
+- **Webhooks d'automatisation** : Envoi du payload vers **Make**, **Zapier**, **n8n** ou **Buffer** pour la publication programmée.
+- **Export Calendrier (.ICS)** : Synchronisation des dates de publication avec Google Calendar, Notion ou Outlook.
+- **Générateur de Légendes & Hashtags IA** : Copiez en 1 clic les descriptions prêtes pour les réseaux.
 
 ---
 
@@ -152,46 +90,76 @@ Le serveur de développement est accessible à l'adresse : **http://localhost:30
 ```text
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # Workflow de déploiement GitHub Pages automatisé
+│       └── deploy.yml          # Déploiement automatique GitHub Pages
 ├── src/
 │   ├── assets/
-│   │   └── images/             # Bibliothèque d'images photographiques HD
+│   │   └── images/             # Bibliothèque photographique intégrée haute résolution
 │   ├── components/
-│   │   ├── Header.tsx          # En-tête avec navigation, autosave et mode mobile
-│   │   ├── EditorSidebar.tsx   # Contrôles complets (phrases, photos, filtres dégradés, ratios, typographie, logo)
-│   │   ├── CanvasPreview.tsx   # Rendu interactif (Grille 6 diapos, Focus diapo unique, Mockup réseau)
-│   │   ├── AutomatedExportModal.tsx # Export ZIP HD, Webhooks (Make/Zapier), Calendrier .ICS
-│   │   ├── BatchInputModal.tsx       # Modal de collage en lot de 6 phrases
+│   │   ├── Header.tsx          # Barre de navigation responsive, autosave et actions rapides
+│   │   ├── EditorSidebar.tsx   # Panneau d'édition (Diapos, Médias, Superposition, Filtres, Ratios, Typographie & Arabe, Logo, Export)
+│   │   ├── CanvasPreview.tsx   # Rendu interactif (Grille du lot avec densité, Aperçu unique drag & drop, Mockup smartphone)
+│   │   ├── AutomatedExportModal.tsx # Export ZIP HD, Webhooks Make/Zapier, Calendrier .ICS
+│   │   ├── BatchInputModal.tsx       # Collage par lot de phrases avec exemples FR et Arabe
 │   │   └── SocialCopyModal.tsx       # Générateur de légendes et hashtags IA
 │   ├── constants/
-│   │   └── presets.ts          # Palettes de filtres, ratios, 6 diapos initiales et logos
+│   │   └── presets.ts          # Badges SVG classés, palettes duotone, polices, ratios et valeurs par défaut
 │   ├── utils/
-│   │   ├── canvasRenderer.ts   # Moteur Canvas pixel-perfect avec flou dégradé et voiles de couleur
-│   │   └── storage.ts          # Module de sauvegarde automatique localStorage (debounce 300ms)
-│   ├── types.ts                # Typage TypeScript
+│   │   ├── canvasRenderer.ts   # Moteur de rendu HTML5 Canvas 2D pixel-perfect (BiDi, rotation, flou, masques)
+│   │   ├── googleFonts.ts      # Chargeur dynamique Google Fonts et catalogues FR / Arabe
+│   │   └── storage.ts          # Persistance localStorage débouncée
+│   ├── types.ts                # Définitions TypeScript complètes
 │   ├── App.tsx                 # Composant racine
 │   ├── main.tsx                # Entrée React
-│   └── index.css               # Feuilles de style Tailwind CSS
+│   └── index.css               # Configuration Tailwind CSS v4
 ├── package.json
-├── package-lock.json           # Fichier de verrouillage requis pour GitHub Actions
-├── server.ts                   # Serveur Express optionnel avec Gemini API
+├── package-lock.json
+├── server.ts                   # Serveur Express optionnel avec proxy API Gemini
 ├── tsconfig.json
 └── vite.config.ts              # Configuration Vite avec base: './'
 ```
 
 ---
 
-## 🛡️ Technologies
+## 💻 Installation & Démarrage en Local
 
-- **React 19** & **TypeScript**
-- **Vite 8** (avec configuration relative `base: './'`)
-- **Tailwind CSS v4**
-- **JSZip** (compression d'archives ZIP côté navigateur)
-- **Lucide React** (icônes)
-- **HTML5 Canvas 2D API** (rendu haute fidélité avec composition graphique et masques de flou)
+### Prérequis
+- [Node.js](https://nodejs.org/) (version 18, 20 ou 22)
+- npm
+
+### Commandes
+
+```bash
+# 1. Cloner le dépôt
+git clone https://github.com/<votre-pseudo>/<nom-du-depot>.git
+cd <nom-du-depot>
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Lancer le serveur de développement
+npm run dev
+
+# 4. Compiler pour la production
+npm run build
+```
+
+Le serveur de développement démarre sur **http://localhost:3000**.
+
+---
+
+## 🌐 Déploiement sur GitHub Pages
+
+Le projet inclut une configuration optimisée pour GitHub Pages :
+1. `base: './'` dans `vite.config.ts` : aucun problème de chemin d'assets relatifs.
+2. Workflow GitHub Actions prêt à l'emploi dans `.github/workflows/deploy.yml`.
+
+### Activation :
+1. Sur votre dépôt GitHub, rendez-vous dans **Settings > Pages**.
+2. Sous **Build and deployment > Source**, sélectionnez **GitHub Actions**.
+3. Poussez votre code sur la branche `main` (`git push origin main`) : le déploiement s'exécute automatiquement en ~1 minute.
 
 ---
 
 ## 📄 Licence
 
-Projet sous licence MIT — Libre d'utilisation pour vos projets personnels et commerciaux.
+Projet sous licence MIT — Libre pour usage personnel et commercial.
