@@ -1,0 +1,8 @@
+{
+  "name": "AutoPost Studio - Générateur Visuel & Export Réseaux",
+  "description": "Générateur automatique de visuels pour réseaux sociaux avec phrases, images superposées, formats multi-ratios, logo et export automatisé.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
