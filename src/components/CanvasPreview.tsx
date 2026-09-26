@@ -15,19 +15,28 @@ import {
   Bookmark,
   Send,
   SlidersHorizontal,
+  UploadCloud,
+  Layers,
 } from 'lucide-react';
 import {
   AspectRatioOption,
   ColorFilterConfig,
   GradientBlurConfig,
   LogoConfig,
+  OverlayImageConfig,
   SlideItem,
+  TextAlign,
   TypographyConfig,
 } from '../types';
-import { renderSlideToCanvas, downloadCanvasAsPng } from '../utils/canvasRenderer';
+import {
+  renderSlideToCanvas,
+  downloadCanvasAsPng,
+  resolveLayoutDirection,
+} from '../utils/canvasRenderer';
 
 interface CanvasPreviewProps {
   slides: SlideItem[];
+  setSlides?: React.Dispatch<React.SetStateAction<SlideItem[]>>;
   currentSlideIndex: number;
   setCurrentSlideIndex: (idx: number) => void;
   aspectRatio: AspectRatioOption;
@@ -37,12 +46,15 @@ interface CanvasPreviewProps {
   onOpenExportModal: () => void;
   gradientBlur?: GradientBlurConfig;
   colorFilter?: ColorFilterConfig;
+  overlayImage?: OverlayImageConfig;
+  setOverlayImage?: React.Dispatch<React.SetStateAction<OverlayImageConfig>>;
   mobileView?: 'editor' | 'preview';
   setMobileView?: (view: 'editor' | 'preview') => void;
 }
 
 export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   slides,
+  setSlides,
   currentSlideIndex,
   setCurrentSlideIndex,
   aspectRatio,
@@ -52,11 +64,14 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   onOpenExportModal,
   gradientBlur,
   colorFilter,
+  overlayImage,
+  setOverlayImage,
   mobileView = 'preview',
   setMobileView,
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'single' | 'mockup'>('grid');
   const [isExportingSingle, setIsExportingSingle] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -71,9 +86,13 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         logo,
         slides.length,
         gradientBlur,
-        colorFilter
+        colorFilter,
+        overlayImage
       );
-      downloadCanvasAsPng(canvas, `autopost_slide_${slide.number}_${aspectRatio.id.replace(':', 'x')}.png`);
+      downloadCanvasAsPng(
+        canvas,
+        `autopost_slide_${slide.number}_${aspectRatio.id.replace(':', 'x')}.png`
+      );
     } catch (err) {
       console.error('Erreur lors du téléchargement:', err);
     } finally {
@@ -91,7 +110,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         logo,
         slides.length,
         gradientBlur,
-        colorFilter
+        colorFilter,
+        overlayImage
       );
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -111,15 +131,97 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     }
   };
 
+  // Drag and drop overlay image file handler
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only turn off if leaving container
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (overlayImage?.applyToAll === false && setSlides) {
+        setSlides((prev) =>
+          prev.map((s, idx) =>
+            idx === currentSlideIndex
+              ? {
+                  ...s,
+                  customOverlayImage: {
+                    enabled: true,
+                    url: dataUrl,
+                    fileName: file.name,
+                    position: s.customOverlayImage?.position || 'bottom-right',
+                    scale: s.customOverlayImage?.scale || 0.35,
+                    opacity: s.customOverlayImage?.opacity || 0.9,
+                    blendMode: s.customOverlayImage?.blendMode || 'normal',
+                    applyToAll: false,
+                  },
+                }
+              : s
+          )
+        );
+      } else if (setOverlayImage) {
+        setOverlayImage((prev) => ({
+          ...prev,
+          enabled: true,
+          url: dataUrl,
+          fileName: file.name,
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Compute CSS aspect ratio string
   const cssAspectRatio = `${aspectRatio.width} / ${aspectRatio.height}`;
 
   return (
     <div
-      className={`flex-1 flex flex-col h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden ${
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative flex-1 flex flex-col h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden ${
         mobileView === 'editor' ? 'hidden md:flex' : 'flex'
       }`}
     >
+      {/* Drag & Drop Visual Dropzone Indicator */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 bg-neutral-950/85 backdrop-blur-md border-4 border-dashed border-indigo-500 m-3 rounded-2xl flex flex-col items-center justify-center pointer-events-none p-6 text-center animate-pulse">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400 flex items-center justify-center text-indigo-300 mb-4 shadow-xl">
+            <UploadCloud className="w-8 h-8 text-indigo-300" />
+          </div>
+          <h3 className="text-xl font-bold text-white font-['Syne']">
+            Déposez votre image de superposition ici
+          </h3>
+          <p className="text-sm text-neutral-300 mt-1.5 max-w-md">
+            Sticker, filigrane, cadre, badge ou image PNG avec transparence
+          </p>
+          <span className="mt-4 px-3 py-1 bg-indigo-600/40 text-indigo-300 rounded-full text-xs font-mono border border-indigo-500/40">
+            {overlayImage?.applyToAll ? 'Application globale (toutes les diapos)' : `Application sur diapo #${activeSlide.number}`}
+          </span>
+        </div>
+      )}
+
       {/* Top Preview Bar */}
       <div className="h-12 px-3 sm:px-6 border-b border-neutral-800/80 bg-neutral-900/30 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -168,6 +270,14 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
             <span aria-hidden="true">·</span>
             <span className="font-mono tabular-nums">{aspectRatio.sublabel}</span>
           </div>
+
+          {/* Overlay active indicator badge */}
+          {((overlayImage && overlayImage.enabled && overlayImage.url) || activeSlide.customOverlayImage?.enabled) && (
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-800/80 text-[11px] text-indigo-300">
+              <Layers className="w-3 h-3 text-indigo-400" />
+              <span>Superposition active</span>
+            </div>
+          )}
         </div>
 
         {/* Right tools */}
@@ -268,6 +378,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                         scale="compact"
                         blur={gradientBlur}
                         filter={colorFilter}
+                        overlay={overlayImage}
                       />
 
                       {/* Hover action overlay */}
@@ -326,6 +437,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 scale="normal"
                 blur={gradientBlur}
                 filter={colorFilter}
+                overlay={overlayImage}
               />
 
               {/* Navigation overlays */}
@@ -419,6 +531,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 scale="normal"
                 blur={gradientBlur}
                 filter={colorFilter}
+                overlay={overlayImage}
               />
             </div>
 
@@ -466,6 +579,7 @@ interface SlideVisualContentProps {
   scale: 'compact' | 'normal';
   blur?: GradientBlurConfig;
   filter?: ColorFilterConfig;
+  overlay?: OverlayImageConfig;
 }
 
 const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
@@ -476,19 +590,37 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   scale,
   blur,
   filter,
+  overlay,
 }) => {
   const effectiveBlur = slide.customBlur || blur;
   const effectiveFilter = slide.customFilter || filter;
+  const effectiveOverlay = slide.customOverlayImage || overlay;
+
+  // Determine direction and Arabic script
+  const textSample = `${slide.kicker || ''} ${slide.text || ''} ${slide.subtitle || ''}`;
+  const layoutDir = resolveLayoutDirection(textSample, typography.direction, slide.customDirection);
+  const isRtl = layoutDir === 'rtl';
+
+  // Arabic font class
+  const arabicFontFamily =
+    typography.arabicFont === 'noto-arabic'
+      ? "font-['Noto_Sans_Arabic']"
+      : typography.arabicFont === 'tajawal'
+      ? "font-['Tajawal']"
+      : typography.arabicFont === 'amiri'
+      ? "font-['Amiri']"
+      : "font-['Cairo']";
 
   // Font family class
-  const fontClass =
-    typography.fontStyle === 'editorial'
-      ? "font-['Fraunces']"
-      : typography.fontStyle === 'avant-garde'
-      ? "font-['Syne']"
-      : typography.fontStyle === 'mono'
-      ? "font-['JetBrains_Mono']"
-      : "font-['Plus_Jakarta_Sans']";
+  const fontClass = isRtl
+    ? arabicFontFamily
+    : typography.fontStyle === 'editorial'
+    ? "font-['Fraunces']"
+    : typography.fontStyle === 'avant-garde'
+    ? "font-['Syne']"
+    : typography.fontStyle === 'mono'
+    ? "font-['JetBrains_Mono']"
+    : "font-['Plus_Jakarta_Sans']";
 
   // Box style class
   let boxClasses = '';
@@ -508,12 +640,25 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       ? 'justify-center'
       : 'justify-end pb-8';
 
-  const alignClass =
-    typography.align === 'center'
-      ? 'text-center items-center'
-      : typography.align === 'right'
-      ? 'text-right items-end'
-      : 'text-left items-start';
+  // Individual user-selectable alignments for title (kicker) and phrase
+  const defaultAlign: TextAlign = isRtl ? 'right' : 'left';
+  const baseAlign: TextAlign = slide.customAlign || typography.align || defaultAlign;
+  const kickerAlign: TextAlign =
+    typography.kickerAlign && typography.kickerAlign !== 'inherit'
+      ? typography.kickerAlign
+      : baseAlign;
+  const phraseAlign: TextAlign =
+    typography.phraseAlign && typography.phraseAlign !== 'inherit'
+      ? typography.phraseAlign
+      : baseAlign;
+
+  const getAlignContainerClass = (align: TextAlign) => {
+    if (align === 'center') return 'text-center items-center';
+    if (align === 'right') return 'text-right items-end';
+    return 'text-left items-start';
+  };
+
+  const alignClass = getAlignContainerClass(phraseAlign);
 
   // Responsive font sizing based on compact/normal
   const textSizeClass =
@@ -522,7 +667,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       : 'text-sm sm:text-base md:text-xl lg:text-2xl leading-relaxed';
 
   return (
-    <div className="relative w-full h-full overflow-hidden select-none bg-neutral-950">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="relative w-full h-full overflow-hidden select-none bg-neutral-950"
+    >
       {/* Background Image */}
       <img
         src={slide.imageUrl}
@@ -589,6 +737,48 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         className="absolute inset-0 bg-black pointer-events-none"
         style={{ opacity: slide.customOverlayOpacity ?? 0.45 }}
       />
+
+      {/* Overlay Image (Image de superposition drag & drop) */}
+      {effectiveOverlay && effectiveOverlay.enabled && effectiveOverlay.url && (
+        <div
+          className={`absolute z-20 pointer-events-none transition-all duration-200 ${
+            effectiveOverlay.position === 'center'
+              ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
+              : effectiveOverlay.position === 'top-left'
+              ? 'top-5 left-5'
+              : effectiveOverlay.position === 'top-right'
+              ? 'top-5 right-5'
+              : effectiveOverlay.position === 'bottom-left'
+              ? 'bottom-5 left-5'
+              : effectiveOverlay.position === 'bottom-right'
+              ? 'bottom-5 right-5'
+              : effectiveOverlay.position === 'top-center'
+              ? 'top-5 left-1/2 -translate-x-1/2'
+              : effectiveOverlay.position === 'bottom-center'
+              ? 'bottom-5 left-1/2 -translate-x-1/2'
+              : ''
+          }`}
+          style={{
+            opacity: effectiveOverlay.opacity ?? 1,
+            mixBlendMode: effectiveOverlay.blendMode === 'normal' ? 'normal' : effectiveOverlay.blendMode,
+            ...(effectiveOverlay.position === 'custom'
+              ? {
+                  left: `${effectiveOverlay.customX ?? 50}%`,
+                  top: `${effectiveOverlay.customY ?? 50}%`,
+                  transform: 'translate(-50%, -50%)',
+                }
+              : {}),
+            width: `${Math.round(35 * (effectiveOverlay.scale ?? 1))}%`,
+            maxWidth: '90%',
+          }}
+        >
+          <img
+            src={effectiveOverlay.url}
+            alt="Superposition"
+            className="w-full h-auto object-contain pointer-events-none drop-shadow-md select-none"
+          />
+        </div>
+      )}
 
       {/* Scrim Gradient if selected */}
       {typography.boxStyle === 'scrim' && (
@@ -673,10 +863,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         </div>
       )}
 
-      {/* Slide Counter (01 / 06) */}
+      {/* Slide Counter (01 / 06) - Strictly LTR for numbers! */}
       {typography.showSlideNumber && (
-        <div className="absolute bottom-3 right-4 z-10 pointer-events-none">
-          <span className="text-[10px] font-mono font-medium text-white/70 bg-black/40 px-2 py-0.5 rounded backdrop-blur">
+        <div className="absolute bottom-3 right-4 z-10 pointer-events-none" dir="ltr">
+          <span className="text-[10px] font-mono font-medium text-white/70 bg-black/40 px-2 py-0.5 rounded backdrop-blur inline-block">
             {String(slide.number).padStart(2, '0')} / {String(totalSlides).padStart(2, '0')}
           </span>
         </div>
@@ -687,19 +877,31 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         className={`relative z-10 w-full h-full p-6 sm:p-8 flex flex-col ${positionClass} ${alignClass}`}
       >
         <div className={`max-w-xl w-full flex flex-col ${alignClass} ${boxClasses}`}>
-          {/* Kicker tag */}
+          {/* Kicker tag with user chosen kicker alignment */}
           {typography.showKicker && slide.kicker && (
             <span
-              className="text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2"
+              className={`text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2 ${
+                kickerAlign === 'center'
+                  ? 'text-center self-center'
+                  : kickerAlign === 'right'
+                  ? 'text-right self-end'
+                  : 'text-left self-start'
+              }`}
               style={{ color: typography.accentColor || '#818cf8' }}
             >
               {slide.kicker}
             </span>
           )}
 
-          {/* Main Phrase Text */}
+          {/* Main Phrase Text with user chosen phrase alignment */}
           <h2
-            className={`font-bold ${fontClass} ${textSizeClass} text-white tracking-tight`}
+            className={`font-bold ${fontClass} ${textSizeClass} text-white tracking-tight ${
+              phraseAlign === 'center'
+                ? 'text-center'
+                : phraseAlign === 'right'
+                ? 'text-right'
+                : 'text-left'
+            }`}
             style={{
               color: typography.textColor || '#ffffff',
             }}
@@ -707,9 +909,17 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {slide.text}
           </h2>
 
-          {/* Subtitle / Citation */}
+          {/* Subtitle / Citation with phrase alignment */}
           {typography.showSubtitle && slide.subtitle && (
-            <p className="mt-2 text-[11px] sm:text-xs text-neutral-300 font-normal leading-relaxed">
+            <p
+              className={`mt-2 text-[11px] sm:text-xs text-neutral-300 font-normal leading-relaxed ${
+                phraseAlign === 'center'
+                  ? 'text-center'
+                  : phraseAlign === 'right'
+                  ? 'text-right'
+                  : 'text-left'
+              }`}
+            >
               {slide.subtitle}
             </p>
           )}

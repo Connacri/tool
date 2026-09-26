@@ -3,9 +3,33 @@ import {
   ColorFilterConfig,
   GradientBlurConfig,
   LogoConfig,
+  OverlayImageConfig,
   SlideItem,
+  TextAlign,
   TypographyConfig,
 } from '../types';
+
+/**
+ * Checks if a string contains Arabic characters
+ */
+export function isArabicText(text: string): boolean {
+  if (!text) return false;
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+}
+
+/**
+ * Resolves the actual layout direction (RTL or LTR)
+ */
+export function resolveLayoutDirection(
+  text: string,
+  configuredDirection?: 'auto' | 'ltr' | 'rtl',
+  slideDirection?: 'auto' | 'ltr' | 'rtl'
+): 'rtl' | 'ltr' {
+  const dir = slideDirection || configuredDirection || 'auto';
+  if (dir === 'rtl') return 'rtl';
+  if (dir === 'ltr') return 'ltr';
+  return isArabicText(text) ? 'rtl' : 'ltr';
+}
 
 /**
  * Loads an image from a URL or Data URL and returns an HTMLImageElement
@@ -58,7 +82,8 @@ export async function renderSlideToCanvas(
   logo: LogoConfig,
   totalSlides: number = 6,
   blurConfig?: GradientBlurConfig,
-  filterConfig?: ColorFilterConfig
+  filterConfig?: ColorFilterConfig,
+  overlayConfig?: OverlayImageConfig
 ): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
   canvas.width = aspectRatio.width;
@@ -71,6 +96,7 @@ export async function renderSlideToCanvas(
 
   const activeBlur = slide.customBlur || blurConfig;
   const activeColorFilter = slide.customFilter || filterConfig;
+  const activeOverlay = slide.customOverlayImage || overlayConfig;
 
   // 1. Draw Background Image or Fallback Gradient
   try {
@@ -205,17 +231,53 @@ export async function renderSlideToCanvas(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 3. Scrim or Box Style Background
+  // 2.5 Draw Overlay Image (Image de superposition) if enabled
+  if (activeOverlay && activeOverlay.enabled && activeOverlay.url) {
+    await renderOverlayOnCanvas(ctx, activeOverlay, width, height, Math.round(width * 0.08), Math.round(height * 0.08));
+  }
+
+  // 3. Direction, Arabic Detection & Typography Configuration
   const paddingX = Math.round(width * 0.08);
   const paddingY = Math.round(height * 0.08);
   const contentWidth = width - paddingX * 2;
 
-  // Dynamic font configuration
-  const fontFamily = getFontFamilyString(typography.fontStyle);
+  const textSample = `${slide.kicker || ''} ${slide.text || ''} ${slide.subtitle || ''}`;
+  const layoutDir = resolveLayoutDirection(
+    textSample,
+    typography.direction,
+    slide.customDirection
+  );
+  const isRtl = layoutDir === 'rtl';
+
+  // Dynamic font configuration (supporting Arabic Google fonts)
+  const fontFamily = getFontFamilyString(typography.fontStyle, typography.arabicFont, isRtl);
   const baseSize = Math.round(width * 0.048 * typography.fontSize);
   const kickerSize = Math.round(baseSize * 0.38);
   const subtitleSize = Math.round(baseSize * 0.42);
   const lineHeight = Math.round(baseSize * 1.35);
+
+  // Set directional mode on 2D context for Arabic shaping and bidirectional numerals
+  ctx.direction = isRtl ? 'rtl' : 'ltr';
+
+  // Alignment configuration (user choice for title & phrase)
+  const defaultAlign: TextAlign = isRtl ? 'right' : 'left';
+  const baseAlign: TextAlign = slide.customAlign || typography.align || defaultAlign;
+
+  const kickerAlign: TextAlign =
+    typography.kickerAlign && typography.kickerAlign !== 'inherit'
+      ? typography.kickerAlign
+      : baseAlign;
+
+  const phraseAlign: TextAlign =
+    typography.phraseAlign && typography.phraseAlign !== 'inherit'
+      ? typography.phraseAlign
+      : baseAlign;
+
+  const getAlignX = (align: TextAlign): number => {
+    if (align === 'center') return width / 2;
+    if (align === 'right') return width - paddingX;
+    return paddingX;
+  };
 
   ctx.font = `600 ${baseSize}px ${fontFamily}`;
   const lines = wrapText(ctx, slide.text, contentWidth);
@@ -277,31 +339,34 @@ export async function renderSlideToCanvas(
     ctx.restore();
   }
 
-  // Align settings
-  let textX = paddingX;
-  if (typography.align === 'center') {
-    textX = width / 2;
-  } else if (typography.align === 'right') {
-    textX = width - paddingX;
-  }
-  ctx.textAlign = typography.align;
   ctx.textBaseline = 'top';
-
   let currentY = startY;
 
-  // 4. Draw Kicker
+  // 4. Draw Kicker with user-selected kickerAlign
   if (typography.showKicker && slide.kicker) {
     ctx.save();
-    ctx.font = `700 ${kickerSize}px 'Plus Jakarta Sans', sans-serif`;
+    ctx.direction = isRtl ? 'rtl' : 'ltr';
+    ctx.textAlign = kickerAlign;
+    const kickerX = getAlignX(kickerAlign);
+    ctx.font = isRtl
+      ? `700 ${kickerSize}px ${fontFamily}`
+      : `700 ${kickerSize}px 'Plus Jakarta Sans', sans-serif`;
     ctx.fillStyle = typography.accentColor || '#818cf8';
-    ctx.letterSpacing = '2px';
-    ctx.fillText(slide.kicker.toUpperCase(), textX, currentY);
+    if (!isRtl) {
+      ctx.letterSpacing = '2px';
+      ctx.fillText(slide.kicker.toUpperCase(), kickerX, currentY);
+    } else {
+      ctx.fillText(slide.kicker, kickerX, currentY);
+    }
     ctx.restore();
     currentY += kickerSize + 20;
   }
 
-  // 5. Draw Main Phrase Lines
+  // 5. Draw Main Phrase Lines with user-selected phraseAlign
   ctx.save();
+  ctx.direction = isRtl ? 'rtl' : 'ltr';
+  ctx.textAlign = phraseAlign;
+  const phraseX = getAlignX(phraseAlign);
   ctx.font = `700 ${baseSize}px ${fontFamily}`;
   ctx.fillStyle = typography.textColor || '#ffffff';
 
@@ -315,12 +380,12 @@ export async function renderSlideToCanvas(
   for (const line of lines) {
     if (typography.boxStyle === 'highlighter') {
       const lineMetrics = ctx.measureText(line);
-      const hlX =
-        typography.align === 'center'
-          ? textX - lineMetrics.width / 2 - 12
-          : typography.align === 'right'
-          ? textX - lineMetrics.width - 12
-          : textX - 12;
+      let hlX = phraseX - 12;
+      if (phraseAlign === 'center') {
+        hlX = phraseX - lineMetrics.width / 2 - 12;
+      } else if (phraseAlign === 'right') {
+        hlX = phraseX - lineMetrics.width - 12;
+      }
       ctx.save();
       ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
       roundRect(ctx, hlX, currentY - 4, lineMetrics.width + 24, lineHeight, 8);
@@ -328,25 +393,31 @@ export async function renderSlideToCanvas(
       ctx.restore();
     }
 
-    ctx.fillText(line, textX, currentY);
+    ctx.fillText(line, phraseX, currentY);
     currentY += lineHeight;
   }
   ctx.restore();
 
-  // 6. Draw Subtitle / Citation
+  // 6. Draw Subtitle / Citation with phrase alignment
   if (typography.showSubtitle && slide.subtitle) {
     currentY += 16;
     ctx.save();
-    ctx.font = `400 ${subtitleSize}px 'Plus Jakarta Sans', sans-serif`;
+    ctx.direction = isRtl ? 'rtl' : 'ltr';
+    ctx.textAlign = phraseAlign;
+    const subX = getAlignX(phraseAlign);
+    ctx.font = isRtl
+      ? `400 ${subtitleSize}px ${fontFamily}`
+      : `400 ${subtitleSize}px 'Plus Jakarta Sans', sans-serif`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
-    ctx.fillText(slide.subtitle, textX, currentY);
+    ctx.fillText(slide.subtitle, subX, currentY);
     ctx.restore();
   }
 
-  // 7. Slide Index Indicator
+  // 7. Slide Index Indicator (strictly LTR for digits)
   if (typography.showSlideNumber) {
     const numText = `${String(slide.number).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
     ctx.save();
+    ctx.direction = 'ltr'; // STRICTLY LTR for digits & counter badge
     ctx.font = `600 ${Math.round(width * 0.024)}px 'JetBrains Mono', monospace`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.textAlign = 'right';
@@ -511,22 +582,119 @@ async function renderLogoOnCanvas(
 }
 
 /**
- * Returns CSS font string based on style
+ * Returns CSS font string based on style and Arabic font configuration
  */
-export function getFontFamilyString(style: string): string {
+export function getFontFamilyString(
+  style: string,
+  arabicFont?: string,
+  isRtl?: boolean
+): string {
+  const arabicFamily =
+    arabicFont === 'noto-arabic'
+      ? "'Noto Sans Arabic'"
+      : arabicFont === 'tajawal'
+      ? "'Tajawal'"
+      : arabicFont === 'amiri'
+      ? "'Amiri'"
+      : "'Cairo'";
+
+  if (isRtl) {
+    return `${arabicFamily}, 'Plus Jakarta Sans', sans-serif`;
+  }
+
   switch (style) {
     case 'editorial':
-      return "'Fraunces', serif";
+      return `'Fraunces', ${arabicFamily}, serif`;
     case 'avant-garde':
-      return "'Syne', sans-serif";
+      return `'Syne', ${arabicFamily}, sans-serif`;
     case 'modern':
-      return "'Plus Jakarta Sans', sans-serif";
+      return `'Plus Jakarta Sans', ${arabicFamily}, sans-serif`;
     case 'minimal':
-      return "'Plus Jakarta Sans', -apple-system, sans-serif";
+      return `'Plus Jakarta Sans', ${arabicFamily}, -apple-system, sans-serif`;
     case 'mono':
-      return "'JetBrains Mono', monospace";
+      return `'JetBrains Mono', ${arabicFamily}, monospace`;
     default:
-      return "'Plus Jakarta Sans', sans-serif";
+      return `'Plus Jakarta Sans', ${arabicFamily}, sans-serif`;
+  }
+}
+
+/**
+ * Renders an overlay image (image de superposition) onto the canvas
+ */
+async function renderOverlayOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  overlay: OverlayImageConfig,
+  width: number,
+  height: number,
+  paddingX: number,
+  paddingY: number
+) {
+  if (!overlay.enabled || !overlay.url) return;
+  try {
+    const img = await loadImage(overlay.url);
+    const naturalW = img.naturalWidth || 200;
+    const naturalH = img.naturalHeight || 200;
+    const aspect = naturalW / naturalH;
+
+    // Base target size relative to canvas width
+    const baseSize = width * 0.35 * (overlay.scale ?? 1);
+    let destW = baseSize;
+    let destH = baseSize / aspect;
+
+    // Clamp to canvas max bounds
+    if (destW > width * 0.95) {
+      destW = width * 0.95;
+      destH = destW / aspect;
+    }
+
+    let ox = 0;
+    let oy = 0;
+    const marginX = paddingX;
+    const marginY = paddingY;
+
+    switch (overlay.position) {
+      case 'center':
+        ox = (width - destW) / 2;
+        oy = (height - destH) / 2;
+        break;
+      case 'top-left':
+        ox = marginX;
+        oy = marginY;
+        break;
+      case 'top-right':
+        ox = width - marginX - destW;
+        oy = marginY;
+        break;
+      case 'bottom-left':
+        ox = marginX;
+        oy = height - marginY - destH;
+        break;
+      case 'bottom-right':
+        ox = width - marginX - destW;
+        oy = height - marginY - destH;
+        break;
+      case 'top-center':
+        ox = (width - destW) / 2;
+        oy = marginY;
+        break;
+      case 'bottom-center':
+        ox = (width - destW) / 2;
+        oy = height - marginY - destH;
+        break;
+      case 'custom':
+        ox = ((overlay.customX ?? 50) / 100) * width - destW / 2;
+        oy = ((overlay.customY ?? 50) / 100) * height - destH / 2;
+        break;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = overlay.opacity ?? 1.0;
+    ctx.globalCompositeOperation =
+      overlay.blendMode === 'normal' ? 'source-over' : overlay.blendMode;
+    ctx.drawImage(img, ox, oy, destW, destH);
+    ctx.restore();
+  } catch (e) {
+    console.warn('Erreur lors du rendu de l image de superposition:', e);
   }
 }
 

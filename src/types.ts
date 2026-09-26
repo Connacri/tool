@@ -11,17 +11,23 @@ export interface AspectRatioOption {
 }
 
 export type FontStyleType = 'editorial' | 'modern' | 'avant-garde' | 'minimal' | 'mono';
+export type ArabicFontType = 'cairo' | 'noto-arabic' | 'tajawal' | 'amiri';
 
 export type BoxStyleType = 'scrim' | 'frosted' | 'minimal-shadow' | 'solid-card' | 'highlighter';
 
 export type TextPosition = 'top' | 'center' | 'bottom';
 export type TextAlign = 'left' | 'center' | 'right';
+export type TextDirectionType = 'auto' | 'ltr' | 'rtl';
 
 export interface TypographyConfig {
   fontStyle: FontStyleType;
+  arabicFont?: ArabicFontType;
+  direction?: TextDirectionType;
   boxStyle: BoxStyleType;
   position: TextPosition;
   align: TextAlign;
+  kickerAlign?: TextAlign | 'inherit';
+  phraseAlign?: TextAlign | 'inherit';
   fontSize: number; // relative multiplier 0.8 to 1.6
   textColor: string;
   accentColor: string;
@@ -80,6 +86,29 @@ export interface ColorFilterConfig {
   blendMode: BlendModeType;
 }
 
+export type OverlayPosition =
+  | 'center'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'top-center'
+  | 'bottom-center'
+  | 'custom';
+
+export interface OverlayImageConfig {
+  enabled: boolean;
+  url: string;
+  fileName?: string;
+  position: OverlayPosition;
+  customX?: number; // 0 - 100%
+  customY?: number; // 0 - 100%
+  scale: number; // 0.1 to 1.5
+  opacity: number; // 0.1 to 1.0
+  blendMode: BlendModeType;
+  applyToAll: boolean; // true = global, false = slide-specific
+}
+
 export interface SlideItem {
   id: string;
   number: number;
@@ -94,6 +123,9 @@ export interface SlideItem {
   scheduledTime?: string;
   customBlur?: GradientBlurConfig;
   customFilter?: ColorFilterConfig;
+  customOverlayImage?: OverlayImageConfig;
+  customDirection?: TextDirectionType;
+  customAlign?: TextAlign;
 }
 
 export interface SocialCopyItem {

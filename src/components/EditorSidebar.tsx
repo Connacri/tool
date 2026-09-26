@@ -22,9 +22,15 @@ import {
   CheckCircle2,
   FileText,
   ExternalLink,
+  Languages,
+  UploadCloud,
+  Move,
+  Stamp,
+  HelpCircle,
 } from 'lucide-react';
-import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, SlideItem, TypographyConfig, WebhookConfig } from '../types';
-import { ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
+import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WebhookConfig } from '../types';
+import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES } from '../constants/presets';
+import { isArabicText } from '../utils/canvasRenderer';
 
 interface EditorSidebarProps {
   activeTab: string;
@@ -49,6 +55,8 @@ interface EditorSidebarProps {
   setGradientBlur: React.Dispatch<React.SetStateAction<GradientBlurConfig>>;
   colorFilter: ColorFilterConfig;
   setColorFilter: React.Dispatch<React.SetStateAction<ColorFilterConfig>>;
+  overlayImage: OverlayImageConfig;
+  setOverlayImage: React.Dispatch<React.SetStateAction<OverlayImageConfig>>;
 }
 
 export const EditorSidebar: React.FC<EditorSidebarProps> = ({
@@ -74,10 +82,13 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   setGradientBlur,
   colorFilter,
   setColorFilter,
+  overlayImage,
+  setOverlayImage,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const overlayFileInputRef = useRef<HTMLInputElement>(null);
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -171,9 +182,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         {[
           { id: 'slides', label: 'Diapos' },
           { id: 'media', label: 'Médias' },
+          { id: 'overlay', label: 'Superposition' },
           { id: 'filters', label: 'Filtres' },
           { id: 'ratios', label: 'Ratios' },
-          { id: 'typography', label: 'Style' },
+          { id: 'typography', label: 'Typo & Arabe' },
           { id: 'branding', label: 'Logo' },
           { id: 'automation', label: 'Export' },
         ].map((t) => (
@@ -296,6 +308,100 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     placeholder="Ex: Épisode 01 · @moncompte"
                     className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500"
                   />
+                </div>
+
+                {/* Alignment & Direction Controls for this slide */}
+                <div className="pt-2 border-t border-neutral-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-neutral-300">
+                      Alignement & Direction de texte
+                    </span>
+                    {isArabicText(`${activeSlide.kicker || ''} ${activeSlide.text || ''}`) && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-[10px] text-emerald-300 font-medium">
+                        Arabe détecté (RTL)
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Main Phrase Alignment */}
+                    <div>
+                      <span className="block text-[10px] text-neutral-400 mb-1">
+                        Alignement Phrase
+                      </span>
+                      <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                        {[
+                          { id: 'left', icon: AlignLeft, title: 'Gauche' },
+                          { id: 'center', icon: AlignCenter, title: 'Centré' },
+                          { id: 'right', icon: AlignRight, title: 'Droite' },
+                        ].map((al) => {
+                          const Icon = al.icon;
+                          const currentAlign =
+                            activeSlide.customAlign || typography.phraseAlign || typography.align;
+                          const isActive = currentAlign === al.id;
+                          return (
+                            <button
+                              key={al.id}
+                              onClick={() => {
+                                updateActiveSlide({ customAlign: al.id as any });
+                                setTypography((prev) => ({
+                                  ...prev,
+                                  align: al.id as any,
+                                  phraseAlign: al.id as any,
+                                }));
+                              }}
+                              title={al.title}
+                              className={`flex-1 py-1 flex items-center justify-center rounded transition-colors ${
+                                isActive
+                                  ? 'bg-neutral-800 text-white shadow-sm ring-1 ring-neutral-700'
+                                  : 'text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              <Icon className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Direction RTL / LTR / Auto */}
+                    <div>
+                      <span className="block text-[10px] text-neutral-400 mb-1">
+                        Sens d'écriture
+                      </span>
+                      <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-[10px]">
+                        {[
+                          { id: 'auto', label: 'Auto' },
+                          { id: 'rtl', label: 'RTL (عربي)' },
+                          { id: 'ltr', label: 'LTR' },
+                        ].map((dir) => {
+                          const currentDir =
+                            activeSlide.customDirection || typography.direction || 'auto';
+                          const isActive = currentDir === dir.id;
+                          return (
+                            <button
+                              key={dir.id}
+                              onClick={() => {
+                                updateActiveSlide({ customDirection: dir.id as any });
+                                setTypography((prev) => ({ ...prev, direction: dir.id as any }));
+                              }}
+                              className={`flex-1 py-1 rounded transition-colors ${
+                                isActive
+                                  ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                                  : 'text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              {dir.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-neutral-500">
+                    💡 Les nombres et compteurs (ex: 2026, 01/06) restent toujours lisibles de gauche à droite.
+                  </p>
                 </div>
 
                 {/* Scheduled time info */}

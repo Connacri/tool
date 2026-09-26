@@ -32,9 +32,10 @@ export const Header: React.FC<HeaderProps> = ({
   const navTabs = [
     { id: 'slides', label: 'Diapos & Textes' },
     { id: 'media', label: 'Visuels' },
+    { id: 'overlay', label: 'Superposition' },
     { id: 'filters', label: 'Filtres & Dégradés' },
     { id: 'ratios', label: 'Formats & Ratios' },
-    { id: 'typography', label: 'Typographie' },
+    { id: 'typography', label: 'Typographie & Arabe' },
     { id: 'branding', label: 'Logo & Marque' },
     { id: 'automation', label: 'Automatisation' },
   ];

@@ -1,4 +1,4 @@
-import { AspectRatioOption, LogoConfig, SlideItem, TypographyConfig } from '../types';
+import { AspectRatioOption, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from '../types';
 import imgCreativity from '../assets/images/card_studio_creativity_1790459712154.jpg';
 import imgArchitecture from '../assets/images/card_minimal_architecture_1790459725529.jpg';
 import imgNature from '../assets/images/card_serene_nature_1790459734331.jpg';
@@ -175,11 +175,22 @@ export const INITIAL_SLIDES: SlideItem[] = [
   },
 ];
 
+export const ARABIC_FONTS = [
+  { id: 'cairo' as const, name: 'Cairo (Moderne & Net)', family: "'Cairo', sans-serif" },
+  { id: 'noto-arabic' as const, name: 'Noto Sans Arabic (Universel)', family: "'Noto Sans Arabic', sans-serif" },
+  { id: 'tajawal' as const, name: 'Tajawal (Élégant & Épuré)', family: "'Tajawal', sans-serif" },
+  { id: 'amiri' as const, name: 'Amiri (Calligraphie Traditionnelle)', family: "'Amiri', serif" },
+];
+
 export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   fontStyle: 'editorial',
+  arabicFont: 'cairo',
+  direction: 'auto',
   boxStyle: 'scrim',
   position: 'bottom',
   align: 'left',
+  kickerAlign: 'inherit',
+  phraseAlign: 'inherit',
   fontSize: 1.1,
   textColor: '#ffffff',
   accentColor: '#6366f1',
@@ -187,6 +198,19 @@ export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   showSubtitle: true,
   showSlideNumber: true,
   scrimOpacity: 0.7,
+};
+
+export const INITIAL_OVERLAY_IMAGE: OverlayImageConfig = {
+  enabled: false,
+  url: '',
+  fileName: '',
+  position: 'bottom-right',
+  customX: 80,
+  customY: 80,
+  scale: 0.35,
+  opacity: 0.9,
+  blendMode: 'normal',
+  applyToAll: true,
 };
 
 export const INITIAL_LOGO: LogoConfig = {

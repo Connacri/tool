@@ -10,10 +10,11 @@ import {
   INITIAL_COLOR_FILTER,
   INITIAL_GRADIENT_BLUR,
   INITIAL_LOGO,
+  INITIAL_OVERLAY_IMAGE,
   INITIAL_SLIDES,
   INITIAL_TYPOGRAPHY,
 } from './constants/presets';
-import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, SlideItem, TypographyConfig } from './types';
+import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from './types';
 import {
   loadSavedSlides,
   loadSavedAspectRatio,
@@ -21,6 +22,7 @@ import {
   loadSavedLogo,
   loadSavedGradientBlur,
   loadSavedColorFilter,
+  loadSavedOverlayImage,
   saveAllToLocalStorage,
   resetSavedData,
   getLastSavedTimestamp,
@@ -39,6 +41,9 @@ export default function App() {
   const [gradientBlur, setGradientBlur] = useState<GradientBlurConfig>(() => loadSavedGradientBlur());
   const [colorFilter, setColorFilter] = useState<ColorFilterConfig>(() => loadSavedColorFilter());
 
+  // Drag and drop overlay image (image de superposition)
+  const [overlayImage, setOverlayImage] = useState<OverlayImageConfig>(() => loadSavedOverlayImage());
+
   // Mobile layout view switcher ('editor' vs 'preview')
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
 
@@ -54,7 +59,7 @@ export default function App() {
   // Ref to prevent initial double-save
   const isFirstRender = useRef(true);
 
-  // Automatic saving in localStorage whenever slides, aspect ratio, typography, logo, blur or filter change
+  // Automatic saving in localStorage whenever state changes
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -62,14 +67,22 @@ export default function App() {
     }
 
     const timer = setTimeout(() => {
-      const result = saveAllToLocalStorage(slides, aspectRatio, typography, logo, gradientBlur, colorFilter);
+      const result = saveAllToLocalStorage(
+        slides,
+        aspectRatio,
+        typography,
+        logo,
+        gradientBlur,
+        colorFilter,
+        overlayImage
+      );
       if (result.success) {
         setLastSaved(result.timestamp);
       }
     }, 300); // 300ms debounce for high performance
 
     return () => clearTimeout(timer);
-  }, [slides, aspectRatio, typography, logo, gradientBlur, colorFilter]);
+  }, [slides, aspectRatio, typography, logo, gradientBlur, colorFilter, overlayImage]);
 
   // Reset all data back to original default templates
   const handleResetToDefaults = () => {
@@ -82,6 +95,7 @@ export default function App() {
       setLogo(INITIAL_LOGO);
       setGradientBlur(INITIAL_GRADIENT_BLUR);
       setColorFilter(INITIAL_COLOR_FILTER);
+      setOverlayImage(INITIAL_OVERLAY_IMAGE);
       setLastSaved(Date.now());
     }
   };
@@ -198,10 +212,13 @@ export default function App() {
           setGradientBlur={setGradientBlur}
           colorFilter={colorFilter}
           setColorFilter={setColorFilter}
+          overlayImage={overlayImage}
+          setOverlayImage={setOverlayImage}
         />
 
         <CanvasPreview
           slides={slides}
+          setSlides={setSlides}
           currentSlideIndex={currentSlideIndex}
           setCurrentSlideIndex={setCurrentSlideIndex}
           aspectRatio={aspectRatio}
@@ -209,6 +226,8 @@ export default function App() {
           logo={logo}
           gradientBlur={gradientBlur}
           colorFilter={colorFilter}
+          overlayImage={overlayImage}
+          setOverlayImage={setOverlayImage}
           onSelectSlide={(idx) => {
             setCurrentSlideIndex(idx);
             setActiveTab('slides');
@@ -229,6 +248,7 @@ export default function App() {
         logo={logo}
         gradientBlur={gradientBlur}
         colorFilter={colorFilter}
+        overlayImage={overlayImage}
       />
 
       <BatchInputModal

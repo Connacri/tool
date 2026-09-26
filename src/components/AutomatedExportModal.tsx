@@ -18,6 +18,7 @@ import {
   ColorFilterConfig,
   GradientBlurConfig,
   LogoConfig,
+  OverlayImageConfig,
   SlideItem,
   TypographyConfig,
   WebhookConfig,
@@ -33,6 +34,7 @@ interface AutomatedExportModalProps {
   logo: LogoConfig;
   gradientBlur?: GradientBlurConfig;
   colorFilter?: ColorFilterConfig;
+  overlayImage?: OverlayImageConfig;
 }
 
 export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
@@ -44,6 +46,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   logo,
   gradientBlur,
   colorFilter,
+  overlayImage,
 }) => {
   const [activeTab, setActiveTab] = useState<'zip' | 'webhook' | 'calendar'>('zip');
   
@@ -87,7 +90,8 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
           logo,
           slides.length,
           gradientBlur,
-          colorFilter
+          colorFilter,
+          overlayImage
         );
 
         // Convert canvas to blob/data
