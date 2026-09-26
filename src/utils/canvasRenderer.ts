@@ -638,11 +638,12 @@ async function renderLogoOnCanvas(
   if (logo.type === 'custom' && logo.customUrl) {
     try {
       const customImg = await loadImage(logo.customUrl);
-      const baseMaxW = width * 0.16;
-      const maxW = Math.round(baseMaxW * logoScale);
-      const scale = maxW / customImg.naturalWidth;
-      const destW = customImg.naturalWidth * scale;
-      const destH = customImg.naturalHeight * scale;
+      const baseMaxW = width * 0.22;
+      const targetMaxW = Math.min(width * 0.95, baseMaxW * logoScale);
+      const targetMaxH = Math.min(height * 0.88, (width * 0.22 * logoScale) * (customImg.naturalHeight / customImg.naturalWidth));
+      const scaleFactor = Math.min(targetMaxW / customImg.naturalWidth, targetMaxH / customImg.naturalHeight);
+      const destW = customImg.naturalWidth * scaleFactor;
+      const destH = customImg.naturalHeight * scaleFactor;
 
       let drawX = lx;
       let drawY = ly;
@@ -699,7 +700,7 @@ async function renderLogoOnCanvas(
     }
   } else {
     // Predefined Logo rendering
-    const baseEmblemSize = Math.round(width * 0.032);
+    const baseEmblemSize = Math.round(width * 0.040);
     const emblemSize = Math.round(baseEmblemSize * logoScale);
     const textSize = Math.round(emblemSize * 0.65);
     const subTextSize = Math.round(textSize * 0.72);

@@ -86,7 +86,7 @@ export interface LogoConfig {
   customX?: number; // 0 - 100%
   customY?: number; // 0 - 100%
   size: 'small' | 'medium' | 'large' | 'custom';
-  scale?: number; // 0.2 to 3.0 (default 1.0)
+  scale?: number; // 0.2 to 8.0 (default 1.0, Option A ultra enlarged up to 800%)
   opacity: number; // 0.05 to 1.0
   theme: 'white' | 'dark' | 'accent' | 'custom';
   invertColor?: boolean; // Inverts colors
@@ -95,6 +95,7 @@ export interface LogoConfig {
   rotation?: number; // -180 to 180 degrees
   margin?: number; // Distance/margin from borders in %
   shadow?: 'none' | 'subtle' | 'glow' | 'strong'; // Logo shadow effect
+  displayMode?: 'standard' | 'badge' | 'hero' | 'watermark'; // Option A preset styles
 }
 
 export type WatermarkPosition =

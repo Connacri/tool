@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Maximize2,
+  Minus,
+  Plus,
   Grid,
   Square,
   Smartphone,
@@ -101,8 +103,19 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   const [activeCanvasTool, setActiveCanvasTool] = useState<'auto' | 'image' | 'text' | 'logo' | 'blur'>('auto');
 
   // Dragging interaction state
-  const [dragTarget, setDragTarget] = useState<'image' | 'text' | 'logo' | 'blur' | null>(null);
-  const dragStartRef = useRef<{ x: number; y: number; initialPanX: number; initialPanY: number; initialTextX: number; initialTextY: number; initialLogoX: number; initialLogoY: number; initialBlurY: number }>({
+  const [dragTarget, setDragTarget] = useState<'image' | 'text' | 'logo' | 'logo-resize' | 'blur' | null>(null);
+  const dragStartRef = useRef<{
+    x: number;
+    y: number;
+    initialPanX: number;
+    initialPanY: number;
+    initialTextX: number;
+    initialTextY: number;
+    initialLogoX: number;
+    initialLogoY: number;
+    initialLogoScale: number;
+    initialBlurY: number;
+  }>({
     x: 0,
     y: 0,
     initialPanX: 0,
@@ -111,6 +124,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     initialTextY: 75,
     initialLogoX: 10,
     initialLogoY: 10,
+    initialLogoScale: 1.0,
     initialBlurY: 75,
   });
 
@@ -245,7 +259,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   // --- Interactive Canvas Pointer Handlers (Pan Image, Drag Text, Drag Logo) ---
   const handlePointerDown = (
     e: React.PointerEvent,
-    target: 'image' | 'text' | 'logo' | 'blur'
+    target: 'image' | 'text' | 'logo' | 'logo-resize' | 'blur'
   ) => {
     e.stopPropagation();
     setDragTarget(target);
@@ -255,6 +269,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     const currentTextY = activeSlide.customTextY ?? typography.freePositionY ?? 75;
     const currentLogoX = logo.customX ?? 10;
     const currentLogoY = logo.customY ?? 8;
+    const currentLogoScale = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
     const currentBlurY = (activeSlide.customBlur || gradientBlur)?.positionY ?? 75;
 
     dragStartRef.current = {
@@ -266,6 +281,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
       initialTextY: currentTextY,
       initialLogoX: currentLogoX,
       initialLogoY: currentLogoY,
+      initialLogoScale: currentLogoScale,
       initialBlurY: currentBlurY,
     };
   };
@@ -323,6 +339,19 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
           position: 'custom',
           customX: newX,
           customY: newY,
+        }));
+      }
+    } else if (dragTarget === 'logo-resize') {
+      // Dragging the corner resize handle of the logo (Option A)
+      const delta = (deltaPixelX + deltaPixelY) / 2;
+      const initialScale = dragStartRef.current.initialLogoScale ?? 1.0;
+      const scaleDelta = delta / 80;
+      const newScale = Math.max(0.2, Math.min(8.0, Number((initialScale + scaleDelta).toFixed(2))));
+      if (setLogo) {
+        setLogo((prev) => ({
+          ...prev,
+          scale: newScale,
+          size: 'custom',
         }));
       }
     } else if (dragTarget === 'blur') {
@@ -741,11 +770,20 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 </div>
               )}
 
-              {/* DIRECT DRAG & RESIZE LAYER: LOGO */}
+              {/* DIRECT DRAG & RESIZE LAYER: LOGO (Option A) */}
               {logo.enabled && (activeCanvasTool === 'logo' || activeCanvasTool === 'auto') && (
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'logo')}
-                  className={`absolute z-30 group/logo cursor-move p-2 -m-2 rounded-xl transition-all ${
+                  onWheel={(e) => {
+                    if (activeCanvasTool === 'logo') {
+                      e.stopPropagation();
+                      const cur = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+                      const next = Math.max(0.2, Math.min(8.0, Number((cur + delta).toFixed(2))));
+                      if (setLogo) setLogo((prev) => ({ ...prev, scale: next, size: 'custom' }));
+                    }
+                  }}
+                  className={`absolute z-30 group/logo cursor-move p-3 -m-3 rounded-2xl transition-all ${
                     activeCanvasTool === 'logo'
                       ? 'ring-2 ring-indigo-400 bg-indigo-500/10'
                       : 'hover:ring-1 hover:ring-indigo-400/60'
@@ -756,10 +794,21 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                     transform: 'translate(-50%, -50%)',
                   }}
                 >
-                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/logo:opacity-100 transition-opacity bg-neutral-950/90 text-white text-[10px] px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap flex items-center gap-1 border border-neutral-700">
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/logo:opacity-100 transition-opacity bg-neutral-950/95 text-white text-[10px] px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap flex items-center gap-1.5 border border-neutral-700">
                     <Move className="w-2.5 h-2.5 text-indigo-400" />
-                    <span>Glisser logo · {Math.round((logo.scale ?? 1) * 100)}%</span>
+                    <span>Déplacer · {Math.round((logo.scale ?? 1) * 100)}%</span>
                   </div>
+
+                  {/* Corner Resize Handle (Option A) */}
+                  {activeCanvasTool === 'logo' && (
+                    <div
+                      onPointerDown={(e) => handlePointerDown(e, 'logo-resize')}
+                      className="absolute -bottom-2 -right-2 w-5 h-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg cursor-nwse-resize border-2 border-neutral-950 transition-transform hover:scale-125 z-40 pointer-events-auto"
+                      title="Glisser pour redimensionner le logo (Option A)"
+                    >
+                      <Maximize2 className="w-2.5 h-2.5" />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -966,42 +1015,105 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
             )}
 
             {activeCanvasTool === 'logo' && logo.enabled && (
-              <div className="w-full max-w-lg bg-neutral-900/90 border border-neutral-800 rounded-xl p-3 flex flex-col gap-2 shadow-xl animate-fadeIn">
+              <div className="w-full max-w-lg bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-xl p-3 flex flex-col gap-2.5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-white flex items-center gap-1.5">
                     <Stamp className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Redimensionner et Placer le Logo</span>
+                    <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-semibold px-1.5 py-0.5 rounded border border-indigo-500/30">
+                      Option A
+                    </span>
                   </span>
-                  <span className="font-mono text-neutral-300">
-                    {Math.round((logo.scale ?? 1.0) * 100)}%
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                        const next = Math.max(0.2, Number((cur - 0.2).toFixed(2)));
+                        if (setLogo) setLogo({ ...logo, scale: next, size: 'custom' });
+                      }}
+                      className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                      title="Réduire"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="font-mono text-indigo-400 font-bold min-w-[48px] text-center">
+                      {Math.round((logo.scale ?? 1.0) * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                        const next = Math.min(8.0, Number((cur + 0.2).toFixed(2)));
+                        if (setLogo) setLogo({ ...logo, scale: next, size: 'custom' });
+                      }}
+                      className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                      title="Agrandir"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-neutral-400">Taille</span>
+                  <span className="text-[11px] text-neutral-400">Échelle</span>
                   <input
                     type="range"
-                    min="0.4"
-                    max="2.5"
+                    min="0.2"
+                    max="8.0"
                     step="0.05"
                     value={logo.scale ?? 1.0}
                     onChange={(e) => {
-                      if (setLogo) setLogo({ ...logo, scale: parseFloat(e.target.value) });
+                      if (setLogo) setLogo({ ...logo, scale: parseFloat(e.target.value), size: 'custom' });
                     }}
-                    className="flex-1 accent-indigo-500"
+                    className="flex-1 accent-indigo-500 cursor-pointer"
                   />
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-neutral-800">
-                  <span className="text-[10px] text-neutral-400">
-                    💡 Glissez le logo sur l'image pour le déplacer librement n'importe où
-                  </span>
+
+                {/* Quick scale presets in canvas toolbar */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                  {[
+                    { label: '50%', scale: 0.5 },
+                    { label: '100%', scale: 1.0 },
+                    { label: '200%', scale: 2.0 },
+                    { label: '350%', scale: 3.5 },
+                    { label: '500%', scale: 5.0 },
+                    { label: '800%', scale: 8.0 },
+                  ].map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={() => {
+                        if (setLogo) setLogo({ ...logo, scale: btn.scale, size: 'custom' });
+                      }}
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+                        Math.abs((logo.scale ?? 1.0) - btn.scale) < 0.05
+                          ? 'bg-indigo-600 border-indigo-400 text-white font-bold'
+                          : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'
+                      }`}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
                   <button
                     onClick={() => {
-                      if (setLogo) setLogo({ ...logo, position: 'top-left', scale: 1.0, customX: 10, customY: 8 });
+                      if (setLogo) setLogo({ ...logo, position: 'center', customX: 50, customY: 50 });
                     }}
-                    className="text-[10px] text-neutral-400 hover:text-white bg-neutral-800 px-2 py-0.5 rounded"
+                    className="text-[10px] text-neutral-400 hover:text-white ml-auto px-2 py-0.5 rounded bg-neutral-800/80 whitespace-nowrap"
                   >
-                    Coin haut-gauche
+                    Centrer
                   </button>
+                  <button
+                    onClick={() => {
+                      if (setLogo) setLogo({ ...logo, position: 'top-left', scale: 1.0, customX: 10, customY: 8, size: 'medium' });
+                    }}
+                    className="text-[10px] text-neutral-400 hover:text-white px-2 py-0.5 rounded bg-neutral-800/80 whitespace-nowrap"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-neutral-800 text-[10px] text-neutral-400">
+                  <span>💡 Glissez la poignée en bas à droite du logo ou la molette pour ajuster</span>
                 </div>
               </div>
             )}
@@ -1523,49 +1635,65 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
           {logo.type === 'custom' && logo.customUrl ? (
             logo.unifyColor && logo.unifiedColor ? (
               <div
+                className="relative inline-flex items-center justify-center max-w-full max-h-full"
                 style={{
-                  width: `${Math.round((scale === 'compact' ? 120 : 200) * logoScale)}px`,
-                  height: `${Math.round((scale === 'compact' ? 18 : 32) * logoScale)}px`,
-                  WebkitMaskImage: `url("${logo.customUrl}")`,
-                  maskImage: `url("${logo.customUrl}")`,
-                  WebkitMaskSize: 'contain',
-                  maskSize: 'contain',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskPosition: logo.position.includes('right') ? 'right center' : logo.position.includes('center') ? 'center center' : 'left center',
-                  maskPosition: logo.position.includes('right') ? 'right center' : logo.position.includes('center') ? 'center center' : 'left center',
-                  backgroundColor: logo.unifiedColor || '#ffffff',
-                  filter: logo.invertColor ? 'invert(1)' : undefined,
+                  maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
+                  maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
                 }}
-              />
+              >
+                <img
+                  src={logo.customUrl}
+                  alt=""
+                  className="opacity-0 pointer-events-none select-none w-auto h-auto max-w-full max-h-full object-contain"
+                  style={{
+                    maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
+                    maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
+                  }}
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    WebkitMaskImage: `url("${logo.customUrl}")`,
+                    maskImage: `url("${logo.customUrl}")`,
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                    backgroundColor: logo.unifiedColor || '#ffffff',
+                    filter: logo.invertColor ? 'invert(1)' : undefined,
+                  }}
+                />
+              </div>
             ) : (
               <img
                 src={logo.customUrl}
                 alt="Logo Marque"
                 style={{
-                  height: `${Math.round((scale === 'compact' ? 18 : 32) * logoScale)}px`,
-                  maxWidth: `${Math.round((scale === 'compact' ? 120 : 200) * logoScale)}px`,
+                  maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
+                  maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
                   filter: logo.invertColor ? 'invert(1)' : undefined,
                 }}
-                className="object-contain"
+                className="w-auto h-auto max-w-full max-h-full object-contain select-none pointer-events-none"
               />
             )
           ) : (
             <div
-              className={`flex items-center gap-1.5 ${
+              className={`flex items-center gap-2 ${
                 logo.position.includes('right') ? 'flex-row-reverse' : ''
               }`}
             >
               <div
                 style={{
-                  width: `${Math.round((scale === 'compact' ? 18 : 28) * logoScale)}px`,
-                  height: `${Math.round((scale === 'compact' ? 18 : 28) * logoScale)}px`,
-                  fontSize: `${Math.round((scale === 'compact' ? 8 : 11) * logoScale)}px`,
+                  width: `${Math.round((scale === 'compact' ? 18 : 36) * logoScale)}px`,
+                  height: `${Math.round((scale === 'compact' ? 18 : 36) * logoScale)}px`,
+                  fontSize: `${Math.round((scale === 'compact' ? 8 : 14) * logoScale)}px`,
                   color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   borderColor: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                 }}
-                className={`rounded border flex items-center justify-center font-bold font-['Syne'] ${
+                className={`rounded-lg border flex items-center justify-center font-bold font-['Syne'] flex-shrink-0 ${
                   logo.unifyColor && logo.unifiedColor
                     ? 'bg-black/30 backdrop-blur-sm'
                     : logo.theme === 'dark'
@@ -1580,7 +1708,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               <div className="flex flex-col">
                 <span
                   style={{
-                    fontSize: `${Math.round((scale === 'compact' ? 8.5 : 12) * logoScale)}px`,
+                    fontSize: `${Math.round((scale === 'compact' ? 8.5 : 14) * logoScale)}px`,
                     color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                     filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                   }}
@@ -1591,7 +1719,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                 {logo.brandHandle && (
                   <span
                     style={{
-                      fontSize: `${Math.max(7, Math.round((scale === 'compact' ? 7 : 9) * logoScale))}px`,
+                      fontSize: `${Math.max(7, Math.round((scale === 'compact' ? 7 : 10.5) * logoScale))}px`,
                       color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                       filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                     }}

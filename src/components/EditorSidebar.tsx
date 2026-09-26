@@ -7,6 +7,8 @@ import {
   Layers,
   Sparkles,
   Plus,
+  Minus,
+  Maximize2,
   Trash2,
   Upload,
   Palette,
@@ -2810,59 +2812,216 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                       </div>
                     </div>
 
-                    {/* 1. Redimensionnement précis & Échelle */}
-                    <div className="space-y-2 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                    {/* 1. Redimensionnement précis & Échelle Ultra (Option A) */}
+                    <div className="space-y-3 p-3.5 rounded-xl bg-neutral-900/60 border border-neutral-800">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-neutral-200 flex items-center gap-1.5">
-                          <ZoomIn className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>Redimensionnement & Échelle</span>
+                          <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Taille & Échelle Ultra</span>
+                          <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-semibold px-1.5 py-0.5 rounded border border-indigo-500/30">
+                            Option A
+                          </span>
                         </span>
-                        <span className="font-mono text-indigo-400 font-bold text-[11px]">
-                          {Math.round(
-                            (logo.scale ??
-                              (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)) *
-                              100
-                          )}
-                          %
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                              const next = Math.max(0.2, Number((cur - 0.1).toFixed(2)));
+                              setLogo({ ...logo, scale: next, size: 'custom' });
+                            }}
+                            className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                            title="Réduire de 10%"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 focus-within:border-indigo-500">
+                            <input
+                              type="number"
+                              min="20"
+                              max="800"
+                              step="5"
+                              value={Math.round(
+                                (logo.scale ??
+                                  (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)) *
+                                  100
+                              )}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) {
+                                  const clamped = Math.max(0.2, Math.min(8.0, val / 100));
+                                  setLogo({ ...logo, scale: clamped, size: 'custom' });
+                                }
+                              }}
+                              className="w-10 text-right bg-transparent text-xs font-mono font-bold text-indigo-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-[10px] text-neutral-400 font-mono ml-0.5">%</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                              const next = Math.min(8.0, Number((cur + 0.1).toFixed(2)));
+                              setLogo({ ...logo, scale: next, size: 'custom' });
+                            }}
+                            className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                            title="Agrandir de 10%"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
 
-                      <input
-                        type="range"
-                        min="0.3"
-                        max="2.5"
-                        step="0.05"
-                        value={
-                          logo.scale ??
-                          (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)
-                        }
-                        onChange={(e) =>
-                          setLogo({ ...logo, scale: parseFloat(e.target.value), size: 'custom' })
-                        }
-                        className="w-full accent-indigo-500"
-                      />
+                      {/* Range slider up to 8.0 (800%) */}
+                      <div className="space-y-1">
+                        <input
+                          type="range"
+                          min="0.2"
+                          max="8.0"
+                          step="0.05"
+                          value={
+                            logo.scale ??
+                            (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)
+                          }
+                          onChange={(e) =>
+                            setLogo({ ...logo, scale: parseFloat(e.target.value), size: 'custom' })
+                          }
+                          className="w-full accent-indigo-500 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[10px] font-mono text-neutral-400">
+                          <span>20% (Mini)</span>
+                          <span>100% (Standard)</span>
+                          <span>400% (Grand)</span>
+                          <span>800% (Géant)</span>
+                        </div>
+                      </div>
 
-                      <div className="grid grid-cols-4 gap-1 pt-1">
-                        {[
-                          { label: 'S (75%)', scale: 0.75, size: 'small' as const },
-                          { label: 'M (100%)', scale: 1.0, size: 'medium' as const },
-                          { label: 'L (135%)', scale: 1.35, size: 'large' as const },
-                          { label: 'XL (180%)', scale: 1.8, size: 'large' as const },
-                        ].map((btn) => (
+                      {/* Quick Scale Presets (Option A) */}
+                      <div>
+                        <span className="text-[10px] text-neutral-400 font-medium block mb-1.5">
+                          Préréglages d'échelle rapides :
+                        </span>
+                        <div className="grid grid-cols-4 gap-1">
+                          {[
+                            { label: '50%', scale: 0.5, size: 'small' as const },
+                            { label: '75%', scale: 0.75, size: 'small' as const },
+                            { label: '100%', scale: 1.0, size: 'medium' as const },
+                            { label: '150%', scale: 1.5, size: 'large' as const },
+                            { label: '250%', scale: 2.5, size: 'large' as const },
+                            { label: '400%', scale: 4.0, size: 'large' as const },
+                            { label: '600%', scale: 6.0, size: 'large' as const },
+                            { label: '800%', scale: 8.0, size: 'large' as const },
+                          ].map((btn) => {
+                            const currentScale = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
+                            const isSelected = Math.abs(currentScale - btn.scale) < 0.03;
+                            return (
+                              <button
+                                key={btn.label}
+                                onClick={() =>
+                                  setLogo({ ...logo, scale: btn.scale, size: btn.size })
+                                }
+                                className={`py-1 text-[11px] font-mono rounded border transition-colors ${
+                                  isSelected
+                                    ? 'bg-indigo-600 border-indigo-400 text-white font-bold shadow-sm'
+                                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                                }`}
+                              >
+                                {btn.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Option A Layout Modes */}
+                      <div className="pt-2 border-t border-neutral-800/80">
+                        <span className="text-[10px] text-neutral-400 font-medium block mb-1.5">
+                          Styles d'impact visuel (Option A) :
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5">
                           <button
-                            key={btn.label}
+                            type="button"
                             onClick={() =>
-                              setLogo({ ...logo, scale: btn.scale, size: btn.size })
+                              setLogo({
+                                ...logo,
+                                scale: 1.0,
+                                opacity: 1.0,
+                                position: 'top-left',
+                                size: 'medium',
+                              })
                             }
-                            className={`py-1 text-[11px] rounded border transition-colors ${
-                              (logo.scale ?? 1.0) === btn.scale
-                                ? 'bg-indigo-950/60 border-indigo-500 text-white font-semibold'
-                                : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
-                            }`}
+                            className="p-1.5 rounded-lg border border-neutral-800 bg-neutral-950 hover:bg-neutral-800/60 text-left transition-all"
                           >
-                            {btn.label}
+                            <span className="text-[11px] font-semibold text-neutral-200 block">
+                              1. Standard (100%)
+                            </span>
+                            <span className="text-[9.5px] text-neutral-400 block">
+                              Coin supérieur discret
+                            </span>
                           </button>
-                        ))}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLogo({
+                                ...logo,
+                                scale: 2.2,
+                                opacity: 1.0,
+                                size: 'large',
+                              })
+                            }
+                            className="p-1.5 rounded-lg border border-neutral-800 bg-neutral-950 hover:bg-neutral-800/60 text-left transition-all"
+                          >
+                            <span className="text-[11px] font-semibold text-indigo-300 block">
+                              2. Grand Emblème (220%)
+                            </span>
+                            <span className="text-[9.5px] text-neutral-400 block">
+                              Signature de marque nette
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLogo({
+                                ...logo,
+                                scale: 3.8,
+                                opacity: 1.0,
+                                position: 'center',
+                                size: 'custom',
+                              })
+                            }
+                            className="p-1.5 rounded-lg border border-neutral-800 bg-neutral-950 hover:bg-neutral-800/60 text-left transition-all"
+                          >
+                            <span className="text-[11px] font-semibold text-amber-300 block">
+                              3. Hero Centré (380%)
+                            </span>
+                            <span className="text-[9.5px] text-neutral-400 block">
+                              Impact central maximal
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLogo({
+                                ...logo,
+                                scale: 6.5,
+                                opacity: 0.16,
+                                position: 'center',
+                                size: 'custom',
+                              })
+                            }
+                            className="p-1.5 rounded-lg border border-neutral-800 bg-neutral-950 hover:bg-neutral-800/60 text-left transition-all"
+                          >
+                            <span className="text-[11px] font-semibold text-cyan-300 block">
+                              4. Watermark Géant (650%)
+                            </span>
+                            <span className="text-[9.5px] text-neutral-400 block">
+                              Fond tramé stylisé subtil
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
