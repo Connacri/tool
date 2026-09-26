@@ -1,4 +1,4 @@
-import { AspectRatioOption, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from '../types';
+import { AspectRatioOption, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig, WatermarkConfig } from '../types';
 import imgCreativity from '../assets/images/card_studio_creativity_1790459712154.jpg';
 import imgArchitecture from '../assets/images/card_minimal_architecture_1790459725529.jpg';
 import imgNature from '../assets/images/card_serene_nature_1790459734331.jpg';
@@ -259,7 +259,100 @@ export const INITIAL_LOGO: LogoConfig = {
   scale: 1.0,
   opacity: 0.95,
   theme: 'white',
+  invertColor: false,
+  unifyColor: false,
+  unifiedColor: '#ffffff',
+  rotation: 0,
+  margin: 6,
 };
+
+export const INITIAL_WATERMARK: WatermarkConfig = {
+  enabled: false,
+  text: '© AUTOPOST STUDIO · TOUS DROITS RÉSERVÉS',
+  style: 'single',
+  position: 'bottom-right',
+  customX: 85,
+  customY: 92,
+  scale: 1.0,
+  opacity: 0.3,
+  rotation: 0,
+  color: '#ffffff',
+  gap: 180,
+  showBorder: false,
+};
+
+export const WATERMARK_PRESETS = [
+  {
+    id: 'discrete-handle',
+    name: 'Handle Réseau (@Marque)',
+    desc: 'Signature discrète en bas à droite',
+    text: '@studio.horizon',
+    style: 'single' as const,
+    position: 'bottom-right' as const,
+    scale: 0.95,
+    opacity: 0.45,
+    rotation: 0,
+    color: '#ffffff',
+    gap: 180,
+    showBorder: false,
+  },
+  {
+    id: 'official-copyright',
+    name: 'Mention Copyright Légale',
+    desc: 'Bandeau © en bas centré',
+    text: '© 2026 AUTOPOST STUDIO · TOUS DROITS RÉSERVÉS',
+    style: 'single' as const,
+    position: 'bottom-center' as const,
+    scale: 0.85,
+    opacity: 0.35,
+    rotation: 0,
+    color: '#ffffff',
+    gap: 180,
+    showBorder: false,
+  },
+  {
+    id: 'repeated-diagonal',
+    name: 'Motif Diagonale Répété',
+    desc: 'Protection intégrale anti-vol / filigrane mosaïque',
+    text: 'AUTOPOST STUDIO',
+    style: 'repeated' as const,
+    position: 'center' as const,
+    scale: 1.05,
+    opacity: 0.15,
+    rotation: -28,
+    color: '#ffffff',
+    gap: 170,
+    showBorder: false,
+  },
+  {
+    id: 'diagonal-draft',
+    name: 'Projet Confidentiel / Brouillon',
+    desc: 'Mention centrale imposante inclinée',
+    text: 'CONFIDENTIEL · REPRODUCTION INTERDITE',
+    style: 'single' as const,
+    position: 'center' as const,
+    scale: 1.3,
+    opacity: 0.25,
+    rotation: -32,
+    color: '#ffffff',
+    gap: 180,
+    showBorder: true,
+  },
+  {
+    id: 'badge-pill',
+    name: 'Badge Sécurisé Épuré',
+    desc: 'Filigrane encadré en coin supérieur',
+    text: 'OFFICIEL · AUTOPOST STUDIO',
+    style: 'single' as const,
+    position: 'top-right' as const,
+    scale: 0.85,
+    opacity: 0.45,
+    rotation: 0,
+    color: '#ffffff',
+    gap: 180,
+    showBorder: true,
+  },
+];
 
 export const INITIAL_GRADIENT_BLUR: GradientBlurConfig = {
   enabled: false,

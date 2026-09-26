@@ -7,6 +7,7 @@ import {
   SlideItem,
   TextAlign,
   TypographyConfig,
+  WatermarkConfig,
 } from '../types';
 import { formatArabicDigits, loadGoogleFont } from './googleFonts';
 
@@ -84,7 +85,8 @@ export async function renderSlideToCanvas(
   totalSlides: number = 6,
   blurConfig?: GradientBlurConfig,
   filterConfig?: ColorFilterConfig,
-  overlayConfig?: OverlayImageConfig
+  overlayConfig?: OverlayImageConfig,
+  watermarkConfig?: WatermarkConfig
 ): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
   canvas.width = aspectRatio.width;
@@ -543,11 +545,18 @@ export async function renderSlideToCanvas(
     await renderLogoOnCanvas(ctx, logo, width, height, paddingX, paddingY);
   }
 
+  // 9. Draw Watermark (Filigrane) if Enabled
+  if (watermarkConfig && watermarkConfig.enabled) {
+    renderWatermarkOnCanvas(ctx, watermarkConfig, width, height);
+  }
+
   return canvas;
 }
 
 /**
  * Renders the chosen logo (custom image or predefined branded emblem) on the canvas
+ * Supports: precise scale, 9-anchor + custom X/Y positioning, margins, rotation, opacity,
+ * color inversion, and unified monochrome coloring!
  */
 async function renderLogoOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -557,92 +566,180 @@ async function renderLogoOnCanvas(
   paddingX: number,
   paddingY: number
 ) {
+  if (!logo.enabled) return;
+
   ctx.save();
-  ctx.globalAlpha = logo.opacity;
+  ctx.globalAlpha = Math.max(0.05, Math.min(1, logo.opacity));
 
   const logoScale = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
-
-  // Determine logo position coordinates
-  const marginX = paddingX;
-  const marginY = Math.round(paddingY * 0.75);
+  const marginPct = (logo.margin ?? 6) / 100;
+  const marginX = Math.round(width * marginPct);
+  const marginY = Math.round(height * marginPct);
 
   let lx = marginX;
   let ly = marginY;
   let textAlign: CanvasTextAlign = 'left';
 
-  if (logo.position === 'custom' || (logo.customX !== undefined && logo.customY !== undefined)) {
-    lx = ((logo.customX ?? 10) / 100) * width;
-    ly = ((logo.customY ?? 10) / 100) * height;
-    textAlign = 'left';
-  } else if (logo.position === 'top-left') {
-    lx = marginX;
-    ly = marginY;
-    textAlign = 'left';
-  } else if (logo.position === 'top-right') {
-    lx = width - marginX;
-    ly = marginY;
-    textAlign = 'right';
-  } else if (logo.position === 'bottom-left') {
-    lx = marginX;
-    ly = height - marginY - 45 * logoScale;
-    textAlign = 'left';
-  } else if (logo.position === 'bottom-right') {
-    lx = width - marginX;
-    ly = height - marginY - 45 * logoScale;
-    textAlign = 'right';
-  } else if (logo.position === 'top-center') {
-    lx = width / 2;
-    ly = marginY;
-    textAlign = 'center';
-  } else if (logo.position === 'bottom-center') {
-    lx = width / 2;
-    ly = height - marginY - 45 * logoScale;
-    textAlign = 'center';
-  } else if (logo.position === 'center') {
-    lx = width / 2;
-    ly = height / 2;
-    textAlign = 'center';
+  switch (logo.position) {
+    case 'top-left':
+      lx = marginX;
+      ly = marginY;
+      textAlign = 'left';
+      break;
+    case 'top-center':
+      lx = width / 2;
+      ly = marginY;
+      textAlign = 'center';
+      break;
+    case 'top-right':
+      lx = width - marginX;
+      ly = marginY;
+      textAlign = 'right';
+      break;
+    case 'center-left':
+      lx = marginX;
+      ly = height / 2;
+      textAlign = 'left';
+      break;
+    case 'center':
+      lx = width / 2;
+      ly = height / 2;
+      textAlign = 'center';
+      break;
+    case 'center-right':
+      lx = width - marginX;
+      ly = height / 2;
+      textAlign = 'right';
+      break;
+    case 'bottom-left':
+      lx = marginX;
+      ly = height - marginY;
+      textAlign = 'left';
+      break;
+    case 'bottom-center':
+      lx = width / 2;
+      ly = height - marginY;
+      textAlign = 'center';
+      break;
+    case 'bottom-right':
+      lx = width - marginX;
+      ly = height - marginY;
+      textAlign = 'right';
+      break;
+    case 'custom':
+    default:
+      lx = ((logo.customX ?? 10) / 100) * width;
+      ly = ((logo.customY ?? 10) / 100) * height;
+      textAlign = 'center';
+      break;
   }
 
+  // Predefined logo or custom image
   if (logo.type === 'custom' && logo.customUrl) {
     try {
       const customImg = await loadImage(logo.customUrl);
-      const baseMaxW = 160;
+      const baseMaxW = width * 0.16;
       const maxW = Math.round(baseMaxW * logoScale);
       const scale = maxW / customImg.naturalWidth;
       const destW = customImg.naturalWidth * scale;
       const destH = customImg.naturalHeight * scale;
 
       let drawX = lx;
-      if (textAlign === 'right') drawX = lx - destW;
-      if (textAlign === 'center') drawX = lx - destW / 2;
+      let drawY = ly;
 
-      ctx.drawImage(customImg, drawX, ly, destW, destH);
-    } catch {
-      // ignore
+      if (logo.position === 'custom') {
+        drawX = lx - destW / 2;
+        drawY = ly - destH / 2;
+      } else {
+        if (textAlign === 'right') drawX = lx - destW;
+        else if (textAlign === 'center') drawX = lx - destW / 2;
+
+        if (logo.position.includes('bottom')) drawY = ly - destH;
+        else if (logo.position.includes('center') && !logo.position.includes('top') && !logo.position.includes('bottom')) drawY = ly - destH / 2;
+      }
+
+      ctx.save();
+      if (logo.rotation) {
+        const centerX = drawX + destW / 2;
+        const centerY = drawY + destH / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate((logo.rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
+
+      // Check if color inversion or unification is requested
+      if (logo.unifyColor || logo.invertColor) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = Math.max(1, Math.round(destW));
+        offCanvas.height = Math.max(1, Math.round(destH));
+        const offCtx = offCanvas.getContext('2d');
+        if (offCtx) {
+          if (logo.invertColor) {
+            offCtx.filter = 'invert(100%)';
+          }
+          offCtx.drawImage(customImg, 0, 0, offCanvas.width, offCanvas.height);
+
+          if (logo.unifyColor) {
+            const targetColor = logo.unifiedColor || '#ffffff';
+            offCtx.filter = 'none';
+            offCtx.globalCompositeOperation = 'source-in';
+            offCtx.fillStyle = targetColor;
+            offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+          }
+
+          ctx.drawImage(offCanvas, drawX, drawY);
+        }
+      } else {
+        ctx.drawImage(customImg, drawX, drawY, destW, destH);
+      }
+
+      ctx.restore();
+    } catch (e) {
+      console.warn('Erreur lors du rendu du logo personnalisé:', e);
     }
   } else {
-    // Predefined Logo rendering with continuous logoScale
-    const baseEmblemSize = 32;
+    // Predefined Logo rendering
+    const baseEmblemSize = Math.round(width * 0.032);
     const emblemSize = Math.round(baseEmblemSize * logoScale);
     const textSize = Math.round(emblemSize * 0.65);
     const subTextSize = Math.round(textSize * 0.72);
 
-    const textColor =
-      logo.theme === 'white'
+    let textColor =
+      logo.unifyColor && logo.unifiedColor
+        ? logo.unifiedColor
+        : logo.theme === 'white'
         ? '#ffffff'
         : logo.theme === 'dark'
         ? '#0f172a'
         : '#818cf8';
 
+    if (logo.invertColor && (!logo.unifyColor || !logo.unifiedColor)) {
+      textColor = textColor === '#ffffff' ? '#000000' : textColor === '#0f172a' ? '#ffffff' : '#4338ca';
+    }
+
+    ctx.save();
+    let finalLy = ly;
+    if (logo.position.includes('bottom')) finalLy = ly - emblemSize - (logo.brandHandle ? subTextSize + 6 : 0);
+    else if (logo.position === 'center' || logo.position === 'center-left' || logo.position === 'center-right') finalLy = ly - emblemSize / 2;
+    else if (logo.position === 'custom') finalLy = ly - emblemSize / 2;
+
+    if (logo.rotation) {
+      const centerX = textAlign === 'right' ? lx - emblemSize * 2 : textAlign === 'center' ? lx : lx + emblemSize * 2;
+      const centerY = finalLy + emblemSize / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate((logo.rotation * Math.PI) / 180);
+      ctx.translate(-centerX, -centerY);
+    }
+
     ctx.textAlign = textAlign;
     ctx.textBaseline = 'top';
 
-    // Draw geometric badge / monogram
     let emblemX = lx;
     if (textAlign === 'right') {
       emblemX = lx - emblemSize;
     } else if (textAlign === 'center') {
+      emblemX = lx - emblemSize / 2;
+    } else if (logo.position === 'custom') {
       emblemX = lx - emblemSize / 2;
     }
 
@@ -650,60 +747,183 @@ async function renderLogoOnCanvas(
     ctx.save();
     ctx.fillStyle = textColor;
     ctx.strokeStyle = textColor;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5 * logoScale;
 
     if (logo.predefinedId === 'aura-crest') {
-      // Diamond
       ctx.beginPath();
-      ctx.moveTo(emblemX + emblemSize / 2, ly);
-      ctx.lineTo(emblemX + emblemSize, ly + emblemSize / 2);
-      ctx.lineTo(emblemX + emblemSize / 2, ly + emblemSize);
-      ctx.lineTo(emblemX, ly + emblemSize / 2);
+      ctx.moveTo(emblemX + emblemSize / 2, finalLy);
+      ctx.lineTo(emblemX + emblemSize, finalLy + emblemSize / 2);
+      ctx.lineTo(emblemX + emblemSize / 2, finalLy + emblemSize);
+      ctx.lineTo(emblemX, finalLy + emblemSize / 2);
       ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(emblemX + emblemSize / 2, ly + emblemSize / 2, 4, 0, Math.PI * 2);
+      ctx.arc(emblemX + emblemSize / 2, finalLy + emblemSize / 2, 4 * logoScale, 0, Math.PI * 2);
       ctx.fill();
     } else if (logo.predefinedId === 'clean-mark') {
-      // Hexagon
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i;
         const hx = emblemX + emblemSize / 2 + (emblemSize / 2) * Math.cos(angle);
-        const hy = ly + emblemSize / 2 + (emblemSize / 2) * Math.sin(angle);
+        const hy = finalLy + emblemSize / 2 + (emblemSize / 2) * Math.sin(angle);
         if (i === 0) ctx.moveTo(hx, hy);
         else ctx.lineTo(hx, hy);
       }
       ctx.closePath();
       ctx.stroke();
     } else {
-      // Studio Minimal square monogram
-      roundRect(ctx, emblemX, ly, emblemSize, emblemSize, 6);
+      roundRect(ctx, emblemX, finalLy, emblemSize, emblemSize, 6 * logoScale);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(emblemX + emblemSize / 2, ly + emblemSize / 2, emblemSize / 4, 0, Math.PI * 2);
+      ctx.arc(emblemX + emblemSize / 2, finalLy + emblemSize / 2, emblemSize / 4, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
 
     // Draw brand title & handle
     const textOffsetX =
-      textAlign === 'left' ? emblemSize + 14 : textAlign === 'right' ? -14 : 0;
-    const textOffsetY = textAlign === 'center' ? emblemSize + 8 : 2;
+      textAlign === 'left' ? emblemSize + 12 * logoScale : textAlign === 'right' ? -12 * logoScale : 0;
+    const textOffsetY = textAlign === 'center' ? emblemSize + 8 * logoScale : 2 * logoScale;
 
     ctx.font = `700 ${textSize}px 'Syne', sans-serif`;
     ctx.fillStyle = textColor;
-    ctx.fillText(logo.brandText || 'AUTOPOST STUDIO', lx + textOffsetX, ly + textOffsetY);
+    ctx.fillText(logo.brandText || 'AUTOPOST STUDIO', lx + textOffsetX, finalLy + textOffsetY);
 
     if (logo.brandHandle) {
       ctx.font = `500 ${subTextSize}px 'Plus Jakarta Sans', sans-serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.fillStyle = logo.unifyColor && logo.unifiedColor ? textColor : 'rgba(255, 255, 255, 0.7)';
       ctx.fillText(
         logo.brandHandle,
         lx + textOffsetX,
-        ly + textOffsetY + textSize + 4
+        finalLy + textOffsetY + textSize + 4 * logoScale
       );
     }
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Renders watermark (filigrane) on the canvas
+ * Supports single position with custom X/Y or repeating diagonal matrix pattern
+ */
+function renderWatermarkOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  watermark: WatermarkConfig,
+  width: number,
+  height: number
+) {
+  if (!watermark.enabled || !watermark.text?.trim()) return;
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.02, Math.min(1, watermark.opacity));
+
+  const scale = watermark.scale ?? 1.0;
+  const baseFontSize = Math.round(width * 0.022 * scale);
+  const fontFamily = watermark.fontFamily || "'Plus Jakarta Sans', sans-serif";
+  const textColor = watermark.color || '#ffffff';
+
+  ctx.font = `700 ${baseFontSize}px ${fontFamily}`;
+  ctx.fillStyle = textColor;
+  ctx.strokeStyle = textColor;
+
+  if (watermark.style === 'repeated') {
+    // Repeated diagonal pattern
+    const angleRad = ((watermark.rotation ?? -28) * Math.PI) / 180;
+    const gap = Math.round((watermark.gap ?? 180) * (width / 1000) * scale);
+    const lineSpacing = Math.round(gap * 0.65);
+
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(angleRad);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const diagonal = Math.hypot(width, height) * 1.6;
+    const startX = -diagonal / 2;
+    const endX = diagonal / 2;
+    const startY = -diagonal / 2;
+    const endY = diagonal / 2;
+
+    let rowIndex = 0;
+    for (let y = startY; y < endY; y += lineSpacing) {
+      const offsetX = rowIndex % 2 === 0 ? 0 : gap / 2;
+      for (let x = startX + offsetX; x < endX; x += gap) {
+        ctx.fillText(watermark.text, x, y);
+      }
+      rowIndex++;
+    }
+    ctx.restore();
+  } else {
+    // Single placement
+    let wx = width - Math.round(width * 0.05);
+    let wy = height - Math.round(height * 0.04);
+    let textAlign: CanvasTextAlign = 'right';
+
+    if (watermark.position === 'custom') {
+      wx = ((watermark.customX ?? 85) / 100) * width;
+      wy = ((watermark.customY ?? 92) / 100) * height;
+      textAlign = 'center';
+    } else if (watermark.position === 'bottom-right') {
+      wx = width - Math.round(width * 0.05);
+      wy = height - Math.round(height * 0.04);
+      textAlign = 'right';
+    } else if (watermark.position === 'bottom-left') {
+      wx = Math.round(width * 0.05);
+      wy = height - Math.round(height * 0.04);
+      textAlign = 'left';
+    } else if (watermark.position === 'top-right') {
+      wx = width - Math.round(width * 0.05);
+      wy = Math.round(height * 0.05);
+      textAlign = 'right';
+    } else if (watermark.position === 'top-left') {
+      wx = Math.round(width * 0.05);
+      wy = Math.round(height * 0.05);
+      textAlign = 'left';
+    } else if (watermark.position === 'center') {
+      wx = width / 2;
+      wy = height / 2;
+      textAlign = 'center';
+    } else if (watermark.position === 'bottom-center') {
+      wx = width / 2;
+      wy = height - Math.round(height * 0.04);
+      textAlign = 'center';
+    } else if (watermark.position === 'top-center') {
+      wx = width / 2;
+      wy = Math.round(height * 0.05);
+      textAlign = 'center';
+    }
+
+    ctx.save();
+    ctx.translate(wx, wy);
+    if (watermark.rotation) {
+      ctx.rotate((watermark.rotation * Math.PI) / 180);
+    }
+    ctx.textAlign = textAlign;
+    ctx.textBaseline = 'middle';
+
+    if (watermark.showBorder) {
+      const metrics = ctx.measureText(watermark.text);
+      const padX = 14 * scale;
+      const padY = 8 * scale;
+      let bx = -padX;
+      if (textAlign === 'right') bx = -metrics.width - padX;
+      else if (textAlign === 'center') bx = -metrics.width / 2 - padX;
+      const by = -baseFontSize / 2 - padY / 2;
+      const bw = metrics.width + padX * 2;
+      const bh = baseFontSize + padY;
+
+      ctx.lineWidth = 1.5;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      roundRect(ctx, bx, by, bw, bh, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = textColor;
+    }
+
+    ctx.fillText(watermark.text, 0, 0);
+    ctx.restore();
   }
 
   ctx.restore();

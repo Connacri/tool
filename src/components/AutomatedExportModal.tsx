@@ -21,6 +21,7 @@ import {
   OverlayImageConfig,
   SlideItem,
   TypographyConfig,
+  WatermarkConfig,
   WebhookConfig,
 } from '../types';
 import { renderSlideToCanvas } from '../utils/canvasRenderer';
@@ -35,6 +36,7 @@ interface AutomatedExportModalProps {
   gradientBlur?: GradientBlurConfig;
   colorFilter?: ColorFilterConfig;
   overlayImage?: OverlayImageConfig;
+  watermark?: WatermarkConfig;
 }
 
 export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
@@ -47,6 +49,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   gradientBlur,
   colorFilter,
   overlayImage,
+  watermark,
 }) => {
   const [activeTab, setActiveTab] = useState<'zip' | 'webhook' | 'calendar'>('zip');
   
@@ -91,7 +94,8 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
           slides.length,
           gradientBlur,
           colorFilter,
-          overlayImage
+          overlayImage,
+          watermark
         );
 
         // Convert canvas to blob/data

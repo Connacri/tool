@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'filters', label: 'Filtres & Dégradés' },
     { id: 'ratios', label: 'Formats & Ratios' },
     { id: 'typography', label: 'Typographie & Arabe' },
-    { id: 'branding', label: 'Logo & Marque' },
+    { id: 'branding', label: 'Logo & Filigrane' },
     { id: 'automation', label: 'Automatisation' },
   ];
 

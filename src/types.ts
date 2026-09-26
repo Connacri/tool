@@ -63,7 +63,17 @@ export interface TypographyConfig {
   scrimOpacity: number; // 0.1 to 0.9
 }
 
-export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center' | 'center' | 'custom';
+export type LogoPosition =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'top-center'
+  | 'bottom-center'
+  | 'center'
+  | 'center-left'
+  | 'center-right'
+  | 'custom';
 
 export interface LogoConfig {
   enabled: boolean;
@@ -76,9 +86,41 @@ export interface LogoConfig {
   customX?: number; // 0 - 100%
   customY?: number; // 0 - 100%
   size: 'small' | 'medium' | 'large' | 'custom';
-  scale?: number; // 0.4 to 3.0 (default 1.0)
-  opacity: number; // 0.1 to 1.0
-  theme: 'white' | 'dark' | 'accent';
+  scale?: number; // 0.2 to 3.0 (default 1.0)
+  opacity: number; // 0.05 to 1.0
+  theme: 'white' | 'dark' | 'accent' | 'custom';
+  invertColor?: boolean; // Inverts colors
+  unifyColor?: boolean; // Unifies logo into a single monochrome silhouette
+  unifiedColor?: string; // Hex color for unified logo (e.g. #ffffff, #000000, #f59e0b)
+  rotation?: number; // -180 to 180 degrees
+  margin?: number; // Distance/margin from borders in %
+  shadow?: 'none' | 'subtle' | 'glow' | 'strong'; // Logo shadow effect
+}
+
+export type WatermarkPosition =
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'top-right'
+  | 'top-left'
+  | 'center'
+  | 'bottom-center'
+  | 'top-center'
+  | 'custom';
+
+export interface WatermarkConfig {
+  enabled: boolean;
+  text: string;
+  style: 'single' | 'repeated'; // single position vs repeated diagonal pattern
+  position: WatermarkPosition;
+  customX?: number; // 0 - 100%
+  customY?: number; // 0 - 100%
+  scale?: number; // 0.5 to 2.5 (default 1.0)
+  opacity: number; // 0.05 to 0.90
+  rotation?: number; // -90 to 90 degrees
+  color: string; // hex color
+  fontFamily?: string;
+  gap?: number; // gap/spacing in pixels for repeated pattern (100 to 350)
+  showBorder?: boolean; // subtle pill/badge border around single watermark
 }
 
 export type GradientBlurDirection =

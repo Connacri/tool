@@ -1,4 +1,4 @@
-import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from '../types';
+import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig, WatermarkConfig } from '../types';
 import {
   ASPECT_RATIOS,
   INITIAL_COLOR_FILTER,
@@ -7,6 +7,7 @@ import {
   INITIAL_OVERLAY_IMAGE,
   INITIAL_SLIDES,
   INITIAL_TYPOGRAPHY,
+  INITIAL_WATERMARK,
 } from '../constants/presets';
 
 const STORAGE_KEY_SLIDES = 'autopost_studio_slides_v1';
@@ -16,6 +17,7 @@ const STORAGE_KEY_LOGO = 'autopost_studio_logo_v1';
 const STORAGE_KEY_BLUR = 'autopost_studio_blur_v1';
 const STORAGE_KEY_FILTER = 'autopost_studio_filter_v1';
 const STORAGE_KEY_OVERLAY = 'autopost_studio_overlay_v1';
+const STORAGE_KEY_WATERMARK = 'autopost_studio_watermark_v1';
 const STORAGE_KEY_TIMESTAMP = 'autopost_studio_last_saved_v1';
 
 export interface StorageStatus {
@@ -138,6 +140,21 @@ export function loadSavedOverlayImage(): OverlayImageConfig {
 }
 
 /**
+ * Loads watermark config from localStorage
+ */
+export function loadSavedWatermark(): WatermarkConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_WATERMARK);
+    if (raw) {
+      return { ...INITIAL_WATERMARK, ...JSON.parse(raw) };
+    }
+  } catch (e) {
+    console.warn('Erreur lors du chargement du filigrane:', e);
+  }
+  return INITIAL_WATERMARK;
+}
+
+/**
  * Automatically saves all applet state to localStorage with quota-safety
  */
 export function saveAllToLocalStorage(
@@ -147,7 +164,8 @@ export function saveAllToLocalStorage(
   logo: LogoConfig,
   blur?: GradientBlurConfig,
   filter?: ColorFilterConfig,
-  overlay?: OverlayImageConfig
+  overlay?: OverlayImageConfig,
+  watermark?: WatermarkConfig
 ): { success: boolean; timestamp: number } {
   const timestamp = Date.now();
   try {
@@ -158,6 +176,7 @@ export function saveAllToLocalStorage(
     if (blur) localStorage.setItem(STORAGE_KEY_BLUR, JSON.stringify(blur));
     if (filter) localStorage.setItem(STORAGE_KEY_FILTER, JSON.stringify(filter));
     if (overlay) localStorage.setItem(STORAGE_KEY_OVERLAY, JSON.stringify(overlay));
+    if (watermark) localStorage.setItem(STORAGE_KEY_WATERMARK, JSON.stringify(watermark));
     localStorage.setItem(STORAGE_KEY_TIMESTAMP, timestamp.toString());
     return { success: true, timestamp };
   } catch (err: any) {
@@ -172,8 +191,10 @@ export function saveAllToLocalStorage(
       localStorage.setItem(STORAGE_KEY_SLIDES, JSON.stringify(lightweightSlides));
       localStorage.setItem(STORAGE_KEY_RATIO, aspectRatio.id);
       localStorage.setItem(STORAGE_KEY_TYPOGRAPHY, JSON.stringify(typography));
+      localStorage.setItem(STORAGE_KEY_LOGO, JSON.stringify(logo));
       if (blur) localStorage.setItem(STORAGE_KEY_BLUR, JSON.stringify(blur));
       if (filter) localStorage.setItem(STORAGE_KEY_FILTER, JSON.stringify(filter));
+      if (watermark) localStorage.setItem(STORAGE_KEY_WATERMARK, JSON.stringify(watermark));
       if (overlay) {
         const lightweightOverlay = overlay.url.startsWith('data:') && overlay.url.length > 500000
           ? { ...overlay, url: '' }
@@ -200,6 +221,7 @@ export function resetSavedData(): void {
     localStorage.removeItem(STORAGE_KEY_BLUR);
     localStorage.removeItem(STORAGE_KEY_FILTER);
     localStorage.removeItem(STORAGE_KEY_OVERLAY);
+    localStorage.removeItem(STORAGE_KEY_WATERMARK);
     localStorage.removeItem(STORAGE_KEY_TIMESTAMP);
   } catch (e) {
     console.warn('Erreur lors de la réinitialisation du localStorage:', e);

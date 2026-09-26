@@ -36,6 +36,7 @@ import {
   SlideItem,
   TextAlign,
   TypographyConfig,
+  WatermarkConfig,
 } from '../types';
 import {
   renderSlideToCanvas,
@@ -62,6 +63,8 @@ interface CanvasPreviewProps {
   setColorFilter?: React.Dispatch<React.SetStateAction<ColorFilterConfig>>;
   overlayImage?: OverlayImageConfig;
   setOverlayImage?: React.Dispatch<React.SetStateAction<OverlayImageConfig>>;
+  watermark?: WatermarkConfig;
+  setWatermark?: React.Dispatch<React.SetStateAction<WatermarkConfig>>;
   mobileView?: 'editor' | 'preview';
   setMobileView?: (view: 'editor' | 'preview') => void;
 }
@@ -84,6 +87,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   setColorFilter,
   overlayImage,
   setOverlayImage,
+  watermark,
+  setWatermark,
   mobileView = 'preview',
   setMobileView,
 }) => {
@@ -132,7 +137,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         slides.length,
         gradientBlur,
         colorFilter,
-        overlayImage
+        overlayImage,
+        watermark
       );
       downloadCanvasAsPng(
         canvas,
@@ -156,7 +162,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         slides.length,
         gradientBlur,
         colorFilter,
-        overlayImage
+        overlayImage,
+        watermark
       );
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -566,6 +573,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                         blur={gradientBlur}
                         filter={colorFilter}
                         overlay={overlayImage}
+                        watermark={watermark}
                       />
 
                       {/* Hover action overlay */}
@@ -708,6 +716,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 blur={gradientBlur}
                 filter={colorFilter}
                 overlay={overlayImage}
+                watermark={watermark}
               />
 
               {/* DIRECT DRAG LAYER: IMAGE PANNING */}
@@ -1114,6 +1123,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 blur={gradientBlur}
                 filter={colorFilter}
                 overlay={overlayImage}
+                watermark={watermark}
               />
             </div>
 
@@ -1162,6 +1172,7 @@ interface SlideVisualContentProps {
   blur?: GradientBlurConfig;
   filter?: ColorFilterConfig;
   overlay?: OverlayImageConfig;
+  watermark?: WatermarkConfig;
 }
 
 const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
@@ -1173,10 +1184,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   blur,
   filter,
   overlay,
+  watermark,
 }) => {
   const effectiveBlur = slide.customBlur || blur;
   const effectiveFilter = slide.customFilter || filter;
   const effectiveOverlay = slide.customOverlayImage || overlay;
+  const effectiveWatermark = watermark;
 
   // Determine direction and Arabic script
   const textSample = `${slide.kicker || ''} ${slide.text || ''} ${slide.subtitle || ''}`;
@@ -1347,7 +1360,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
   // Logo Scale (scaled down in compact mode to leave full space for text)
   const logoScale = (logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)) * (scale === 'compact' ? 0.55 : 1.0);
-  const isCustomLogoPos = logo.position === 'custom' || (logo.customX !== undefined && logo.customY !== undefined);
+  const isCustomLogoPos = logo.position === 'custom';
 
   return (
     <div
@@ -1468,36 +1481,75 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             isCustomLogoPos
               ? ''
               : logo.position === 'top-left'
-              ? scale === 'compact' ? 'top-2 left-2' : 'top-4 left-4'
+              ? 'top-0 left-0'
+              : logo.position === 'top-center'
+              ? 'top-0 left-1/2 -translate-x-1/2 text-center'
               : logo.position === 'top-right'
-              ? scale === 'compact' ? 'top-2 right-2 text-right' : 'top-4 right-4 text-right'
+              ? 'top-0 right-0 text-right'
+              : logo.position === 'center-left'
+              ? 'top-1/2 left-0 -translate-y-1/2'
+              : logo.position === 'center'
+              ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center'
+              : logo.position === 'center-right'
+              ? 'top-1/2 right-0 -translate-y-1/2 text-right'
               : logo.position === 'bottom-left'
-              ? scale === 'compact' ? 'bottom-2 left-2' : 'bottom-4 left-4'
-              : logo.position === 'bottom-right'
-              ? scale === 'compact' ? 'bottom-2 right-2 text-right' : 'bottom-4 right-4 text-right'
-              : scale === 'compact' ? 'top-2 left-1/2 -translate-x-1/2 text-center' : 'top-4 left-1/2 -translate-x-1/2 text-center'
+              ? 'bottom-0 left-0'
+              : logo.position === 'bottom-center'
+              ? 'bottom-0 left-1/2 -translate-x-1/2 text-center'
+              : 'bottom-0 right-0 text-right'
           }`}
           style={{
-            opacity: logo.opacity,
+            opacity: Math.max(0.05, Math.min(1, logo.opacity)),
             ...(isCustomLogoPos
               ? {
                   left: `${logo.customX ?? 10}%`,
                   top: `${logo.customY ?? 8}%`,
-                  transform: 'translate(-50%, -50%)',
+                  transform: `translate(-50%, -50%) ${logo.rotation ? `rotate(${logo.rotation}deg)` : ''}`.trim(),
                 }
-              : {}),
+              : {
+                  margin: `${logo.margin ?? (scale === 'compact' ? 4 : 6)}%`,
+                  transform: `${
+                    logo.position === 'top-center' || logo.position === 'bottom-center'
+                      ? 'translateX(-50%) '
+                      : logo.position === 'center-left' || logo.position === 'center-right'
+                      ? 'translateY(-50%) '
+                      : logo.position === 'center'
+                      ? 'translate(-50%, -50%) '
+                      : ''
+                  }${logo.rotation ? `rotate(${logo.rotation}deg)` : ''}`.trim() || undefined,
+                }),
           }}
         >
           {logo.type === 'custom' && logo.customUrl ? (
-            <img
-              src={logo.customUrl}
-              alt="Logo Marque"
-              style={{
-                height: `${Math.round((scale === 'compact' ? 18 : 32) * logoScale)}px`,
-                maxWidth: scale === 'compact' ? '120px' : '200px',
-              }}
-              className="object-contain"
-            />
+            logo.unifyColor && logo.unifiedColor ? (
+              <div
+                style={{
+                  width: `${Math.round((scale === 'compact' ? 120 : 200) * logoScale)}px`,
+                  height: `${Math.round((scale === 'compact' ? 18 : 32) * logoScale)}px`,
+                  WebkitMaskImage: `url("${logo.customUrl}")`,
+                  maskImage: `url("${logo.customUrl}")`,
+                  WebkitMaskSize: 'contain',
+                  maskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskPosition: logo.position.includes('right') ? 'right center' : logo.position.includes('center') ? 'center center' : 'left center',
+                  maskPosition: logo.position.includes('right') ? 'right center' : logo.position.includes('center') ? 'center center' : 'left center',
+                  backgroundColor: logo.unifiedColor || '#ffffff',
+                  filter: logo.invertColor ? 'invert(1)' : undefined,
+                }}
+              />
+            ) : (
+              <img
+                src={logo.customUrl}
+                alt="Logo Marque"
+                style={{
+                  height: `${Math.round((scale === 'compact' ? 18 : 32) * logoScale)}px`,
+                  maxWidth: `${Math.round((scale === 'compact' ? 120 : 200) * logoScale)}px`,
+                  filter: logo.invertColor ? 'invert(1)' : undefined,
+                }}
+                className="object-contain"
+              />
+            )
           ) : (
             <div
               className={`flex items-center gap-1.5 ${
@@ -1509,9 +1561,14 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   width: `${Math.round((scale === 'compact' ? 18 : 28) * logoScale)}px`,
                   height: `${Math.round((scale === 'compact' ? 18 : 28) * logoScale)}px`,
                   fontSize: `${Math.round((scale === 'compact' ? 8 : 11) * logoScale)}px`,
+                  color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
+                  borderColor: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
+                  filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                 }}
                 className={`rounded border flex items-center justify-center font-bold font-['Syne'] ${
-                  logo.theme === 'dark'
+                  logo.unifyColor && logo.unifiedColor
+                    ? 'bg-black/30 backdrop-blur-sm'
+                    : logo.theme === 'dark'
                     ? 'bg-neutral-900 border-neutral-700 text-white'
                     : logo.theme === 'accent'
                     ? 'bg-indigo-600 border-indigo-400 text-white'
@@ -1524,6 +1581,8 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                 <span
                   style={{
                     fontSize: `${Math.round((scale === 'compact' ? 8.5 : 12) * logoScale)}px`,
+                    color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
+                    filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                   }}
                   className="font-['Syne'] font-bold tracking-tight text-white leading-tight"
                 >
@@ -1533,8 +1592,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   <span
                     style={{
                       fontSize: `${Math.max(7, Math.round((scale === 'compact' ? 7 : 9) * logoScale))}px`,
+                      color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
+                      filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                     }}
-                    className="text-neutral-300/80 font-medium"
+                    className={`${logo.unifyColor && logo.unifiedColor ? 'opacity-80' : 'text-neutral-300/80'} font-medium`}
                   >
                     {logo.brandHandle}
                   </span>
@@ -1543,6 +1604,96 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Watermark / Filigrane Overlay */}
+      {effectiveWatermark && effectiveWatermark.enabled && effectiveWatermark.text && (
+        effectiveWatermark.style === 'repeated' ? (
+          <div
+            className="absolute inset-0 pointer-events-none z-20 overflow-hidden flex items-center justify-center select-none"
+            style={{
+              opacity: effectiveWatermark.opacity,
+              transform: `rotate(${effectiveWatermark.rotation ?? -28}deg) scale(1.6)`,
+            }}
+          >
+            <div className="flex flex-col gap-6 sm:gap-10 text-center">
+              {Array.from({ length: 12 }).map((_, r) => (
+                <div
+                  key={r}
+                  className="flex gap-10 sm:gap-16 whitespace-nowrap"
+                  style={{ transform: r % 2 === 0 ? 'none' : 'translateX(60px)' }}
+                >
+                  {Array.from({ length: 10 }).map((_, c) => (
+                    <span
+                      key={c}
+                      style={{
+                        color: effectiveWatermark.color || '#ffffff',
+                        fontSize: `${Math.round((scale === 'compact' ? 10 : 18) * (effectiveWatermark.scale ?? 1))}px`,
+                        fontFamily: effectiveWatermark.fontFamily || "'Plus Jakarta Sans', sans-serif",
+                      }}
+                      className="font-bold tracking-wider"
+                    >
+                      {effectiveWatermark.text}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div
+            className={`absolute z-20 pointer-events-none select-none transition-all ${
+              effectiveWatermark.position === 'center'
+                ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
+                : effectiveWatermark.position === 'bottom-right'
+                ? scale === 'compact' ? 'bottom-2 right-2' : 'bottom-4 right-4'
+                : effectiveWatermark.position === 'bottom-left'
+                ? scale === 'compact' ? 'bottom-2 left-2' : 'bottom-4 left-4'
+                : effectiveWatermark.position === 'bottom-center'
+                ? scale === 'compact' ? 'bottom-2 left-1/2 -translate-x-1/2' : 'bottom-4 left-1/2 -translate-x-1/2'
+                : effectiveWatermark.position === 'top-right'
+                ? scale === 'compact' ? 'top-2 right-2' : 'top-4 right-4'
+                : effectiveWatermark.position === 'top-left'
+                ? scale === 'compact' ? 'top-2 left-2' : 'top-4 left-4'
+                : effectiveWatermark.position === 'top-center'
+                ? scale === 'compact' ? 'top-2 left-1/2 -translate-x-1/2' : 'top-4 left-1/2 -translate-x-1/2'
+                : ''
+            }`}
+            style={{
+              opacity: effectiveWatermark.opacity,
+              ...(effectiveWatermark.position === 'custom'
+                ? {
+                    left: `${effectiveWatermark.customX ?? 85}%`,
+                    top: `${effectiveWatermark.customY ?? 92}%`,
+                    transform: `translate(-50%, -50%) ${effectiveWatermark.rotation ? `rotate(${effectiveWatermark.rotation}deg)` : ''}`.trim(),
+                  }
+                : {
+                    transform: `${
+                      effectiveWatermark.position === 'top-center' || effectiveWatermark.position === 'bottom-center'
+                        ? 'translateX(-50%) '
+                        : effectiveWatermark.position === 'center'
+                        ? 'translate(-50%, -50%) '
+                        : ''
+                    }${effectiveWatermark.rotation ? `rotate(${effectiveWatermark.rotation}deg)` : ''}`.trim() || undefined,
+                  }),
+            }}
+          >
+            <div
+              style={{
+                color: effectiveWatermark.color || '#ffffff',
+                fontSize: `${Math.round((scale === 'compact' ? 9 : 14) * (effectiveWatermark.scale ?? 1))}px`,
+                fontFamily: effectiveWatermark.fontFamily || "'Plus Jakarta Sans', sans-serif",
+              }}
+              className={`font-bold tracking-wider whitespace-nowrap ${
+                effectiveWatermark.showBorder
+                  ? 'px-3 py-1 rounded-full border border-white/30 bg-black/40 backdrop-blur-sm shadow'
+                  : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
+              }`}
+            >
+              {effectiveWatermark.text}
+            </div>
+          </div>
+        )
       )}
 
       {/* Slide Counter (01 / 06) - Strictly LTR for numbers! */}

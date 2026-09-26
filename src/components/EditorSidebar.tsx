@@ -34,9 +34,18 @@ import {
   Search,
   Globe,
   SlidersHorizontal,
+  Shield,
+  ShieldCheck,
+  Wand2,
+  Lightbulb,
+  RotateCw,
+  Contrast,
+  Check,
+  Grid3X3,
+  Lock,
 } from 'lucide-react';
-import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WebhookConfig } from '../types';
-import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES, GRADIENT_BLUR_PRESETS, PRESET_OVERLAYS } from '../constants/presets';
+import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WatermarkConfig, WebhookConfig } from '../types';
+import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES, GRADIENT_BLUR_PRESETS, PRESET_OVERLAYS, WATERMARK_PRESETS, INITIAL_WATERMARK, INITIAL_LOGO } from '../constants/presets';
 import { isArabicText } from '../utils/canvasRenderer';
 import { CURATED_FRENCH_FONTS, CURATED_ARABIC_FONTS, loadGoogleFont } from '../utils/googleFonts';
 
@@ -65,6 +74,8 @@ interface EditorSidebarProps {
   setColorFilter: React.Dispatch<React.SetStateAction<ColorFilterConfig>>;
   overlayImage: OverlayImageConfig;
   setOverlayImage: React.Dispatch<React.SetStateAction<OverlayImageConfig>>;
+  watermark: WatermarkConfig;
+  setWatermark: React.Dispatch<React.SetStateAction<WatermarkConfig>>;
 }
 
 export const EditorSidebar: React.FC<EditorSidebarProps> = ({
@@ -92,6 +103,8 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   setColorFilter,
   overlayImage,
   setOverlayImage,
+  watermark,
+  setWatermark,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +118,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
   const [overlayCategoryTab, setOverlayCategoryTab] = useState<'all' | 'trust' | 'promo' | 'arabic' | 'social'>('all');
   const [overlayUrlInput, setOverlayUrlInput] = useState('');
+  const [brandingSubTab, setBrandingSubTab] = useState<'logo' | 'watermark'>('logo');
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -257,7 +271,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
           { id: 'filters', label: 'Filtres' },
           { id: 'ratios', label: 'Ratios' },
           { id: 'typography', label: 'Typo & Arabe' },
-          { id: 'branding', label: 'Logo' },
+          { id: 'branding', label: 'Logo & Filigrane' },
           { id: 'automation', label: 'Export' },
         ].map((t) => (
           <button
@@ -2607,220 +2621,949 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         {/* ============================================================== */}
         {activeTab === 'branding' && (
           <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Logo & Marque</h3>
-                <p className="text-xs text-neutral-400">
-                  Incrustez automatiquement votre logo prédéfini ou personnalisé
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={logo.enabled}
-                  onChange={(e) => setLogo({ ...logo, enabled: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
+            {/* Sub-tabs switcher between Brand Logo and Watermark */}
+            <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 gap-1">
+              <button
+                onClick={() => setBrandingSubTab('logo')}
+                className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors ${
+                  brandingSubTab === 'logo'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Logo de Marque</span>
+              </button>
+              <button
+                onClick={() => setBrandingSubTab('watermark')}
+                className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors relative ${
+                  brandingSubTab === 'watermark'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Stamp className="w-3.5 h-3.5 text-amber-400" />
+                <span>Filigrane</span>
+                {watermark.enabled && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </button>
             </div>
 
-            {logo.enabled && (
-              <div className="space-y-4">
-                {/* Logo Type Selector */}
-                <div className="grid grid-cols-2 gap-2 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
-                  <button
-                    onClick={() => setLogo({ ...logo, type: 'predefined' })}
-                    className={`py-1.5 text-xs font-medium rounded transition-colors ${
-                      logo.type === 'predefined'
-                        ? 'bg-neutral-800 text-white shadow-sm'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    Logo Prédéfini
-                  </button>
-                  <button
-                    onClick={() => setLogo({ ...logo, type: 'custom' })}
-                    className={`py-1.5 text-xs font-medium rounded transition-colors ${
-                      logo.type === 'custom'
-                        ? 'bg-neutral-800 text-white shadow-sm'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    Téléverser Logo
-                  </button>
+            {/* -------------------------------------------------------- */}
+            {/* SUB-PANEL 1: LOGO DE MARQUE */}
+            {/* -------------------------------------------------------- */}
+            {brandingSubTab === 'logo' && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Logo de Marque</h3>
+                    <p className="text-xs text-neutral-400">
+                      Incrustez automatiquement votre logo prédéfini ou personnalisé
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={logo.enabled}
+                      onChange={(e) => setLogo({ ...logo, enabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
                 </div>
 
-                {/* Predefined Logo Models */}
-                {logo.type === 'predefined' ? (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-neutral-300">
-                      Modèle de Logo Prédéfini
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PREDEFINED_LOGOS.map((item) => (
+                {logo.enabled && (
+                  <div className="space-y-4">
+                    {/* Logo Type Selector */}
+                    <div className="grid grid-cols-2 gap-2 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
+                      <button
+                        onClick={() => setLogo({ ...logo, type: 'predefined' })}
+                        className={`py-1.5 text-xs font-medium rounded transition-colors ${
+                          logo.type === 'predefined'
+                            ? 'bg-neutral-800 text-white shadow-sm'
+                            : 'text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        Logo Prédéfini
+                      </button>
+                      <button
+                        onClick={() => setLogo({ ...logo, type: 'custom' })}
+                        className={`py-1.5 text-xs font-medium rounded transition-colors ${
+                          logo.type === 'custom'
+                            ? 'bg-neutral-800 text-white shadow-sm'
+                            : 'text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        Téléverser Fichier
+                      </button>
+                    </div>
+
+                    {/* Predefined Logo Models */}
+                    {logo.type === 'predefined' ? (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-neutral-300">
+                          Modèle de Logo Prédéfini
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {PREDEFINED_LOGOS.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() =>
+                                setLogo({
+                                  ...logo,
+                                  predefinedId: item.id,
+                                  brandText: logo.brandText || item.defaultText,
+                                  brandHandle: logo.brandHandle || item.defaultHandle,
+                                })
+                              }
+                              className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
+                                logo.predefinedId === item.id
+                                  ? 'bg-indigo-950/40 border-indigo-500 text-white'
+                                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              <span className="font-semibold text-white block">
+                                {item.name}
+                              </span>
+                              <span className="text-[10px] text-neutral-400">
+                                {item.defaultText}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-xl border border-dashed border-neutral-800 bg-neutral-900/30 text-center space-y-2">
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                        {logo.customUrl ? (
+                          <div className="space-y-2">
+                            <img
+                              src={logo.customUrl}
+                              alt="Logo personnalisé"
+                              className="h-12 mx-auto object-contain bg-white/10 p-1.5 rounded-lg"
+                            />
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => logoInputRef.current?.click()}
+                                className="text-xs text-indigo-400 hover:text-indigo-300"
+                              >
+                                Remplacer le fichier
+                              </button>
+                              <span className="text-neutral-600">·</span>
+                              <button
+                                onClick={() => setLogo({ ...logo, customUrl: '' })}
+                                className="text-xs text-rose-400 hover:text-rose-300"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-xs text-neutral-300">
+                              Logo PNG ou SVG transparent
+                            </p>
+                            <button
+                              onClick={() => logoInputRef.current?.click()}
+                              className="mt-2 px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-medium transition-colors"
+                            >
+                              Sélectionner un fichier
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Brand Name & Handle */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                          Nom de la Marque
+                        </label>
+                        <input
+                          type="text"
+                          value={logo.brandText}
+                          onChange={(e) => setLogo({ ...logo, brandText: e.target.value })}
+                          placeholder="Ex: AUTOPOST STUDIO"
+                          className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+                          Pseudo / Handle Réseau
+                        </label>
+                        <input
+                          type="text"
+                          value={logo.brandHandle || ''}
+                          onChange={(e) => setLogo({ ...logo, brandHandle: e.target.value })}
+                          placeholder="Ex: @moncompte"
+                          className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 1. Redimensionnement précis & Échelle */}
+                    <div className="space-y-2 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-neutral-200 flex items-center gap-1.5">
+                          <ZoomIn className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Redimensionnement & Échelle</span>
+                        </span>
+                        <span className="font-mono text-indigo-400 font-bold text-[11px]">
+                          {Math.round(
+                            (logo.scale ??
+                              (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)) *
+                              100
+                          )}
+                          %
+                        </span>
+                      </div>
+
+                      <input
+                        type="range"
+                        min="0.3"
+                        max="2.5"
+                        step="0.05"
+                        value={
+                          logo.scale ??
+                          (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)
+                        }
+                        onChange={(e) =>
+                          setLogo({ ...logo, scale: parseFloat(e.target.value), size: 'custom' })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+
+                      <div className="grid grid-cols-4 gap-1 pt-1">
+                        {[
+                          { label: 'S (75%)', scale: 0.75, size: 'small' as const },
+                          { label: 'M (100%)', scale: 1.0, size: 'medium' as const },
+                          { label: 'L (135%)', scale: 1.35, size: 'large' as const },
+                          { label: 'XL (180%)', scale: 1.8, size: 'large' as const },
+                        ].map((btn) => (
+                          <button
+                            key={btn.label}
+                            onClick={() =>
+                              setLogo({ ...logo, scale: btn.scale, size: btn.size })
+                            }
+                            className={`py-1 text-[11px] rounded border transition-colors ${
+                              (logo.scale ?? 1.0) === btn.scale
+                                ? 'bg-indigo-950/60 border-indigo-500 text-white font-semibold'
+                                : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. Positionnement Précis: 9-Anchor Grid vs Custom X/Y */}
+                    <div className="space-y-3 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
+                          <Grid3X3 className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Positionnement Précis</span>
+                        </span>
                         <button
-                          key={item.id}
                           onClick={() =>
                             setLogo({
                               ...logo,
-                              predefinedId: item.id,
-                              brandText: logo.brandText || item.defaultText,
-                              brandHandle: logo.brandHandle || item.defaultHandle,
+                              position: logo.position === 'custom' ? 'top-left' : 'custom',
+                              customX: logo.customX ?? 10,
+                              customY: logo.customY ?? 8,
                             })
                           }
-                          className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
-                            logo.predefinedId === item.id
-                              ? 'bg-indigo-950/40 border-indigo-500 text-white'
-                              : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
+                          className={`text-[11px] px-2 py-0.5 rounded font-medium transition-colors ${
+                            logo.position === 'custom'
+                              ? 'bg-indigo-600 text-white'
+                              : 'text-neutral-400 hover:text-white bg-neutral-950 border border-neutral-800'
                           }`}
                         >
-                          <span className="font-semibold text-white block">
-                            {item.name}
-                          </span>
-                          <span className="text-[10px] text-neutral-400">
-                            {item.defaultText}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-xl border border-dashed border-neutral-800 bg-neutral-900/30 text-center space-y-2">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    {logo.customUrl ? (
-                      <div className="space-y-2">
-                        <img
-                          src={logo.customUrl}
-                          alt="Logo personnalisé"
-                          className="h-10 mx-auto object-contain bg-white/10 p-1 rounded"
-                        />
-                        <button
-                          onClick={() => logoInputRef.current?.click()}
-                          className="text-xs text-indigo-400 hover:text-indigo-300"
-                        >
-                          Changer le fichier logo
+                          {logo.position === 'custom' ? 'Mode Libre Actif' : 'Coordonnées Libres'}
                         </button>
                       </div>
-                    ) : (
+
+                      {logo.position === 'custom' ? (
+                        <div className="space-y-2.5 pt-1">
+                          <div>
+                            <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                              <span>Position Horizontale (X)</span>
+                              <span className="font-mono text-white font-semibold">
+                                {Math.round(logo.customX ?? 10)}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={logo.customX ?? 10}
+                              onChange={(e) =>
+                                setLogo({ ...logo, customX: parseFloat(e.target.value) })
+                              }
+                              className="w-full accent-indigo-500"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                              <span>Position Verticale (Y)</span>
+                              <span className="font-mono text-white font-semibold">
+                                {Math.round(logo.customY ?? 8)}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={logo.customY ?? 8}
+                              onChange={(e) =>
+                                setLogo({ ...logo, customY: parseFloat(e.target.value) })
+                              }
+                              className="w-full accent-indigo-500"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <span className="text-[11px] text-neutral-400">
+                            Grille d'ancrage (9 points cardinaux)
+                          </span>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {[
+                              { id: 'top-left', label: 'Haut Gauche', icon: '↖' },
+                              { id: 'top-center', label: 'Haut Centre', icon: '↑' },
+                              { id: 'top-right', label: 'Haut Droite', icon: '↗' },
+                              { id: 'center-left', label: 'Milieu Gauche', icon: '←' },
+                              { id: 'center', label: 'Centre', icon: '•' },
+                              { id: 'center-right', label: 'Milieu Droite', icon: '→' },
+                              { id: 'bottom-left', label: 'Bas Gauche', icon: '↙' },
+                              { id: 'bottom-center', label: 'Bas Centre', icon: '↓' },
+                              { id: 'bottom-right', label: 'Bas Droite', icon: '↘' },
+                            ].map((pos) => (
+                              <button
+                                key={pos.id}
+                                onClick={() => setLogo({ ...logo, position: pos.id as any })}
+                                className={`py-2 px-1 text-center rounded border transition-colors flex flex-col items-center justify-center gap-0.5 ${
+                                  logo.position === pos.id
+                                    ? 'bg-neutral-800 border-indigo-500 text-white shadow-sm'
+                                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                                }`}
+                              >
+                                <span className="text-xs font-mono font-bold leading-none">
+                                  {pos.icon}
+                                </span>
+                                <span className="text-[10px] leading-tight truncate">
+                                  {pos.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Marge depuis les bords */}
+                      {logo.position !== 'custom' && (
+                        <div>
+                          <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                            <span>Marge des bords</span>
+                            <span className="font-mono text-white font-semibold">
+                              {logo.margin ?? 6}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="20"
+                            step="1"
+                            value={logo.margin ?? 6}
+                            onChange={(e) =>
+                              setLogo({ ...logo, margin: parseInt(e.target.value, 10) })
+                            }
+                            className="w-full accent-indigo-500"
+                          />
+                        </div>
+                      )}
+
+                      {/* Rotation du Logo */}
                       <div>
-                        <p className="text-xs text-neutral-300">
-                          Logo PNG ou SVG transparent
-                        </p>
-                        <button
-                          onClick={() => logoInputRef.current?.click()}
-                          className="mt-2 px-3 py-1.5 bg-neutral-800 text-white rounded text-xs"
-                        >
-                          Sélectionner un fichier
-                        </button>
+                        <div className="flex justify-between items-center text-[11px] text-neutral-400 mb-1">
+                          <span className="flex items-center gap-1">
+                            <RotateCw className="w-3 h-3 text-indigo-400" />
+                            <span>Rotation</span>
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-white font-semibold">
+                              {logo.rotation ?? 0}°
+                            </span>
+                            {logo.rotation !== 0 && (
+                              <button
+                                onClick={() => setLogo({ ...logo, rotation: 0 })}
+                                className="text-[10px] text-indigo-400 hover:text-indigo-300"
+                              >
+                                Reset 0°
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          min="-180"
+                          max="180"
+                          step="1"
+                          value={logo.rotation ?? 0}
+                          onChange={(e) =>
+                            setLogo({ ...logo, rotation: parseInt(e.target.value, 10) })
+                          }
+                          className="w-full accent-indigo-500"
+                        />
                       </div>
-                    )}
+                    </div>
+
+                    {/* 3. Opacité du Logo */}
+                    <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-neutral-200">
+                          Opacité du Logo
+                        </span>
+                        <span className="font-mono text-indigo-400 font-bold text-[11px]">
+                          {Math.round(logo.opacity * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.05"
+                        max="1"
+                        step="0.05"
+                        value={logo.opacity}
+                        onChange={(e) =>
+                          setLogo({ ...logo, opacity: parseFloat(e.target.value) })
+                        }
+                        className="w-full accent-indigo-500"
+                      />
+                    </div>
+
+                    {/* 4. Couleurs: Inversion et Unification */}
+                    <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                      <span className="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
+                        <Palette className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Couleurs & Inversion</span>
+                      </span>
+
+                      {/* Invert Color Toggle */}
+                      <label className="flex items-center justify-between cursor-pointer py-1">
+                        <div className="flex items-center gap-2">
+                          <Contrast className="w-4 h-4 text-neutral-400" />
+                          <div>
+                            <span className="text-xs text-white font-medium block">
+                              Inverser les Couleurs
+                            </span>
+                            <span className="text-[10px] text-neutral-400">
+                              Bascule Blanc / Noir pour contraster avec le fond
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(logo.invertColor)}
+                          onChange={(e) => setLogo({ ...logo, invertColor: e.target.checked })}
+                          className="w-4 h-4 accent-indigo-600 rounded bg-neutral-950 border-neutral-700"
+                        />
+                      </label>
+
+                      {/* Unify Color Toggle */}
+                      <div className="pt-2 border-t border-neutral-800 space-y-2.5">
+                        <label className="flex items-center justify-between cursor-pointer py-1">
+                          <div className="flex items-center gap-2">
+                            <Droplets className="w-4 h-4 text-indigo-400" />
+                            <div>
+                              <span className="text-xs text-white font-medium block">
+                                Unifier la Couleur (Monochrome)
+                              </span>
+                              <span className="text-[10px] text-neutral-400">
+                                Applique une teinte unie sur l'ensemble du logo
+                              </span>
+                            </div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(logo.unifyColor)}
+                            onChange={(e) =>
+                              setLogo({
+                                ...logo,
+                                unifyColor: e.target.checked,
+                                unifiedColor: logo.unifiedColor || '#ffffff',
+                              })
+                            }
+                            className="w-4 h-4 accent-indigo-600 rounded bg-neutral-950 border-neutral-700"
+                          />
+                        </label>
+
+                        {/* Swatches & Color Picker if Unify is active */}
+                        {logo.unifyColor && (
+                          <div className="space-y-2 pt-1 pl-1">
+                            <span className="text-[11px] text-neutral-400 block">
+                              Teinte unifiée :
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {[
+                                { color: '#ffffff', name: 'Blanc' },
+                                { color: '#000000', name: 'Noir' },
+                                { color: '#f59e0b', name: 'Or' },
+                                { color: '#6366f1', name: 'Indigo' },
+                                { color: '#10b981', name: 'Émeraude' },
+                                { color: '#f43f5e', name: 'Rose' },
+                                { color: '#06b6d4', name: 'Cyan' },
+                                { color: '#94a3b8', name: 'Argent' },
+                              ].map((c) => (
+                                <button
+                                  key={c.color}
+                                  title={c.name}
+                                  onClick={() => setLogo({ ...logo, unifiedColor: c.color })}
+                                  className={`w-6 h-6 rounded-full border transition-all ${
+                                    logo.unifiedColor === c.color
+                                      ? 'border-indigo-400 scale-110 shadow-md ring-2 ring-indigo-500/50'
+                                      : 'border-white/20 hover:scale-105'
+                                  }`}
+                                  style={{ backgroundColor: c.color }}
+                                />
+                              ))}
+
+                              {/* Custom Hex Color Picker */}
+                              <div className="flex items-center gap-1.5 ml-auto">
+                                <input
+                                  type="color"
+                                  value={logo.unifiedColor || '#ffffff'}
+                                  onChange={(e) =>
+                                    setLogo({ ...logo, unifiedColor: e.target.value })
+                                  }
+                                  className="w-6 h-6 rounded border border-neutral-700 cursor-pointer bg-transparent"
+                                />
+                                <span className="font-mono text-[10px] text-neutral-400 uppercase">
+                                  {logo.unifiedColor || '#ffffff'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Reset to Default Logo */}
+                    <button
+                      onClick={() => setLogo(INITIAL_LOGO)}
+                      className="w-full py-2 text-xs text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Réinitialiser les paramètres du logo</span>
+                    </button>
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Brand Name & Handle */}
-                <div className="space-y-3">
+            {/* -------------------------------------------------------- */}
+            {/* SUB-PANEL 2: CRÉATION DE FILIGRANE (WATERMARK) */}
+            {/* -------------------------------------------------------- */}
+            {brandingSubTab === 'watermark' && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                      Nom de la Marque
-                    </label>
-                    <input
-                      type="text"
-                      value={logo.brandText}
-                      onChange={(e) => setLogo({ ...logo, brandText: e.target.value })}
-                      placeholder="Ex: AUTOPOST STUDIO"
-                      className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-                    />
+                    <h3 className="text-sm font-semibold text-white">Filigrane (Watermark)</h3>
+                    <p className="text-xs text-neutral-400">
+                      Protégez vos visuels avec un filigrane unique ou en motif répété
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                      Pseudo / Handle Réseau
-                    </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
                     <input
-                      type="text"
-                      value={logo.brandHandle || ''}
-                      onChange={(e) => setLogo({ ...logo, brandHandle: e.target.value })}
-                      placeholder="Ex: @moncompte"
-                      className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                      type="checkbox"
+                      checked={watermark.enabled}
+                      onChange={(e) => setWatermark({ ...watermark, enabled: e.target.checked })}
+                      className="sr-only peer"
                     />
-                  </div>
-                </div>
-
-                {/* Logo Placement */}
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                    Emplacement du Logo
+                    <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                   </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { id: 'top-left', label: 'Haut Gauche' },
-                      { id: 'top-right', label: 'Haut Droite' },
-                      { id: 'bottom-left', label: 'Bas Gauche' },
-                      { id: 'bottom-right', label: 'Bas Droite' },
-                      { id: 'top-center', label: 'Haut Centré' },
-                    ].map((pos) => (
-                      <button
-                        key={pos.id}
-                        onClick={() => setLogo({ ...logo, position: pos.id as any })}
-                        className={`py-1.5 px-2 text-xs rounded border text-center transition-colors ${
-                          logo.position === pos.id
-                            ? 'bg-neutral-800 border-indigo-500 text-white'
-                            : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
-                        }`}
-                      >
-                        {pos.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Logo Size and Opacity */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                      Taille
-                    </label>
-                    <div className="flex bg-neutral-900 p-0.5 rounded-lg border border-neutral-800">
-                      {(['small', 'medium', 'large'] as const).map((s) => (
+                {watermark.enabled && (
+                  <div className="space-y-4">
+                    {/* Quick Presets for Watermarks */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-300">
+                        Modèles Prédéfinis de Filigrane
+                      </label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {WATERMARK_PRESETS.map((p) => {
+                          const isSelected =
+                            watermark.style === p.style &&
+                            watermark.text === p.text &&
+                            watermark.position === p.position;
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={() =>
+                                setWatermark({
+                                  ...watermark,
+                                  enabled: true,
+                                  text: p.text,
+                                  style: p.style,
+                                  position: p.position,
+                                  scale: p.scale,
+                                  opacity: p.opacity,
+                                  rotation: p.rotation,
+                                  color: p.color,
+                                  gap: p.gap,
+                                  showBorder: p.showBorder,
+                                })
+                              }
+                              className={`p-2.5 rounded-xl border text-left text-xs transition-colors flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-amber-950/40 border-amber-500 text-white'
+                                  : 'bg-neutral-900/80 border-neutral-800 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              <div>
+                                <span className="font-semibold text-white block">
+                                  {p.name}
+                                </span>
+                                <span className="text-[10px] text-neutral-400">
+                                  {p.desc}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-amber-400 shrink-0">
+                                {p.style === 'repeated' ? 'Mosaïque' : 'Unique'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Watermark Text Input */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-300">
+                        Texte du Filigrane
+                      </label>
+                      <input
+                        type="text"
+                        value={watermark.text}
+                        onChange={(e) => setWatermark({ ...watermark, text: e.target.value })}
+                        placeholder="Ex: © AUTOPOST STUDIO"
+                        className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-amber-500 font-medium"
+                      />
+                      {/* Quick Chips */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {[
+                          { label: '+ ©', insert: '© ' },
+                          { label: '+ @', insert: '@' },
+                          { label: `+ ${new Date().getFullYear()}`, insert: ` ${new Date().getFullYear()}` },
+                          { label: '+ CONFIDENTIEL', insert: 'CONFIDENTIEL · ' },
+                          { label: '+ STUDIO', insert: 'STUDIO HORIZON' },
+                        ].map((chip) => (
+                          <button
+                            key={chip.label}
+                            onClick={() =>
+                              setWatermark({ ...watermark, text: `${watermark.text}${chip.insert}` })
+                            }
+                            className="px-2 py-0.5 text-[10px] font-mono bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded transition-colors"
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Watermark Distribution Style */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-300">
+                        Mode de Distribution
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
                         <button
-                          key={s}
-                          onClick={() => setLogo({ ...logo, size: s })}
-                          className={`flex-1 py-1 text-xs rounded capitalize ${
-                            logo.size === s
-                              ? 'bg-neutral-800 text-white'
-                              : 'text-neutral-400'
+                          onClick={() => setWatermark({ ...watermark, style: 'single' })}
+                          className={`py-1.5 text-xs font-medium rounded transition-colors ${
+                            watermark.style === 'single'
+                              ? 'bg-neutral-800 text-white shadow-sm'
+                              : 'text-neutral-400 hover:text-white'
                           }`}
                         >
-                          {s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L'}
+                          Emplacement Unique
                         </button>
-                      ))}
+                        <button
+                          onClick={() => setWatermark({ ...watermark, style: 'repeated' })}
+                          className={`py-1.5 text-xs font-medium rounded transition-colors ${
+                            watermark.style === 'repeated'
+                              ? 'bg-neutral-800 text-white shadow-sm'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Mosaïque Diagonale
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                      Opacité ({Math.round(logo.opacity * 100)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min="0.3"
-                      max="1"
-                      step="0.05"
-                      value={logo.opacity}
-                      onChange={(e) =>
-                        setLogo({ ...logo, opacity: parseFloat(e.target.value) })
-                      }
-                      className="w-full accent-indigo-500 mt-2"
-                    />
+                    {/* If Single: Position and Border */}
+                    {watermark.style === 'single' ? (
+                      <div className="space-y-3 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                        <label className="block text-xs font-semibold text-neutral-300">
+                          Emplacement du Filigrane
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            { id: 'bottom-right', label: 'Bas Droite' },
+                            { id: 'bottom-left', label: 'Bas Gauche' },
+                            { id: 'bottom-center', label: 'Bas Centre' },
+                            { id: 'top-right', label: 'Haut Droite' },
+                            { id: 'top-left', label: 'Haut Gauche' },
+                            { id: 'top-center', label: 'Haut Centre' },
+                            { id: 'center', label: 'Centre' },
+                            { id: 'custom', label: 'Sur Mesure (X/Y)' },
+                          ].map((pos) => (
+                            <button
+                              key={pos.id}
+                              onClick={() =>
+                                setWatermark({ ...watermark, position: pos.id as any })
+                              }
+                              className={`py-1.5 px-2 text-xs rounded border text-center transition-colors ${
+                                watermark.position === pos.id
+                                  ? 'bg-neutral-800 border-amber-500 text-white font-medium'
+                                  : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              {pos.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {watermark.position === 'custom' && (
+                          <div className="space-y-2 pt-2 border-t border-neutral-800">
+                            <div>
+                              <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                                <span>Coordonnée X</span>
+                                <span className="font-mono text-white">{watermark.customX ?? 85}%</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="5"
+                                max="95"
+                                step="1"
+                                value={watermark.customX ?? 85}
+                                onChange={(e) =>
+                                  setWatermark({ ...watermark, customX: parseFloat(e.target.value) })
+                                }
+                                className="w-full accent-amber-500"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                                <span>Coordonnée Y</span>
+                                <span className="font-mono text-white">{watermark.customY ?? 92}%</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="5"
+                                max="95"
+                                step="1"
+                                value={watermark.customY ?? 92}
+                                onChange={(e) =>
+                                  setWatermark({ ...watermark, customY: parseFloat(e.target.value) })
+                                }
+                                className="w-full accent-amber-500"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pill badge border */}
+                        <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-neutral-800">
+                          <span className="text-xs text-neutral-300">
+                            Encadrer en badge / pilule translucide
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(watermark.showBorder)}
+                            onChange={(e) =>
+                              setWatermark({ ...watermark, showBorder: e.target.checked })
+                            }
+                            className="w-4 h-4 accent-amber-500 rounded bg-neutral-950 border-neutral-700"
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      /* If Repeated: Gap & Diagonal Angle */
+                      <div className="space-y-3 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                        <div>
+                          <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                            <span>Espacement de la mosaïque</span>
+                            <span className="font-mono text-white font-semibold">
+                              {watermark.gap ?? 180} px
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="100"
+                            max="320"
+                            step="10"
+                            value={watermark.gap ?? 180}
+                            onChange={(e) =>
+                              setWatermark({ ...watermark, gap: parseInt(e.target.value, 10) })
+                            }
+                            className="w-full accent-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between text-[11px] text-neutral-400 mb-1">
+                            <span>Angle de la diagonale</span>
+                            <span className="font-mono text-white font-semibold">
+                              {watermark.rotation ?? -28}°
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-80"
+                            max="80"
+                            step="2"
+                            value={watermark.rotation ?? -28}
+                            onChange={(e) =>
+                              setWatermark({ ...watermark, rotation: parseInt(e.target.value, 10) })
+                            }
+                            className="w-full accent-amber-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scale and Opacity Controls */}
+                    <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-neutral-300">Taille</span>
+                          <span className="font-mono text-amber-400 font-bold text-[11px]">
+                            {Math.round((watermark.scale ?? 1.0) * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.5"
+                          step="0.05"
+                          value={watermark.scale ?? 1.0}
+                          onChange={(e) =>
+                            setWatermark({ ...watermark, scale: parseFloat(e.target.value) })
+                          }
+                          className="w-full accent-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-neutral-300">Opacité</span>
+                          <span className="font-mono text-amber-400 font-bold text-[11px]">
+                            {Math.round(watermark.opacity * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.85"
+                          step="0.05"
+                          value={watermark.opacity}
+                          onChange={(e) =>
+                            setWatermark({ ...watermark, opacity: parseFloat(e.target.value) })
+                          }
+                          className="w-full accent-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Font Family Selection */}
+                    <div className="space-y-1.5 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                      <label className="block text-xs font-semibold text-neutral-300">
+                        Police du Filigrane
+                      </label>
+                      <select
+                        value={watermark.fontFamily || "'Plus Jakarta Sans', sans-serif"}
+                        onChange={(e) =>
+                          setWatermark({ ...watermark, fontFamily: e.target.value })
+                        }
+                        className="w-full px-3 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans (Moderne)</option>
+                        <option value="'Syne', sans-serif">Syne (Design & Impact)</option>
+                        <option value="'Outfit', sans-serif">Outfit (Géométrique)</option>
+                        <option value="'JetBrains Mono', monospace">JetBrains Mono (Tech & Code)</option>
+                        <option value="'Cinzel', serif">Cinzel (Luxe & Édition)</option>
+                        <option value="'Playfair Display', serif">Playfair Display (Élégant)</option>
+                        <option value="'Cairo', sans-serif">Cairo (Arabe & Bilingue)</option>
+                        <option value="'Amiri', serif">Amiri (Calligraphie)</option>
+                      </select>
+                    </div>
+
+                    {/* Watermark Color & Palette */}
+                    <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-2">
+                      <span className="text-xs font-semibold text-neutral-300 block">
+                        Couleur du Filigrane
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[
+                          { color: '#ffffff', name: 'Blanc' },
+                          { color: '#000000', name: 'Noir' },
+                          { color: '#f59e0b', name: 'Or' },
+                          { color: '#6366f1', name: 'Indigo' },
+                          { color: '#10b981', name: 'Émeraude' },
+                          { color: '#ef4444', name: 'Rouge Alerte' },
+                          { color: '#06b6d4', name: 'Cyan' },
+                        ].map((c) => (
+                          <button
+                            key={c.color}
+                            title={c.name}
+                            onClick={() => setWatermark({ ...watermark, color: c.color })}
+                            className={`w-6 h-6 rounded-full border transition-all ${
+                              watermark.color === c.color
+                                ? 'border-amber-400 scale-110 shadow-md ring-2 ring-amber-500/50'
+                                : 'border-white/20 hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: c.color }}
+                          />
+                        ))}
+
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <input
+                            type="color"
+                            value={watermark.color || '#ffffff'}
+                            onChange={(e) =>
+                              setWatermark({ ...watermark, color: e.target.value })
+                            }
+                            className="w-6 h-6 rounded border border-neutral-700 cursor-pointer bg-transparent"
+                          />
+                          <span className="font-mono text-[10px] text-neutral-400 uppercase">
+                            {watermark.color || '#ffffff'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Reset Watermark Button */}
+                    <button
+                      onClick={() => setWatermark(INITIAL_WATERMARK)}
+                      className="w-full py-2 text-xs text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Réinitialiser le filigrane aux valeurs d'origine</span>
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

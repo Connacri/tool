@@ -13,8 +13,9 @@ import {
   INITIAL_OVERLAY_IMAGE,
   INITIAL_SLIDES,
   INITIAL_TYPOGRAPHY,
+  INITIAL_WATERMARK,
 } from './constants/presets';
-import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig } from './types';
+import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig, WatermarkConfig } from './types';
 import {
   loadSavedSlides,
   loadSavedAspectRatio,
@@ -23,6 +24,7 @@ import {
   loadSavedGradientBlur,
   loadSavedColorFilter,
   loadSavedOverlayImage,
+  loadSavedWatermark,
   saveAllToLocalStorage,
   resetSavedData,
   getLastSavedTimestamp,
@@ -43,6 +45,9 @@ export default function App() {
 
   // Drag and drop overlay image (image de superposition)
   const [overlayImage, setOverlayImage] = useState<OverlayImageConfig>(() => loadSavedOverlayImage());
+
+  // Watermark (Filigrane) configuration
+  const [watermark, setWatermark] = useState<WatermarkConfig>(() => loadSavedWatermark());
 
   // Mobile layout view switcher ('editor' vs 'preview')
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
@@ -74,7 +79,8 @@ export default function App() {
         logo,
         gradientBlur,
         colorFilter,
-        overlayImage
+        overlayImage,
+        watermark
       );
       if (result.success) {
         setLastSaved(result.timestamp);
@@ -82,7 +88,7 @@ export default function App() {
     }, 300); // 300ms debounce for high performance
 
     return () => clearTimeout(timer);
-  }, [slides, aspectRatio, typography, logo, gradientBlur, colorFilter, overlayImage]);
+  }, [slides, aspectRatio, typography, logo, gradientBlur, colorFilter, overlayImage, watermark]);
 
   // Reset all data back to original default templates
   const handleResetToDefaults = () => {
@@ -96,6 +102,7 @@ export default function App() {
       setGradientBlur(INITIAL_GRADIENT_BLUR);
       setColorFilter(INITIAL_COLOR_FILTER);
       setOverlayImage(INITIAL_OVERLAY_IMAGE);
+      setWatermark(INITIAL_WATERMARK);
       setLastSaved(Date.now());
     }
   };
@@ -214,6 +221,8 @@ export default function App() {
           setColorFilter={setColorFilter}
           overlayImage={overlayImage}
           setOverlayImage={setOverlayImage}
+          watermark={watermark}
+          setWatermark={setWatermark}
         />
 
         <CanvasPreview
@@ -232,6 +241,8 @@ export default function App() {
           setColorFilter={setColorFilter}
           overlayImage={overlayImage}
           setOverlayImage={setOverlayImage}
+          watermark={watermark}
+          setWatermark={setWatermark}
           onSelectSlide={(idx) => {
             setCurrentSlideIndex(idx);
             setActiveTab('slides');
@@ -253,6 +264,7 @@ export default function App() {
         gradientBlur={gradientBlur}
         colorFilter={colorFilter}
         overlayImage={overlayImage}
+        watermark={watermark}
       />
 
       <BatchInputModal
