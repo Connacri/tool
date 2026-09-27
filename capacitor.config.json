@@ -1,0 +1,12 @@
+{
+  "appId": "com.autopost.studio",
+  "appName": "AutoPost Studio",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0a0a0c"
+  }
+}

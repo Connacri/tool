@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Download, Check, RotateCcw, PenTool, Eye, Menu } from 'lucide-react';
+import { Sparkles, Download, Check, RotateCcw, PenTool, Eye, Smartphone } from 'lucide-react';
 import { AspectRatioType } from '../types';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   aspectRatio: AspectRatioType;
   onOpenBatchModal: () => void;
   onOpenExportModal: () => void;
+  onOpenAndroidModal: () => void;
   onQuickAiGenerate: () => void;
   isAiGenerating: boolean;
   totalSlides: number;
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onOpenExportModal,
+  onOpenAndroidModal,
   onQuickAiGenerate,
   isAiGenerating,
   totalSlides,
@@ -139,6 +141,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Zone 3: Primary Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <button
+          onClick={onOpenAndroidModal}
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 rounded-lg transition-all shadow-sm whitespace-nowrap"
+          title="Installer l'application sur smartphone Android"
+        >
+          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="hidden sm:inline">App Android</span>
+          <span className="sm:hidden">App</span>
+        </button>
+
         <button
           onClick={onQuickAiGenerate}
           disabled={isAiGenerating}

@@ -5,6 +5,7 @@ import { CanvasPreview } from './components/CanvasPreview';
 import { AutomatedExportModal } from './components/AutomatedExportModal';
 import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
+import { AndroidAppModal } from './components/AndroidAppModal';
 import {
   ASPECT_RATIOS,
   INITIAL_COLOR_FILTER,
@@ -59,6 +60,7 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isSocialCopyModalOpen, setIsSocialCopyModalOpen] = useState(false);
+  const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // Ref to prevent initial double-save
@@ -185,6 +187,7 @@ export default function App() {
         aspectRatio={aspectRatio.id}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         onQuickAiGenerate={handleQuickAiGenerate}
         isAiGenerating={isAiGenerating}
         totalSlides={slides.length}
@@ -280,6 +283,11 @@ export default function App() {
         onClose={() => setIsSocialCopyModalOpen(false)}
         slides={slides}
         currentSlideIndex={currentSlideIndex}
+      />
+
+      <AndroidAppModal
+        isOpen={isAndroidModalOpen}
+        onClose={() => setIsAndroidModalOpen(false)}
       />
     </div>
   );
