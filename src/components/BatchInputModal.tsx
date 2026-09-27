@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { SlideItem } from '../types';
 import { BatchFormatInfoModal } from './BatchFormatInfoModal';
+import { isArabicText } from '../utils/canvasRenderer';
 
 interface BatchInputModalProps {
   isOpen: boolean;
@@ -322,6 +323,36 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
     setActiveTab('edit');
   };
 
+  const handleInsertArabicSample = () => {
+    const sample = [
+      `:الحكمة والنجاح :`,
+      `.الانضباط هو الجسر الحقيقي بين تحديد الأهداف وتحقيق الإنجازات العظيمة.`,
+      `/حكمة اليوم · @studio.horizon`,
+      ``,
+      `:الاستمرارية والنمو :`,
+      `.العمل المستمر البسيط يتفوق على الجهد المتقطع مهما بلغت قوته وحماسه.`,
+      `/قاعدة ذهبية`,
+      ``,
+      `:إدارة الوقت والانتباه :`,
+      `.احمِ وقتك وانتباهك فإنهما أثمن ما تملك في هذا العالم المتسارع.`,
+      `/نصيحة قيّمة`,
+      ``,
+      `:الوضوح الاستراتيجي :`,
+      `.الوضوح يسبق النجاح دائماً: حدد وجهتك أولاً ثم انطلق دون تردد.`,
+      `/دليل النجاح`,
+      ``,
+      `:الإبداع والابتكار :`,
+      `.الإبداع ليس موهبة نادرة بل نظرة شجاعة ومختلفة إلى العالم من حولنا.`,
+      `/إلهام رقم 05`,
+      ``,
+      `:أثر دائم :`,
+      `.ابنِ أفكارك لتدوم وتلهم الأجيال القادمة وليس لمجرد لفت الانتباه المؤقت.`,
+      `/احفظ هذا المنشور 📌`,
+    ].join('\n');
+    setRawText(sample);
+    setActiveTab('edit');
+  };
+
   const handleCopyTemplate = () => {
     const template = `:Titre de la diapo :\n.Votre phrase principale percutante.\n/date d'aujourd'hui\n\n:Deuxième titre :\n.Deuxième phrase percutante.\n/Votre signature`;
     navigator.clipboard.writeText(template);
@@ -589,6 +620,7 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
                 </div>
                 <textarea
                   rows={10}
+                  dir="auto"
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
                   placeholder={`:Les secrets du marketing :\n.Votre attention est votre ressource la plus précieuse : protégez-la sans compromis.\n/date d'aujourd'hui\n\n:Croissance & Impact :\n.Ne cherchez pas plus de clients avant d'avoir des clients émerveillés.\n/AutoPost Studio`}
@@ -600,6 +632,14 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px]">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-neutral-500">Insérer un modèle pré-rempli :</span>
+                  <button
+                    type="button"
+                    onClick={handleInsertArabicSample}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 transition-colors flex items-center gap-1 font-medium shadow-sm"
+                    title="Insérer un lot complet de 6 diapos en Arabe avec alignement RTL (inverse de LTR)"
+                  >
+                    <span>Lot Arabe RTL (عربي)</span>
+                  </button>
                   <button
                     type="button"
                     onClick={handleInsertUserSample}
@@ -638,41 +678,62 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
                   </p>
                 </div>
               ) : (
-                parsedSlides.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 bg-neutral-950 border border-neutral-800/90 rounded-xl flex flex-col gap-2 transition-all hover:border-indigo-500/40"
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-neutral-400 font-semibold">
-                        Diapo #{idx + 1}
-                      </span>
-                      {item.kicker ? (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider text-[10px]">
-                          {item.kicker}
+                parsedSlides.map((item, idx) => {
+                  const itemIsArabic = isArabicText(item.text) || isArabicText(item.kicker || '') || isArabicText(item.subtitle || '');
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3.5 bg-neutral-950 border border-neutral-800/90 rounded-xl flex flex-col gap-2 transition-all hover:border-indigo-500/40"
+                    >
+                      <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-neutral-400 font-semibold">
+                            Diapo #{idx + 1}
+                          </span>
+                          {itemIsArabic && (
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-950/70 border border-emerald-800/80 text-[9.5px] text-emerald-300 font-medium">
+                              Arabe RTL (Début à droite)
+                            </span>
+                          )}
+                        </div>
+                        {item.kicker ? (
+                          <span
+                            dir={isArabicText(item.kicker) ? 'rtl' : 'ltr'}
+                            className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider text-[10px]"
+                          >
+                            {item.kicker}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-neutral-500 italic">Sans titre</span>
+                        )}
+                      </div>
+                      <p
+                        dir={itemIsArabic ? 'rtl' : 'ltr'}
+                        className={`text-xs text-white font-medium leading-relaxed bg-neutral-900/50 p-2.5 rounded-lg border border-neutral-800/60 ${
+                          itemIsArabic ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {item.text}
+                      </p>
+                      <div className="flex items-center justify-between text-[11px] pt-0.5">
+                        {item.subtitle ? (
+                          <p
+                            dir={isArabicText(item.subtitle) ? 'rtl' : 'ltr'}
+                            className="text-emerald-400/90 flex items-center gap-1 font-mono text-[10.5px]"
+                          >
+                            <span className="text-emerald-500 font-bold">/</span>
+                            <span>{item.subtitle}</span>
+                          </p>
+                        ) : (
+                          <span className="text-[10px] text-neutral-500 italic">Sans signature</span>
+                        )}
+                        <span className="text-[10px] font-mono text-neutral-500">
+                          {item.text.length} caractères
                         </span>
-                      ) : (
-                        <span className="text-[10px] text-neutral-500 italic">Sans titre</span>
-                      )}
+                      </div>
                     </div>
-                    <p className="text-xs text-white font-medium leading-relaxed bg-neutral-900/50 p-2.5 rounded-lg border border-neutral-800/60">
-                      {item.text}
-                    </p>
-                    <div className="flex items-center justify-between text-[11px] pt-0.5">
-                      {item.subtitle ? (
-                        <p className="text-emerald-400/90 flex items-center gap-1 font-mono text-[10.5px]">
-                          <span className="text-emerald-500 font-bold">/</span>
-                          <span>{item.subtitle}</span>
-                        </p>
-                      ) : (
-                        <span className="text-[10px] text-neutral-500 italic">Sans signature</span>
-                      )}
-                      <span className="text-[10px] font-mono text-neutral-500">
-                        {item.text.length} caractères
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
