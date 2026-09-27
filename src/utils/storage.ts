@@ -35,7 +35,11 @@ export function loadSavedSlides(): SlideItem[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.map((s, idx) => {
-        if (s.imageUrl && s.imageUrl.startsWith('/src/assets/images/')) {
+        if (!s || typeof s !== 'object') {
+          return INITIAL_SLIDES[idx % INITIAL_SLIDES.length];
+        }
+        // Fallback for broken/outdated image URLs
+        if (!s.imageUrl || s.imageUrl.startsWith('/src/assets/images/')) {
           const fallback = INITIAL_SLIDES[idx % INITIAL_SLIDES.length];
           return { ...s, imageUrl: fallback.imageUrl };
         }

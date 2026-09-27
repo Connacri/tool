@@ -58,12 +58,12 @@ export const BatchFormatInfoModal: React.FC<BatchFormatInfoModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/85 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-neutral-950/85 backdrop-blur-md"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-neutral-900 border border-neutral-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] animate-scaleUp">
+      <div className="bg-neutral-900 border border-neutral-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-5 py-4 border-b border-neutral-800 bg-neutral-950/50 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
