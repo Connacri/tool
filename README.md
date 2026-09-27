@@ -2,6 +2,8 @@
 
 > Studio de création visuelle automatisée pour réseaux sociaux : carrousels et séries de visuels à fort impact avec typographie multilingue (Français & Arabe BiDi), polices Google Fonts instantanées, stickers et badges superposés, filtres de flou progressif et voiles de couleur (*duotone*), cadrage interactif multi-ratios, repositionnement par glisser-déposer et exportation automatisée (ZIP HD, Webhook Make/Zapier, Calendrier .ICS).
 
+🔗 **Application en ligne (Live Website) :** [https://connacri.github.io/tool/](https://connacri.github.io/tool/)
+
 ---
 
 ## 🌟 Fonctionnalités Principales
@@ -148,6 +150,9 @@ Le serveur de développement démarre sur **http://localhost:3000**.
 ---
 
 ## 🌐 Déploiement sur GitHub Pages
+
+L'application est déployée et accessible directement ici :
+👉 **[https://connacri.github.io/tool/](https://connacri.github.io/tool/)**
 
 Le projet inclut une configuration optimisée pour GitHub Pages :
 1. `base: './'` dans `vite.config.ts` : aucun problème de chemin d'assets relatifs.
