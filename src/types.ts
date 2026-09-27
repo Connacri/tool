@@ -56,7 +56,8 @@ export interface TypographyConfig {
   subtitleSize?: number; // relative multiplier 0.5 to 2.5 (default 1.0)
   textWidth?: number; // max-width 40% - 100% (default 85%)
   textColor: string;
-  accentColor: string;
+  accentColor: string; // Title / Kicker color
+  subtitleColor?: string; // Subtitle / Author / Signature color
   showKicker: boolean;
   showSubtitle: boolean;
   showSlideNumber: boolean;
@@ -222,6 +223,9 @@ export interface SlideItem {
   customOverlayImage?: OverlayImageConfig;
   customDirection?: TextDirectionType;
   customAlign?: TextAlign;
+  customTextColor?: string;
+  customKickerColor?: string;
+  customSubtitleColor?: string;
 }
 
 export interface SocialCopyItem {

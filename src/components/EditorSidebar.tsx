@@ -51,6 +51,21 @@ import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PR
 import { isArabicText } from '../utils/canvasRenderer';
 import { CURATED_FRENCH_FONTS, CURATED_ARABIC_FONTS, loadGoogleFont } from '../utils/googleFonts';
 
+/**
+ * Returns a valid #rrggbb hex string for <input type="color">
+ */
+export const getSafeHex = (color: string | undefined, fallback: string = '#ffffff'): string => {
+  if (!color) return fallback;
+  const trimmed = color.trim();
+  if (trimmed.startsWith('#')) {
+    if (trimmed.length === 4) {
+      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase();
+    }
+    if (trimmed.length === 7) return trimmed.toLowerCase();
+  }
+  return fallback;
+};
+
 interface EditorSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -355,11 +370,45 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   )}
                 </div>
 
-                {/* Kicker / Category tag */}
+                {/* 1. Kicker / Category tag */}
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                    Titre Kicker / Thématique
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                      <span>Titre Kicker / Thématique</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#ffffff'].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({ customKickerColor: c });
+                              setTypography((prev) => ({ ...prev, accentColor: c }));
+                            }}
+                            className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                            style={{ backgroundColor: c }}
+                            title={`Couleur Titre : ${c}`}
+                          />
+                        ))}
+                      </div>
+                      <label className="relative flex items-center cursor-pointer group" title="Choisir la couleur du Titre">
+                        <input
+                          type="color"
+                          value={getSafeHex(activeSlide.customKickerColor || typography.accentColor, '#6366f1')}
+                          onChange={(e) => {
+                            updateActiveSlide({ customKickerColor: e.target.value });
+                            setTypography((prev) => ({ ...prev, accentColor: e.target.value }));
+                          }}
+                          className="sr-only"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-white/30 shadow-sm group-hover:scale-110 transition-transform cursor-pointer"
+                          style={{ backgroundColor: activeSlide.customKickerColor || typography.accentColor || '#6366f1' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     value={activeSlide.kicker || ''}
@@ -369,11 +418,45 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   />
                 </div>
 
-                {/* Main Phrase text */}
+                {/* 2. Main Phrase text */}
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                    Phrase Principale (Texte du visuel)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                      <span>Phrase Principale (Texte du visuel)</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {['#ffffff', '#fef3c7', '#fef08a', '#bae6fd', '#0a0a0a'].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({ customTextColor: c });
+                              setTypography((prev) => ({ ...prev, textColor: c }));
+                            }}
+                            className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                            style={{ backgroundColor: c }}
+                            title={`Couleur Phrase : ${c}`}
+                          />
+                        ))}
+                      </div>
+                      <label className="relative flex items-center cursor-pointer group" title="Choisir la couleur de la Phrase Principale">
+                        <input
+                          type="color"
+                          value={getSafeHex(activeSlide.customTextColor || typography.textColor, '#ffffff')}
+                          onChange={(e) => {
+                            updateActiveSlide({ customTextColor: e.target.value });
+                            setTypography((prev) => ({ ...prev, textColor: e.target.value }));
+                          }}
+                          className="sr-only"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-white/30 shadow-sm group-hover:scale-110 transition-transform cursor-pointer"
+                          style={{ backgroundColor: activeSlide.customTextColor || typography.textColor || '#ffffff' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <textarea
                     rows={4}
                     value={activeSlide.text}
@@ -383,11 +466,45 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   />
                 </div>
 
-                {/* Subtitle / Citation signature */}
+                {/* 3. Subtitle / Citation signature */}
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                    Sous-titre / Signature / Auteur
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                      <span>Sous-titre / Signature / Auteur</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {['#d1d5db', '#ffffff', '#fbbf24', '#818cf8', '#34d399'].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({ customSubtitleColor: c });
+                              setTypography((prev) => ({ ...prev, subtitleColor: c }));
+                            }}
+                            className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                            style={{ backgroundColor: c }}
+                            title={`Couleur Sous-titre : ${c}`}
+                          />
+                        ))}
+                      </div>
+                      <label className="relative flex items-center cursor-pointer group" title="Choisir la couleur du Sous-titre / Signature">
+                        <input
+                          type="color"
+                          value={getSafeHex(activeSlide.customSubtitleColor || typography.subtitleColor, '#d1d5db')}
+                          onChange={(e) => {
+                            updateActiveSlide({ customSubtitleColor: e.target.value });
+                            setTypography((prev) => ({ ...prev, subtitleColor: e.target.value }));
+                          }}
+                          className="sr-only"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-white/30 shadow-sm group-hover:scale-110 transition-transform cursor-pointer"
+                          style={{ backgroundColor: activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     value={activeSlide.subtitle || ''}
@@ -411,10 +528,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {/* Main Phrase Alignment */}
+                    {/* Unified Text Alignment */}
                     <div>
                       <span className="block text-[10px] text-neutral-400 mb-1">
-                        Alignement Phrase
+                        Alignement Textes
                       </span>
                       <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800">
                         {[
@@ -435,6 +552,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                                   ...prev,
                                   align: al.id as any,
                                   phraseAlign: al.id as any,
+                                  kickerAlign: 'inherit',
                                 }));
                               }}
                               title={al.title}
@@ -486,9 +604,277 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     </div>
                   </div>
 
+                  {/* Independent Title (Kicker) Alignment override */}
+                  <div className="flex items-center justify-between text-[10px] pt-1">
+                    <span className="text-neutral-400">Alignement Titre :</span>
+                    <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800">
+                      {[
+                        { id: 'inherit', label: 'Comme phrase' },
+                        { id: 'left', label: 'Gauche' },
+                        { id: 'center', label: 'Centré' },
+                        { id: 'right', label: 'Droite' },
+                      ].map((item) => {
+                        const isAct = (typography.kickerAlign || 'inherit') === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setTypography((prev) => ({ ...prev, kickerAlign: item.id as any }))}
+                            className={`px-1.5 py-0.5 rounded text-[9.5px] transition-colors ${
+                              isAct ? 'bg-indigo-600 text-white font-medium' : 'text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <p className="text-[10px] text-neutral-500">
-                    💡 Les nombres et compteurs (ex: 2026, 01/06) restent toujours lisibles de gauche à droite.
+                    💡 Les pseudos (@nom) et chiffres restent toujours orientés LTR latin de gauche à droite.
                   </p>
+
+                  {/* SECTION COULEURS DES TEXTES (Titre, Phrase, Sous-titre) */}
+                  <div className="pt-2.5 border-t border-neutral-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-neutral-300 flex items-center gap-1.5">
+                        <Palette className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Couleurs des Textes (Titre, Phrase, Signature)</span>
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateActiveSlide({
+                              customKickerColor: undefined,
+                              customTextColor: undefined,
+                              customSubtitleColor: undefined,
+                            });
+                          }}
+                          className="text-[10px] text-neutral-400 hover:text-white bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800 transition-colors"
+                          title="Réinitialiser les couleurs de cette diapo aux couleurs du thème"
+                        >
+                          Réinitialiser
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const kColor = activeSlide.customKickerColor || typography.accentColor || '#6366f1';
+                            const pColor = activeSlide.customTextColor || typography.textColor || '#ffffff';
+                            const sColor = activeSlide.customSubtitleColor || typography.subtitleColor || 'rgba(255, 255, 255, 0.75)';
+                            setTypography((prev) => ({
+                              ...prev,
+                              accentColor: kColor,
+                              textColor: pColor,
+                              subtitleColor: sColor,
+                            }));
+                            if (setSlides) {
+                              setSlides((prev) =>
+                                prev.map((s) => ({
+                                  ...s,
+                                  customKickerColor: kColor,
+                                  customTextColor: pColor,
+                                  customSubtitleColor: sColor,
+                                }))
+                              );
+                            }
+                          }}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800 transition-colors font-medium"
+                          title="Appliquer ces 3 couleurs à toutes les diapos du lot"
+                        >
+                          Appliquer à tout le lot
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* 1. Titre (Kicker) Color */}
+                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-300 font-medium">1. Titre (Kicker)</span>
+                          <div
+                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                            style={{ backgroundColor: activeSlide.customKickerColor || typography.accentColor || '#6366f1' }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="color"
+                            value={getSafeHex(activeSlide.customKickerColor || typography.accentColor, '#6366f1')}
+                            onChange={(e) => {
+                              updateActiveSlide({ customKickerColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, accentColor: e.target.value }));
+                            }}
+                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                          />
+                          <input
+                            type="text"
+                            value={activeSlide.customKickerColor || typography.accentColor || '#6366f1'}
+                            onChange={(e) => {
+                              updateActiveSlide({ customKickerColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, accentColor: e.target.value }));
+                            }}
+                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                          {['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#ffffff', '#f43f5e', '#a855f7'].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                updateActiveSlide({ customKickerColor: c });
+                                setTypography((prev) => ({ ...prev, accentColor: c }));
+                              }}
+                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                              style={{ backgroundColor: c }}
+                              title={`Titre: ${c}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. Phrase Principale Color */}
+                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-300 font-medium">2. Phrase Principale</span>
+                          <div
+                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                            style={{ backgroundColor: activeSlide.customTextColor || typography.textColor || '#ffffff' }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="color"
+                            value={getSafeHex(activeSlide.customTextColor || typography.textColor, '#ffffff')}
+                            onChange={(e) => {
+                              updateActiveSlide({ customTextColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, textColor: e.target.value }));
+                            }}
+                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                          />
+                          <input
+                            type="text"
+                            value={activeSlide.customTextColor || typography.textColor || '#ffffff'}
+                            onChange={(e) => {
+                              updateActiveSlide({ customTextColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, textColor: e.target.value }));
+                            }}
+                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                          {['#ffffff', '#fef3c7', '#fef08a', '#bae6fd', '#a7f3d0', '#fed7aa', '#e2e8f0', '#0a0a0a'].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                updateActiveSlide({ customTextColor: c });
+                                setTypography((prev) => ({ ...prev, textColor: c }));
+                              }}
+                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                              style={{ backgroundColor: c }}
+                              title={`Phrase: ${c}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 3. Sous-titre / Signature Color */}
+                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-neutral-300 font-medium">3. Sous-titre / Auteur</span>
+                          <div
+                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                            style={{ backgroundColor: activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db' }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="color"
+                            value={getSafeHex(activeSlide.customSubtitleColor || typography.subtitleColor, '#d1d5db')}
+                            onChange={(e) => {
+                              updateActiveSlide({ customSubtitleColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, subtitleColor: e.target.value }));
+                            }}
+                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                          />
+                          <input
+                            type="text"
+                            value={activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db'}
+                            onChange={(e) => {
+                              updateActiveSlide({ customSubtitleColor: e.target.value });
+                              setTypography((prev) => ({ ...prev, subtitleColor: e.target.value }));
+                            }}
+                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                          {['#d1d5db', '#ffffff', '#fbbf24', '#818cf8', '#34d399', '#f472b6', '#38bdf8', '#9ca3af'].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                updateActiveSlide({ customSubtitleColor: c });
+                                setTypography((prev) => ({ ...prev, subtitleColor: c }));
+                              }}
+                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                              style={{ backgroundColor: c }}
+                              title={`Sous-titre: ${c}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Harmonious Palettes Trio in Slide Editor */}
+                    <div className="pt-2 border-t border-neutral-800/60">
+                      <span className="block text-[10px] uppercase font-semibold text-neutral-400 tracking-wider mb-1.5">
+                        Combinaisons Harmonieuses en 1 Clic
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {[
+                          { name: 'Élégance Or', kicker: '#f59e0b', text: '#ffffff', sub: '#fed7aa' },
+                          { name: 'Moderne Indigo', kicker: '#6366f1', text: '#ffffff', sub: '#c7d2fe' },
+                          { name: 'Émeraude Frais', kicker: '#10b981', text: '#f0fdf4', sub: '#a7f3d0' },
+                          { name: 'Cyberpunk Rose', kicker: '#ec4899', text: '#ffffff', sub: '#67e8f9' },
+                          { name: 'Sunset Ambré', kicker: '#f97316', text: '#fffbeb', sub: '#fde047' },
+                          { name: 'Luxe Noir & Or', kicker: '#fbbf24', text: '#f8fafc', sub: '#94a3b8' },
+                          { name: 'Rose Poudré', kicker: '#f472b6', text: '#ffffff', sub: '#fbcfe8' },
+                          { name: 'Monochrome Pur', kicker: '#9ca3af', text: '#ffffff', sub: '#6b7280' },
+                        ].map((combo) => (
+                          <button
+                            key={combo.name}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({
+                                customKickerColor: combo.kicker,
+                                customTextColor: combo.text,
+                                customSubtitleColor: combo.sub,
+                              });
+                              setTypography((prev) => ({
+                                ...prev,
+                                accentColor: combo.kicker,
+                                textColor: combo.text,
+                                subtitleColor: combo.sub,
+                              }));
+                            }}
+                            className="p-1.5 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-lg flex items-center justify-between text-left transition-all group"
+                          >
+                            <span className="text-[10px] text-neutral-300 group-hover:text-white truncate">
+                              {combo.name}
+                            </span>
+                            <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: combo.kicker }} />
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: combo.text }} />
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: combo.sub }} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Text Resizing & Dimensions for this Slide */}
@@ -2548,7 +2934,271 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </div>
             </div>
 
-            {/* SECTION 5: BOX STYLE / SCRIM */}
+            {/* SECTION 5: COULEURS DE LA TYPOGRAPHIE */}
+            <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Couleurs de la Typographie</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setSlides) {
+                      setSlides((prev) =>
+                        prev.map((s) => ({
+                          ...s,
+                          customKickerColor: typography.accentColor,
+                          customTextColor: typography.textColor,
+                          customSubtitleColor: typography.subtitleColor,
+                        }))
+                      );
+                    }
+                  }}
+                  className="text-[10px] text-indigo-400 hover:text-indigo-300 bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800"
+                  title="Synchroniser ces couleurs sur toutes les diapos du carrousel"
+                >
+                  Appliquer à tout le lot
+                </button>
+              </div>
+
+              {/* Quick Palettes */}
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-2">
+                  Harmonies de Couleurs Prédéfinies
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    {
+                      name: 'Épuré & Indigo',
+                      kicker: '#818cf8',
+                      text: '#ffffff',
+                      subtitle: '#d1d5db',
+                    },
+                    {
+                      name: 'Or Solaire & Luxe',
+                      kicker: '#f59e0b',
+                      text: '#fef3c7',
+                      subtitle: '#fbbf24',
+                    },
+                    {
+                      name: 'Émeraude & Ivoire',
+                      kicker: '#34d399',
+                      text: '#f8fafc',
+                      subtitle: '#a7f3d0',
+                    },
+                    {
+                      name: 'Rose & Glamour',
+                      kicker: '#f472b6',
+                      text: '#ffffff',
+                      subtitle: '#fbcfe8',
+                    },
+                    {
+                      name: 'Cyan Cyberpunk',
+                      kicker: '#22d3ee',
+                      text: '#ffffff',
+                      subtitle: '#a5f3fc',
+                    },
+                    {
+                      name: 'Monochrome Chaud',
+                      kicker: '#fcd34d',
+                      text: '#ffffff',
+                      subtitle: '#94a3b8',
+                    },
+                  ].map((theme) => {
+                    const isSelected =
+                      typography.accentColor === theme.kicker &&
+                      typography.textColor === theme.text &&
+                      typography.subtitleColor === theme.subtitle;
+                    return (
+                      <button
+                        key={theme.name}
+                        type="button"
+                        onClick={() => {
+                          setTypography((prev) => ({
+                            ...prev,
+                            accentColor: theme.kicker,
+                            textColor: theme.text,
+                            subtitleColor: theme.subtitle,
+                          }));
+                          if (setSlides) {
+                            setSlides((prev) =>
+                              prev.map((s) => ({
+                                ...s,
+                                customKickerColor: theme.kicker,
+                                customTextColor: theme.text,
+                                customSubtitleColor: theme.subtitle,
+                              }))
+                            );
+                          }
+                        }}
+                        className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all ${
+                          isSelected
+                            ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 text-white'
+                            : 'bg-neutral-950 border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700'
+                        }`}
+                      >
+                        <span className="text-[11px] font-medium truncate">{theme.name}</span>
+                        <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.kicker }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.text }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.subtitle }} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3 Color Pickers (Titre, Phrase, Sous-titre) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                {/* 1. Titre (Kicker) */}
+                <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-neutral-300 font-medium">1. Titre (Kicker)</span>
+                    <div
+                      className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                      style={{ backgroundColor: typography.accentColor || '#6366f1' }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={getSafeHex(typography.accentColor, '#6366f1')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, accentColor: val }));
+                        updateActiveSlide({ customKickerColor: val });
+                      }}
+                      className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={typography.accentColor || '#6366f1'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, accentColor: val }));
+                        updateActiveSlide({ customKickerColor: val });
+                      }}
+                      className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                    {['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#ffffff', '#f43f5e'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setTypography((prev) => ({ ...prev, accentColor: c }));
+                          updateActiveSlide({ customKickerColor: c });
+                        }}
+                        className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                        style={{ backgroundColor: c }}
+                        title={`Titre: ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Phrase Principale */}
+                <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-neutral-300 font-medium">2. Phrase Principale</span>
+                    <div
+                      className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                      style={{ backgroundColor: typography.textColor || '#ffffff' }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={getSafeHex(typography.textColor, '#ffffff')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, textColor: val }));
+                        updateActiveSlide({ customTextColor: val });
+                      }}
+                      className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={typography.textColor || '#ffffff'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, textColor: val }));
+                        updateActiveSlide({ customTextColor: val });
+                      }}
+                      className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                    {['#ffffff', '#fef3c7', '#fef08a', '#bae6fd', '#a7f3d0', '#fed7aa', '#0a0a0a'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setTypography((prev) => ({ ...prev, textColor: c }));
+                          updateActiveSlide({ customTextColor: c });
+                        }}
+                        className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                        style={{ backgroundColor: c }}
+                        title={`Phrase: ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Sous-titre / Signature */}
+                <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-neutral-300 font-medium">3. Sous-titre / Auteur</span>
+                    <div
+                      className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
+                      style={{ backgroundColor: typography.subtitleColor || '#d1d5db' }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={getSafeHex(typography.subtitleColor, '#d1d5db')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, subtitleColor: val }));
+                        updateActiveSlide({ customSubtitleColor: val });
+                      }}
+                      className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={typography.subtitleColor || '#d1d5db'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTypography((prev) => ({ ...prev, subtitleColor: val }));
+                        updateActiveSlide({ customSubtitleColor: val });
+                      }}
+                      className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                    {['#d1d5db', '#ffffff', '#fbbf24', '#818cf8', '#34d399', '#f472b6', '#38bdf8'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setTypography((prev) => ({ ...prev, subtitleColor: c }));
+                          updateActiveSlide({ customSubtitleColor: c });
+                        }}
+                        className="w-3 h-3 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
+                        style={{ backgroundColor: c }}
+                        title={`Sous-titre: ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 6: BOX STYLE / SCRIM */}
             <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
               <label className="block text-xs font-semibold text-white mb-1">
                 Style d'Arrière-plan du Texte

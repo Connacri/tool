@@ -44,6 +44,7 @@ import {
   renderSlideToCanvas,
   downloadCanvasAsPng,
   resolveLayoutDirection,
+  isArabicText,
 } from '../utils/canvasRenderer';
 import { formatArabicDigits, loadGoogleFont } from '../utils/googleFonts';
 
@@ -1348,10 +1349,35 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   const effectiveOverlay = slide.customOverlayImage || overlay;
   const effectiveWatermark = watermark;
 
-  // Determine direction and Arabic script
+  // Determine per-element direction and Arabic script
+  const kickerIsArabic = isArabicText(slide.kicker || '');
+  const phraseIsArabic = isArabicText(slide.text || '');
+  const subtitleIsArabic = isArabicText(slide.subtitle || '');
+
   const textSample = `${slide.kicker || ''} ${slide.text || ''} ${slide.subtitle || ''}`;
   const layoutDir = resolveLayoutDirection(textSample, typography.direction, slide.customDirection);
   const isRtl = layoutDir === 'rtl';
+
+  const kickerDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (kickerIsArabic ? 'rtl' : 'ltr');
+
+  const phraseDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (phraseIsArabic ? 'rtl' : 'ltr');
+
+  const subtitleDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (subtitleIsArabic ? 'rtl' : 'ltr');
 
   // Dynamic Google Font resolution
   const arabicFontFamily =
@@ -1388,28 +1414,37 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       ? 'JetBrains Mono'
       : 'Plus Jakarta Sans');
 
-  const effectiveFontName = isRtl ? arabicFontFamily : latinFontFamily;
+  const kickerFontName = kickerIsArabic ? arabicFontFamily : latinFontFamily;
+  const phraseFontName = phraseIsArabic ? arabicFontFamily : latinFontFamily;
+  const subtitleFontName = subtitleIsArabic ? arabicFontFamily : latinFontFamily;
 
-  // Dynamically load Google Font into DOM on demand
+  // Dynamically load Google Fonts into DOM on demand
   useEffect(() => {
-    if (effectiveFontName) {
-      loadGoogleFont(effectiveFontName);
+    if (kickerIsArabic || phraseIsArabic || subtitleIsArabic || isRtl) {
+      loadGoogleFont(arabicFontFamily);
     }
-  }, [effectiveFontName]);
+    loadGoogleFont(latinFontFamily);
+  }, [arabicFontFamily, latinFontFamily, kickerIsArabic, phraseIsArabic, subtitleIsArabic, isRtl]);
 
-  // BiDi numeral rendering: strictly preserves LTR order for Western numbers in Arabic text
-  const renderBiDiText = (text: string | undefined) => {
+  // Colors customizable by user for title (kicker), main phrase, and subtitle
+  const kickerColor = slide.customKickerColor || typography.accentColor || '#6366f1';
+  const phraseColor = slide.customTextColor || typography.textColor || '#ffffff';
+  const subtitleColor = slide.customSubtitleColor || typography.subtitleColor || 'rgba(255, 255, 255, 0.75)';
+
+  // BiDi numeral & handle rendering: strictly preserves LTR order for Western numbers & @handles in Arabic text
+  const renderBiDiText = (text: string | undefined, isArabic: boolean) => {
     if (!text) return null;
     if (typography.easternNumerals) {
       return formatArabicDigits(text, true);
     }
-    if (!isRtl) return text;
-    // For RTL text: isolate Western digits (0-9, percentages, decimals) so they maintain strict LTR order
-    const parts = text.split(/(\d+(?:[.,]\d+)?%?)/g);
+    if (!isArabic) return text;
+    // For RTL text: isolate Western digits (0-9, percentages, decimals) and handles (@pseudo)
+    // so they maintain strict LTR order and Latin orientation!
+    const parts = text.split(/(@[\w.-]+|\d+(?:[.,]\d+)?%?)/g);
     return parts.map((part, i) => {
-      if (/^\d+(?:[.,]\d+)?%?$/.test(part)) {
+      if (/^@[\w.-]+$/.test(part) || /^\d+(?:[.,]\d+)?%?$/.test(part)) {
         return (
-          <span key={i} dir="ltr" className="inline-block tabular-nums unicode-bidi-isolate">
+          <span key={i} dir="ltr" className="inline-block tabular-nums unicode-bidi-isolate font-['Plus_Jakarta_Sans',sans-serif]">
             {part}
           </span>
         );
@@ -1426,15 +1461,15 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       : 'bg-neutral-900/80 backdrop-blur-md border border-white/10 p-4 rounded-xl';
   } else if (typography.boxStyle === 'solid-card') {
     boxClasses = scale === 'compact'
-      ? 'bg-black/90 border border-indigo-500/80 p-2 rounded-lg shadow-md'
-      : 'bg-black/90 border-2 border-indigo-500/80 p-4 rounded-xl shadow-xl';
+      ? 'bg-black/90 border p-2 rounded-lg shadow-md'
+      : 'bg-black/90 border-2 p-4 rounded-xl shadow-xl';
   } else if (typography.boxStyle === 'minimal-shadow') {
     boxClasses = 'drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)]';
   }
 
   // Individual user-selectable alignments for title (kicker) and phrase
-  const defaultAlign: TextAlign = isRtl ? 'right' : 'left';
-  const baseAlign: TextAlign = slide.customAlign || typography.align || defaultAlign;
+  const defaultAlign: TextAlign = phraseDir === 'rtl' ? 'right' : 'left';
+  const baseAlign: TextAlign = slide.customAlign || (typography.align !== undefined && typography.align !== null ? typography.align : defaultAlign);
   const kickerAlign: TextAlign =
     typography.kickerAlign && typography.kickerAlign !== 'inherit'
       ? typography.kickerAlign
@@ -1544,7 +1579,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
   return (
     <div
-      dir={isRtl ? 'rtl' : 'ltr'}
+      dir="ltr"
       className="relative w-full h-full overflow-hidden select-none bg-neutral-950"
     >
       {/* Background Image with Zoom and Pan */}
@@ -1748,8 +1783,13 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             )
           ) : (
             <div
+              dir="ltr"
               className={`flex items-center gap-2 ${
-                logo.position.includes('right') ? 'flex-row-reverse' : ''
+                logo.position.includes('center') && !logo.position.includes('left') && !logo.position.includes('right')
+                  ? 'flex-col items-center text-center'
+                  : logo.position.includes('right')
+                  ? 'flex-row-reverse text-right items-center'
+                  : 'flex-row text-left items-center'
               }`}
             >
               <div
@@ -1761,7 +1801,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   borderColor: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                 }}
-                className={`rounded-lg border flex items-center justify-center font-bold font-['Syne'] flex-shrink-0 ${
+                className={`rounded-lg border flex items-center justify-center font-bold font-['Syne'] shrink-0 ${
                   logo.unifyColor && logo.unifiedColor
                     ? 'bg-black/30 backdrop-blur-sm'
                     : logo.theme === 'dark'
@@ -1773,27 +1813,41 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               >
                 AP
               </div>
-              <div className="flex flex-col">
+              <div
+                dir={isArabicText(logo.brandText || '') ? 'rtl' : 'ltr'}
+                className={`flex flex-col ${
+                  logo.position.includes('center') && !logo.position.includes('left') && !logo.position.includes('right')
+                    ? 'items-center text-center'
+                    : logo.position.includes('right')
+                    ? 'items-end text-right'
+                    : 'items-start text-left'
+                }`}
+              >
                 <span
                   style={{
                     fontSize: `${Math.round((scale === 'compact' ? 8.5 : 14) * logoScale)}px`,
                     color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                     filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
+                    fontFamily: isArabicText(logo.brandText || '') ? `'${arabicFontFamily}', sans-serif` : "'Syne', sans-serif",
                   }}
-                  className="font-['Syne'] font-bold tracking-tight text-white leading-tight"
+                  className="font-bold tracking-tight text-white leading-tight"
                 >
                   {logo.brandText || 'AUTOPOST STUDIO'}
                 </span>
                 {logo.brandHandle && (
                   <span
+                    dir="ltr"
                     style={{
                       fontSize: `${Math.max(7, Math.round((scale === 'compact' ? 7 : 10.5) * logoScale))}px`,
                       color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                       filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
                     }}
-                    className={`${logo.unifyColor && logo.unifiedColor ? 'opacity-80' : 'text-neutral-300/80'} font-medium`}
+                    className={`inline-block tabular-nums unicode-bidi-isolate ${
+                      logo.unifyColor && logo.unifiedColor ? 'opacity-80' : 'text-neutral-300/80'
+                    } font-medium`}
                   >
-                    {logo.brandHandle}
+                    {logo.brandHandle.startsWith('@') ? logo.brandHandle : `@${logo.brandHandle}`}
                   </span>
                 )}
               </div>
@@ -1921,44 +1975,56 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             transform: 'translate(-50%, -50%)',
           }}
         >
-          <div className={`w-full flex flex-col ${alignClass} ${boxClasses}`}>
-            {/* Kicker tag with user chosen kicker alignment & scale */}
+          <div
+            className={`w-full flex flex-col ${alignClass} ${boxClasses}`}
+            style={typography.boxStyle === 'solid-card' ? { borderColor: kickerColor } : undefined}
+          >
+            {/* Kicker tag with user chosen kicker alignment, scale & color */}
             {typography.showKicker && slide.kicker && (
               <span
-                className={`font-bold tracking-widest uppercase mb-1 ${
+                dir={kickerDir}
+                className={`font-bold tracking-widest uppercase mb-1 block w-full ${
                   kickerAlign === 'center'
-                    ? 'text-center self-center'
+                    ? 'text-center'
                     : kickerAlign === 'right'
-                    ? 'text-right self-end'
-                    : 'text-left self-start'
+                    ? 'text-right'
+                    : 'text-left'
                 } ${scale === 'compact' ? 'line-clamp-1' : ''}`}
                 style={{
-                  color: typography.accentColor || '#818cf8',
+                  color: kickerColor,
                   fontSize: `${computedKickerFontSize}px`,
-                  fontFamily: `'${effectiveFontName}', sans-serif`,
+                  fontFamily: `'${kickerFontName}', sans-serif`,
                 }}
               >
-                {renderBiDiText(slide.kicker)}
+                {renderBiDiText(slide.kicker, kickerIsArabic)}
               </span>
             )}
 
             {/* Main Phrase Text with dynamic Google font, BiDi & scaling */}
             <h2
-              className={`font-bold text-white tracking-tight ${scale === 'compact' ? 'line-clamp-4' : ''}`}
+              dir={phraseDir}
+              className={`font-bold tracking-tight block w-full ${
+                phraseAlign === 'center'
+                  ? 'text-center'
+                  : phraseAlign === 'right'
+                  ? 'text-right'
+                  : 'text-left'
+              } ${scale === 'compact' ? 'line-clamp-4' : ''}`}
               style={{
-                color: typography.textColor || '#ffffff',
+                color: phraseColor,
                 fontSize: `${computedPhraseFontSize}px`,
                 lineHeight: typography.lineHeight ?? 1.3,
-                fontFamily: `'${effectiveFontName}', sans-serif`,
+                fontFamily: `'${phraseFontName}', sans-serif`,
               }}
             >
-              {renderBiDiText(slide.text)}
+              {renderBiDiText(slide.text, phraseIsArabic)}
             </h2>
 
             {/* Subtitle / Citation with phrase alignment & scale */}
             {typography.showSubtitle && slide.subtitle && (
               <p
-                className={`mt-1 text-neutral-300 font-normal leading-relaxed ${
+                dir={subtitleDir}
+                className={`mt-1 font-normal leading-relaxed block w-full ${
                   phraseAlign === 'center'
                     ? 'text-center'
                     : phraseAlign === 'right'
@@ -1966,11 +2032,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : 'text-left'
                 } ${scale === 'compact' ? 'line-clamp-2' : ''}`}
                 style={{
+                  color: subtitleColor,
                   fontSize: `${computedSubtitleFontSize}px`,
-                  fontFamily: `'${effectiveFontName}', sans-serif`,
+                  fontFamily: `'${subtitleFontName}', sans-serif`,
                 }}
               >
-                {renderBiDiText(slide.subtitle)}
+                {renderBiDiText(slide.subtitle, subtitleIsArabic)}
               </p>
             )}
           </div>
@@ -1983,45 +2050,57 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         >
           <div
             className={`w-full flex flex-col ${alignClass} ${boxClasses}`}
-            style={{ maxWidth: `${typography.textWidth ?? 88}%` }}
+            style={{
+              maxWidth: `${typography.textWidth ?? 88}%`,
+              ...(typography.boxStyle === 'solid-card' ? { borderColor: kickerColor } : {}),
+            }}
           >
-            {/* Kicker tag with user chosen kicker alignment & scale */}
+            {/* Kicker tag with user chosen kicker alignment, scale & color */}
             {typography.showKicker && slide.kicker && (
               <span
-                className={`font-bold tracking-widest uppercase mb-1 ${
+                dir={kickerDir}
+                className={`font-bold tracking-widest uppercase mb-1 block w-full ${
                   kickerAlign === 'center'
-                    ? 'text-center self-center'
+                    ? 'text-center'
                     : kickerAlign === 'right'
-                    ? 'text-right self-end'
-                    : 'text-left self-start'
+                    ? 'text-right'
+                    : 'text-left'
                 } ${scale === 'compact' ? 'line-clamp-1' : ''}`}
                 style={{
-                  color: typography.accentColor || '#818cf8',
+                  color: kickerColor,
                   fontSize: `${computedKickerFontSize}px`,
-                  fontFamily: `'${effectiveFontName}', sans-serif`,
+                  fontFamily: `'${kickerFontName}', sans-serif`,
                 }}
               >
-                {renderBiDiText(slide.kicker)}
+                {renderBiDiText(slide.kicker, kickerIsArabic)}
               </span>
             )}
 
             {/* Main Phrase Text with dynamic Google font, BiDi & scaling */}
             <h2
-              className={`font-bold text-white tracking-tight ${scale === 'compact' ? 'line-clamp-4' : ''}`}
+              dir={phraseDir}
+              className={`font-bold tracking-tight block w-full ${
+                phraseAlign === 'center'
+                  ? 'text-center'
+                  : phraseAlign === 'right'
+                  ? 'text-right'
+                  : 'text-left'
+              } ${scale === 'compact' ? 'line-clamp-4' : ''}`}
               style={{
-                color: typography.textColor || '#ffffff',
+                color: phraseColor,
                 fontSize: `${computedPhraseFontSize}px`,
                 lineHeight: typography.lineHeight ?? 1.3,
-                fontFamily: `'${effectiveFontName}', sans-serif`,
+                fontFamily: `'${phraseFontName}', sans-serif`,
               }}
             >
-              {renderBiDiText(slide.text)}
+              {renderBiDiText(slide.text, phraseIsArabic)}
             </h2>
 
             {/* Subtitle / Citation with phrase alignment & scale */}
             {typography.showSubtitle && slide.subtitle && (
               <p
-                className={`mt-1 text-neutral-300 font-normal leading-relaxed ${
+                dir={subtitleDir}
+                className={`mt-1 font-normal leading-relaxed block w-full ${
                   phraseAlign === 'center'
                     ? 'text-center'
                     : phraseAlign === 'right'
@@ -2029,11 +2108,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : 'text-left'
                 } ${scale === 'compact' ? 'line-clamp-2' : ''}`}
                 style={{
+                  color: subtitleColor,
                   fontSize: `${computedSubtitleFontSize}px`,
-                  fontFamily: `'${effectiveFontName}', sans-serif`,
+                  fontFamily: `'${subtitleFontName}', sans-serif`,
                 }}
               >
-                {renderBiDiText(slide.subtitle)}
+                {renderBiDiText(slide.subtitle, subtitleIsArabic)}
               </p>
             )}
           </div>

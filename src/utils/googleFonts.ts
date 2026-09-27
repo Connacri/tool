@@ -336,3 +336,15 @@ export function formatArabicDigits(text: string, easternNumerals: boolean = fals
   const easternDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return text.replace(/[0-9]/g, (w) => easternDigits[parseInt(w, 10)]);
 }
+
+/**
+ * Ensures handles (@username) and numbers always stay strictly LTR with Latin orientation
+ * even within RTL Arabic contexts by injecting Unicode Left-to-Right Marks (LRM \u200E).
+ */
+export function formatBidiHandlesAndNumbers(text: string, isRtl: boolean = false): string {
+  if (!text) return '';
+  if (!isRtl) return text;
+  // Wrap handles (@[\w_.-]+) with LRM so the @ remains strictly on the left
+  // and Latin letters/punctuation flow LTR
+  return text.replace(/(@[\w.-]+)/g, '\u200E$1\u200E');
+}

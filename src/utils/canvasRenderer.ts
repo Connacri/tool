@@ -9,7 +9,7 @@ import {
   TypographyConfig,
   WatermarkConfig,
 } from '../types';
-import { formatArabicDigits, loadGoogleFont } from './googleFonts';
+import { formatArabicDigits, formatBidiHandlesAndNumbers, loadGoogleFont } from './googleFonts';
 
 /**
  * Checks if a string contains Arabic characters
@@ -312,6 +312,10 @@ export async function renderSlideToCanvas(
   }
 
   // 3. Direction, Arabic Detection & Typography Configuration
+  const kickerIsArabic = isArabicText(slide.kicker || '');
+  const phraseIsArabic = isArabicText(slide.text || '');
+  const subtitleIsArabic = isArabicText(slide.subtitle || '');
+
   const textSample = `${slide.kicker || ''} ${slide.text || ''} ${slide.subtitle || ''}`;
   const layoutDir = resolveLayoutDirection(
     textSample,
@@ -320,25 +324,65 @@ export async function renderSlideToCanvas(
   );
   const isRtl = layoutDir === 'rtl';
 
+  // Specific per-element direction:
+  const kickerDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (kickerIsArabic ? 'rtl' : 'ltr');
+
+  const phraseDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (phraseIsArabic ? 'rtl' : 'ltr');
+
+  const subtitleDir: 'rtl' | 'ltr' =
+    slide.customDirection === 'rtl' || typography.direction === 'rtl'
+      ? 'rtl'
+      : slide.customDirection === 'ltr' || typography.direction === 'ltr'
+      ? 'ltr'
+      : (subtitleIsArabic ? 'rtl' : 'ltr');
+
   // Dynamic font configuration & independent resizing
   const phraseScale = slide.customTextScale ?? typography.fontSize ?? 1.1;
   const kickerScale = slide.customKickerScale ?? typography.kickerSize ?? 1.0;
   const subtitleScale = slide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
 
-  // Dynamically load Google Font if needed
-  const targetFontName = isRtl
-    ? (typography.customArabicFontFamily || typography.arabicFont || 'Cairo')
-    : (typography.customFontFamily || typography.fontStyle || 'Plus Jakarta Sans');
+  // Dynamically load Google Fonts if needed
+  const targetArabicFontName = typography.customArabicFontFamily || typography.arabicFont || 'Cairo';
+  const targetLatinFontName = typography.customFontFamily || typography.fontStyle || 'Plus Jakarta Sans';
   try {
-    await loadGoogleFont(targetFontName);
+    if (kickerIsArabic || phraseIsArabic || subtitleIsArabic || isRtl) {
+      await loadGoogleFont(targetArabicFontName);
+    }
+    await loadGoogleFont(targetLatinFontName);
   } catch {
     // continue
   }
 
-  const fontFamily = getFontFamilyString(
+  const kickerFont = getFontFamilyString(
     typography.fontStyle,
     typography.arabicFont,
-    isRtl,
+    kickerIsArabic,
+    typography.customFontFamily,
+    typography.customArabicFontFamily
+  );
+
+  const phraseFont = getFontFamilyString(
+    typography.fontStyle,
+    typography.arabicFont,
+    phraseIsArabic,
+    typography.customFontFamily,
+    typography.customArabicFontFamily
+  );
+
+  const subtitleFont = getFontFamilyString(
+    typography.fontStyle,
+    typography.arabicFont,
+    subtitleIsArabic,
     typography.customFontFamily,
     typography.customArabicFontFamily
   );
@@ -349,28 +393,25 @@ export async function renderSlideToCanvas(
   const lineHeightMultiplier = typography.lineHeight ?? 1.35;
   const lineHeight = Math.round(baseSize * lineHeightMultiplier);
 
-  // Format numerals: Eastern Arabic if enabled, or standard Western digits preserving LTR
+  // Format numerals & handles: Eastern Arabic if enabled, or preserve LTR for handles and digits
   const displayText = typography.easternNumerals
     ? formatArabicDigits(slide.text, true)
-    : slide.text;
+    : formatBidiHandlesAndNumbers(slide.text, phraseDir === 'rtl');
   const displayKicker = typography.easternNumerals
     ? formatArabicDigits(slide.kicker, true)
-    : slide.kicker;
+    : formatBidiHandlesAndNumbers(slide.kicker, kickerDir === 'rtl');
   const displaySubtitle = typography.easternNumerals
     ? formatArabicDigits(slide.subtitle, true)
-    : slide.subtitle;
+    : formatBidiHandlesAndNumbers(slide.subtitle, subtitleDir === 'rtl');
 
   const textWidthPercent = Math.max(0.4, Math.min(1.0, (typography.textWidth ?? 85) / 100));
   const contentWidth = Math.round(width * textWidthPercent);
   const paddingX = Math.round((width - contentWidth) / 2);
   const paddingY = Math.round(height * 0.08);
 
-  // Set directional mode on 2D context for Arabic shaping and bidirectional numerals
-  ctx.direction = isRtl ? 'rtl' : 'ltr';
-
   // Alignment configuration (user choice for title & phrase)
-  const defaultAlign: TextAlign = isRtl ? 'right' : 'left';
-  const baseAlign: TextAlign = slide.customAlign || typography.align || defaultAlign;
+  const defaultAlign: TextAlign = phraseDir === 'rtl' ? 'right' : 'left';
+  const baseAlign: TextAlign = slide.customAlign || (typography.align !== undefined && typography.align !== null ? typography.align : defaultAlign);
 
   const kickerAlign: TextAlign =
     typography.kickerAlign && typography.kickerAlign !== 'inherit'
@@ -382,7 +423,7 @@ export async function renderSlideToCanvas(
       ? typography.phraseAlign
       : baseAlign;
 
-  ctx.font = `600 ${baseSize}px ${fontFamily}`;
+  ctx.font = `600 ${baseSize}px ${phraseFont}`;
   const lines = wrapText(ctx, displayText, contentWidth);
   const totalTextHeight =
     lines.length * lineHeight +
@@ -415,6 +456,11 @@ export async function renderSlideToCanvas(
     if (align === 'right') return startX + contentWidth;
     return startX;
   };
+
+  // Colors customizable by user for title (kicker), main phrase, and subtitle
+  const kickerColor = slide.customKickerColor || typography.accentColor || '#6366f1';
+  const phraseColor = slide.customTextColor || typography.textColor || '#ffffff';
+  const subtitleColor = slide.customSubtitleColor || typography.subtitleColor || 'rgba(255, 255, 255, 0.75)';
 
   // Draw boxStyle container if applicable
   if (typography.boxStyle === 'scrim') {
@@ -450,7 +496,7 @@ export async function renderSlideToCanvas(
 
     ctx.save();
     ctx.fillStyle = 'rgba(10, 10, 10, 0.92)';
-    ctx.strokeStyle = typography.accentColor || '#6366f1';
+    ctx.strokeStyle = kickerColor;
     ctx.lineWidth = 3;
     roundRect(ctx, boxX, boxY, boxW, boxH, radius);
     ctx.fill();
@@ -461,17 +507,16 @@ export async function renderSlideToCanvas(
   ctx.textBaseline = 'top';
   let currentY = startY;
 
-  // 4. Draw Kicker with user-selected kickerAlign
+  // 4. Draw Kicker with user-selected kickerAlign & kickerDir
+
   if (typography.showKicker && displayKicker) {
     ctx.save();
-    ctx.direction = isRtl ? 'rtl' : 'ltr';
+    ctx.direction = kickerDir;
     ctx.textAlign = kickerAlign;
     const kickerX = getAlignX(kickerAlign);
-    ctx.font = isRtl
-      ? `700 ${kickerSize}px ${fontFamily}`
-      : `700 ${kickerSize}px 'Plus Jakarta Sans', sans-serif`;
-    ctx.fillStyle = typography.accentColor || '#818cf8';
-    if (!isRtl) {
+    ctx.font = `700 ${kickerSize}px ${kickerFont}`;
+    ctx.fillStyle = kickerColor;
+    if (!kickerIsArabic) {
       ctx.letterSpacing = '2px';
       ctx.fillText(displayKicker.toUpperCase(), kickerX, currentY);
     } else {
@@ -481,13 +526,13 @@ export async function renderSlideToCanvas(
     currentY += kickerSize + 20;
   }
 
-  // 5. Draw Main Phrase Lines with user-selected phraseAlign
+  // 5. Draw Main Phrase Lines with user-selected phraseAlign & phraseDir
   ctx.save();
-  ctx.direction = isRtl ? 'rtl' : 'ltr';
+  ctx.direction = phraseDir;
   ctx.textAlign = phraseAlign;
   const phraseX = getAlignX(phraseAlign);
-  ctx.font = `700 ${baseSize}px ${fontFamily}`;
-  ctx.fillStyle = typography.textColor || '#ffffff';
+  ctx.font = `700 ${baseSize}px ${phraseFont}`;
+  ctx.fillStyle = phraseColor;
 
   if (typography.boxStyle === 'minimal-shadow') {
     ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
@@ -517,17 +562,15 @@ export async function renderSlideToCanvas(
   }
   ctx.restore();
 
-  // 6. Draw Subtitle / Citation with phrase alignment
+  // 6. Draw Subtitle / Citation with phrase alignment & subtitleDir
   if (typography.showSubtitle && displaySubtitle) {
     currentY += 16;
     ctx.save();
-    ctx.direction = isRtl ? 'rtl' : 'ltr';
+    ctx.direction = subtitleDir;
     ctx.textAlign = phraseAlign;
     const subX = getAlignX(phraseAlign);
-    ctx.font = isRtl
-      ? `400 ${subtitleSize}px ${fontFamily}`
-      : `400 ${subtitleSize}px 'Plus Jakarta Sans', sans-serif`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    ctx.font = `400 ${subtitleSize}px ${subtitleFont}`;
+    ctx.fillStyle = subtitleColor;
     ctx.fillText(displaySubtitle, subX, currentY);
     ctx.restore();
   }
@@ -793,18 +836,32 @@ async function renderLogoOnCanvas(
       textAlign === 'left' ? emblemSize + 12 * logoScale : textAlign === 'right' ? -12 * logoScale : 0;
     const textOffsetY = textAlign === 'center' ? emblemSize + 8 * logoScale : 2 * logoScale;
 
-    ctx.font = `700 ${textSize}px 'Syne', sans-serif`;
+    const isLogoArabic = isArabicText(logo.brandText || '');
+    const logoFontFamily = isLogoArabic
+      ? getFontFamilyString('modern', 'cairo', true, undefined, undefined)
+      : "'Syne', sans-serif";
+
+    ctx.save();
+    ctx.direction = isLogoArabic ? 'rtl' : 'ltr';
+    ctx.font = `700 ${textSize}px ${logoFontFamily}`;
     ctx.fillStyle = textColor;
     ctx.fillText(logo.brandText || 'AUTOPOST STUDIO', lx + textOffsetX, finalLy + textOffsetY);
+    ctx.restore();
 
+    // Pseudos / handles anywhere, even in the logo, MUST REMAIN strictly LTR with Latin orientation
     if (logo.brandHandle) {
+      ctx.save();
+      ctx.direction = 'ltr';
+      ctx.textAlign = textAlign;
       ctx.font = `500 ${subTextSize}px 'Plus Jakarta Sans', sans-serif`;
       ctx.fillStyle = logo.unifyColor && logo.unifiedColor ? textColor : 'rgba(255, 255, 255, 0.7)';
+      const cleanHandle = logo.brandHandle.startsWith('@') ? logo.brandHandle : `@${logo.brandHandle}`;
       ctx.fillText(
-        logo.brandHandle,
+        cleanHandle,
         lx + textOffsetX,
         finalLy + textOffsetY + textSize + 4 * logoScale
       );
+      ctx.restore();
     }
     ctx.restore();
   }

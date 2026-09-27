@@ -227,6 +227,7 @@ export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   textWidth: 88,
   textColor: '#ffffff',
   accentColor: '#6366f1',
+  subtitleColor: 'rgba(255, 255, 255, 0.75)',
   showKicker: true,
   showSubtitle: true,
   showSlideNumber: true,
