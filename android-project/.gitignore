@@ -1,0 +1,25 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Android / Capacitor — le dossier android/ lui-même EST versionné (il contient
+# les personnalisations natives : icônes, manifeste, config Gradle), mais pas
+# ses artefacts générés à chaque build ni les secrets de signature.
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/*.iml
+android/.idea/
+
+# Keystore de signature Play Store — JAMAIS commité (mot de passe + clé
+# privée irremplaçable). Voir android/KEYSTORE_README.md pour la procédure.
+android/keystore.properties
+android/*.keystore
+android/*.jks
