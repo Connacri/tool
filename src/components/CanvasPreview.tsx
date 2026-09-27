@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   Maximize2,
   Minus,
@@ -129,6 +129,37 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   });
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const mockupContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mesure de la largeur CSS réelle du canvas d'aperçu interactif, pour que la
+  // typographie affichée à l'écran corresponde pixel pour pixel au rendu HD
+  // exporté (voir SlideVisualContent : les tailles de police sont désormais
+  // calculées proportionnellement à cette largeur, exactement comme dans
+  // canvasRenderer.ts, au lieu d'utiliser des tailles fixes en pixels CSS).
+  const [previewContainerWidth, setPreviewContainerWidth] = useState<number>(0);
+  const [mockupContainerWidth, setMockupContainerWidth] = useState<number>(0);
+
+  useLayoutEffect(() => {
+    const editorEl = canvasContainerRef.current;
+    const mockupEl = mockupContainerRef.current;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === editorEl) setPreviewContainerWidth(entry.contentRect.width);
+        else if (entry.target === mockupEl) setMockupContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    if (editorEl) {
+      setPreviewContainerWidth(editorEl.clientWidth);
+      observer.observe(editorEl);
+    }
+    if (mockupEl) {
+      setMockupContainerWidth(mockupEl.clientWidth);
+      observer.observe(mockupEl);
+    }
+    return () => observer.disconnect();
+    // Ré-observe si le mode de vue change et remonte les conteneurs du DOM
+  }, [viewMode]);
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -742,6 +773,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 logo={logo}
                 totalSlides={slides.length}
                 scale="normal"
+                containerWidth={previewContainerWidth}
                 blur={gradientBlur}
                 filter={colorFilter}
                 overlay={overlayImage}
@@ -1222,6 +1254,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
 
             {/* Post Media Container */}
             <div
+              ref={mockupContainerRef}
               className="relative w-full overflow-hidden"
               style={{ aspectRatio: cssAspectRatio }}
             >
@@ -1232,6 +1265,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                 logo={logo}
                 totalSlides={slides.length}
                 scale="normal"
+                containerWidth={mockupContainerWidth}
                 blur={gradientBlur}
                 filter={colorFilter}
                 overlay={overlayImage}
@@ -1281,6 +1315,15 @@ interface SlideVisualContentProps {
   logo: LogoConfig;
   totalSlides: number;
   scale: 'compact' | 'normal';
+  /**
+   * Largeur CSS réelle (en px) du conteneur qui affiche ce composant, mesurée
+   * via ResizeObserver côté parent. Sert à calculer une typographie
+   * proportionnelle qui correspond pixel pour pixel au rendu HD exporté par
+   * canvasRenderer.ts (même formule : taille = largeur × ratio × échelle).
+   * Non fournie (0) en mode "compact" (grille), qui garde des tailles fixes
+   * volontairement réduites pour une vue d'ensemble.
+   */
+  containerWidth?: number;
   blur?: GradientBlurConfig;
   filter?: ColorFilterConfig;
   overlay?: OverlayImageConfig;
@@ -1289,10 +1332,12 @@ interface SlideVisualContentProps {
 
 const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
   slide,
+  aspectRatio,
   typography,
   logo,
   totalSlides,
   scale,
+  containerWidth,
   blur,
   filter,
   overlay,
@@ -1407,22 +1452,45 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
   const alignClass = getAlignContainerClass(phraseAlign);
 
-  // Scaled typography sizes (compact mode scales down appropriately to prevent huge text in batch grid)
+  // Scaled typography sizes.
+  // IMPORTANT — cohérence Aperçu ↔️ Export HD :
+  // En mode "normal", ces tailles sont calculées avec EXACTEMENT la même
+  // formule que renderSlideToCanvas() dans utils/canvasRenderer.ts
+  // (baseSize = largeur × 0.048 × phraseScale, etc.), mais en remplaçant la
+  // largeur du canvas d'export (ex. 1080px) par la largeur CSS réellement
+  // affichée à l'écran (containerWidth, mesurée par ResizeObserver côté
+  // parent). Le texte occupe ainsi la même proportion visuelle du cadre dans
+  // l'aperçu que dans le PNG final, quel que soit la taille d'écran ou le
+  // niveau de zoom du navigateur — corrige l'écart de dimension du texte
+  // entre l'édition et l'export final.
+  // En mode "compact" (grille de lot), on garde des tailles fixes réduites :
+  // c'est une vue d'ensemble volontairement non-WYSIWYG, pas un espace
+  // d'édition (voir README « Vue d'ensemble »).
   const phraseScale = slide.customTextScale ?? typography.fontSize ?? 1.1;
   const kickerScale = slide.customKickerScale ?? typography.kickerSize ?? 1.0;
   const subtitleScale = slide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
 
+  // Largeur de référence pour le calcul proportionnel : la largeur CSS
+  // mesurée du conteneur (obtenue de façon synchrone dès le premier rendu via
+  // useLayoutEffect, donc quasiment jamais 0 en pratique). Le repli sur
+  // aspectRatio.width ne sert que si ResizeObserver était totalement
+  // indisponible dans le navigateur — cas résiduel qui ne se produit plus
+  // avec les navigateurs actuels.
+  const referenceWidth = containerWidth && containerWidth > 0 ? containerWidth : aspectRatio.width;
+
+  const previewBaseSize = referenceWidth * 0.048 * phraseScale;
+
   const computedPhraseFontSize = scale === 'compact'
     ? Math.max(9, Math.round(10.5 * phraseScale))
-    : Math.round(22 * phraseScale);
+    : Math.max(1, Math.round(previewBaseSize));
 
   const computedKickerFontSize = scale === 'compact'
     ? Math.max(7, Math.round(7.5 * kickerScale))
-    : Math.round(11 * kickerScale);
+    : Math.max(1, Math.round(previewBaseSize * 0.38 * kickerScale));
 
   const computedSubtitleFontSize = scale === 'compact'
     ? Math.max(7, Math.round(8 * subtitleScale))
-    : Math.round(12 * subtitleScale);
+    : Math.max(1, Math.round(previewBaseSize * 0.42 * subtitleScale));
 
   // Background image pan & zoom coordinates
   const panX = slide.imagePanX ?? 0;

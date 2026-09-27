@@ -94,6 +94,9 @@ export async function renderSlideToCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Impossible d initialiser le contexte canvas 2D');
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   const width = canvas.width;
   const height = canvas.height;
 
@@ -166,6 +169,8 @@ export async function renderSlideToCanvas(
         offCanvas.height = height;
         const offCtx = offCanvas.getContext('2d');
         if (offCtx) {
+          offCtx.imageSmoothingEnabled = true;
+          offCtx.imageSmoothingQuality = 'high';
           offCtx.filter = `blur(${blurPx}px) brightness(${brightness}%)`;
           offCtx.drawImage(bgImage, sx, sy, sWidth, sHeight, 0, 0, width, height);
 
@@ -675,6 +680,8 @@ async function renderLogoOnCanvas(
         offCanvas.height = Math.max(1, Math.round(destH));
         const offCtx = offCanvas.getContext('2d');
         if (offCtx) {
+          offCtx.imageSmoothingEnabled = true;
+          offCtx.imageSmoothingQuality = 'high';
           if (logo.invertColor) {
             offCtx.filter = 'invert(100%)';
           }
