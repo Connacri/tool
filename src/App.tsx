@@ -17,6 +17,7 @@ import {
   INITIAL_WATERMARK,
 } from './constants/presets';
 import { AspectRatioOption, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TypographyConfig, WatermarkConfig } from './types';
+import { isArabicText } from './utils/canvasRenderer';
 import {
   loadSavedSlides,
   loadSavedAspectRatio,
@@ -112,15 +113,17 @@ export default function App() {
   // AI batch phrases generator
   const handleQuickAiGenerate = async () => {
     setIsAiGenerating(true);
+    const activeIsArabic = isArabicText(slides[currentSlideIndex]?.text || '') || typography.direction === 'rtl';
+
     try {
       const res = await fetch('/api/generate-phrases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: 'Croissance, Discipline et Créativité',
+          topic: activeIsArabic ? 'النجاح، الانضباط، والتطوير الذاتي' : 'Croissance, Discipline et Créativité',
           count: 6,
-          tone: 'Inspirant, Percurtant et Professionnel',
-          language: 'fr',
+          tone: activeIsArabic ? 'ملهم ومحفز واحترافي' : 'Inspirant, Percurtant et Professionnel',
+          language: activeIsArabic ? 'ar' : 'fr',
         }),
       });
 
@@ -153,14 +156,23 @@ export default function App() {
     }
 
     // Fallback creative batch if API key is not ready or offline
-    const fallbackQuotes = [
-      { text: "Votre attention est votre ressource la plus précieuse : protégez-la sans compromis.", kicker: "FOCUS TOTAL" },
-      { text: "Ne cherchez pas à tout faire en un jour, mais faites une chose remarquable aujourd'hui.", kicker: "PRIORITÉ ABSOLUE" },
-      { text: "Le meilleur moment pour commencer était hier, le second meilleur moment est maintenant.", kicker: "ACTION IMMÉDIATE" },
-      { text: "La clarté précède toujours le succès : sachez exactement où vous voulez aller.", kicker: "VISION STRATÉGIQUE" },
-      { text: "Les détails ne sont pas des détails : ils définissent la qualité de l'ensemble.", kicker: "EXCELLENCE & CRAFT" },
-      { text: "Osez penser différemment quand tout le monde suit la même trajectoire prévisible.", kicker: "AUDACE & AUDIENCE" },
-    ];
+    const fallbackQuotes = activeIsArabic
+      ? [
+          { text: "الانضباط هو الجسر الحقيقي بين تحديد الأهداف وتحقيق الإنجازات العظيمة.", kicker: "تركيز وإنجاز" },
+          { text: "العمل المستمر البسيط يتفوق على الجهد المتقطع مهما بلغت قوته.", kicker: "قاعدة ذهبية" },
+          { text: "الوقت والانتباه هما أثمن ما تملك، فاحرص على استثمارهما في ما يستحق.", kicker: "قيمة وأولوية" },
+          { text: "الوضوح يسبق النجاح دائماً: حدد وجهتك بدقة وانطلق دون تردد.", kicker: "رؤية استراتيجية" },
+          { text: "التفاصيل الصغيرة ليست مجرد هوامش، بل هي جوهر الجودة والإتقان.", kicker: "إتقان وتميز" },
+          { text: "ابنِ أفكارك لتدوم وتلهم الأجيال القادمة وليس لمجرد لفت الانتباه المؤقت.", kicker: "أثر مستمر" },
+        ]
+      : [
+          { text: "Votre attention est votre ressource la plus précieuse : protégez-la sans compromis.", kicker: "FOCUS TOTAL" },
+          { text: "Ne cherchez pas à tout faire en un jour, mais faites une chose remarquable aujourd'hui.", kicker: "PRIORITÉ ABSOLUE" },
+          { text: "Le meilleur moment pour commencer était hier, le second meilleur moment est maintenant.", kicker: "ACTION IMMÉDIATE" },
+          { text: "La clarté précède toujours le succès : sachez exactement où vous voulez aller.", kicker: "VISION STRATÉGIQUE" },
+          { text: "Les détails ne sont pas des détails : ils définissent la qualité de l'ensemble.", kicker: "EXCELLENCE & CRAFT" },
+          { text: "Osez penser différemment quand tout le monde suit la même trajectoire prévisible.", kicker: "AUDACE & AUDIENCE" },
+        ];
 
     const fallbackSlides: SlideItem[] = fallbackQuotes.map((item, idx) => {
       const existing = slides[idx] || slides[0];
@@ -169,7 +181,7 @@ export default function App() {
         number: idx + 1,
         text: item.text,
         kicker: item.kicker,
-        subtitle: `Épisode 0${idx + 1} · AutoPost Studio`,
+        subtitle: activeIsArabic ? `حكمة رقم 0${idx + 1} · @studio.horizon` : `Épisode 0${idx + 1} · AutoPost Studio`,
       };
     });
 

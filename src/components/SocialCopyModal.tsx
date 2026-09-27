@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Copy, Check, Share2, Layers } from 'lucide-react';
 import { SlideItem } from '../types';
+import { isArabicText } from '../utils/canvasRenderer';
 
 interface SocialCopyModalProps {
   isOpen: boolean;
@@ -58,25 +59,46 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
       // fallback to generated local copy
     }
 
+    const isArabic = isArabicText(slide.text || '') || isArabicText(slide.kicker || '');
+
     // High quality contextual fallback copy if server is offline or key missing
-    const fallback = {
-      instagram: {
-        caption: `✨ ${slide.text}\n\nUne réflexion essentielle pour bien démarrer votre semaine. Qu'en pensez-vous ? Partagez votre avis en commentaire !\n\nSauvegardez ce post pour y revenir plus tard 📌`,
-        hashtags: `#${slide.kicker?.toLowerCase().replace(/\s+/g, '') || 'conseil'} #motivation #entrepreneuriat #mindset #succes #creation #autopost`,
-      },
-      linkedin: {
-        caption: `💡 "${slide.text}"\n\nDans un monde où tout va vite, prendre du recul sur cette idée permet souvent de débloquer de nouveaux paliers de croissance.\n\nQuelle est votre expérience sur ce sujet dans vos équipes ?`,
-        hashtags: `#Leadership #${slide.kicker?.replace(/\s+/g, '') || 'Business'} #Strategie #Innovation`,
-      },
-      twitter: {
-        caption: `${slide.text}\n\nÀ méditer aujourd'hui.`,
-        hashtags: `#Citation #Mindset`,
-      },
-      tiktok: {
-        caption: `${slide.text} 👀 Swipe pour la suite de la série !`,
-        hashtags: `#pourtoi #fyp #devperso #motivation`,
-      },
-    };
+    const fallback = isArabic
+      ? {
+          instagram: {
+            caption: `✨ ${slide.text}\n\nفكرة تستحق التأمل في بداية هذا اليوم. ما رأيك في هذه الرؤية؟ شاركنا رأيك وتجربتك في التعليقات!\n\nاحفظ هذا المنشور للعودة إليه لاحقاً 📌`,
+            hashtags: `#${slide.kicker?.replace(/\s+/g, '_') || 'حكمة'} #تطوير_الذات #نجاح #ريادة #إلهام #أهداف #تحفيز`,
+          },
+          linkedin: {
+            caption: `💡 "${slide.text}"\n\nفي عالم الأعمال والتطوير السريع، يمنحنا التوقف والتأمل في هذه الفكرة أفقاً جديداً لاتخاذ قرارات مدروسة وتحقيق النمو المستدام.\n\nكيف تطبقون هذه الرؤية في بيئة العمل اليوم؟`,
+            hashtags: `#قيادة #${slide.kicker?.replace(/\s+/g, '_') || 'تطوير'} #استراتيجية #ابتكار`,
+          },
+          twitter: {
+            caption: `${slide.text}\n\nتأمل اليوم.`,
+            hashtags: `#حكمة #تطوير_الذات`,
+          },
+          tiktok: {
+            caption: `${slide.text} 👀 اسحب للشريحة التالية لمتابعة السلسلة !`,
+            hashtags: `#تحفيز #تطوير #إلهام #viral`,
+          },
+        }
+      : {
+          instagram: {
+            caption: `✨ ${slide.text}\n\nUne réflexion essentielle pour bien démarrer votre semaine. Qu'en pensez-vous ? Partagez votre avis en commentaire !\n\nSauvegardez ce post pour y revenir plus tard 📌`,
+            hashtags: `#${slide.kicker?.toLowerCase().replace(/\s+/g, '') || 'conseil'} #motivation #entrepreneuriat #mindset #succes #creation #autopost`,
+          },
+          linkedin: {
+            caption: `💡 "${slide.text}"\n\nDans un monde où tout va vite, prendre du recul sur cette idée permet souvent de débloquer de nouveaux paliers de croissance.\n\nQuelle est votre expérience sur ce sujet dans vos équipes ?`,
+            hashtags: `#Leadership #${slide.kicker?.replace(/\s+/g, '') || 'Business'} #Strategie #Innovation`,
+          },
+          twitter: {
+            caption: `${slide.text}\n\nÀ méditer aujourd'hui.`,
+            hashtags: `#Citation #Mindset`,
+          },
+          tiktok: {
+            caption: `${slide.text} 👀 Swipe pour la suite de la série !`,
+            hashtags: `#pourtoi #fyp #devperso #motivation`,
+          },
+        };
     setCopyCache((prev) => ({ ...prev, [slideIndex]: fallback }));
     setIsLoading(false);
   };
@@ -154,56 +176,76 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar">
-          <div className="p-3 rounded-lg bg-neutral-950 border border-neutral-800">
-            <span className="text-[10px] uppercase tracking-wider text-indigo-400 font-bold block mb-1">
-              Phrase du visuel sélectionné
-            </span>
-            <p className="text-xs text-neutral-200 font-medium">"{activeSlide.text}"</p>
-          </div>
-
-          {/* Caption Box */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-neutral-300">
-                Légende suggérée ({activePlatform})
-              </label>
-              <button
-                onClick={() =>
-                  handleCopy(`${currentCopy.caption}\n\n${currentCopy.hashtags}`, 'all')
-                }
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-              >
-                {copiedKey === 'all' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copié !</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copier tout</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
-              {isLoading ? (
-                <div className="flex items-center gap-2 text-neutral-400 py-4 justify-center">
-                  <Sparkles className="w-4 h-4 animate-spin text-indigo-400" />
-                  <span>Rédaction en cours par l'IA...</span>
-                </div>
-              ) : (
-                <>
-                  <p>{currentCopy.caption}</p>
-                  {currentCopy.hashtags && (
-                    <p className="text-indigo-400 mt-3">{currentCopy.hashtags}</p>
+        {(() => {
+          const activeIsArabic = isArabicText(activeSlide.text || '') || isArabicText(activeSlide.kicker || '');
+          return (
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar">
+              <div className="p-3 rounded-lg bg-neutral-950 border border-neutral-800">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-indigo-400 font-bold block">
+                    Phrase du visuel sélectionné
+                  </span>
+                  {activeIsArabic && (
+                    <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 font-medium">
+                      Arabe (RTL · Début à droite)
+                    </span>
                   )}
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+                <p
+                  dir={activeIsArabic ? 'rtl' : 'ltr'}
+                  className={`text-xs text-neutral-200 font-medium ${activeIsArabic ? 'text-right' : 'text-left'}`}
+                >
+                  "{activeSlide.text}"
+                </p>
+              </div>
+
+              {/* Caption Box */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-neutral-300">
+                    Légende suggérée ({activePlatform})
+                  </label>
+                  <button
+                    onClick={() =>
+                      handleCopy(`${currentCopy.caption}\n\n${currentCopy.hashtags}`, 'all')
+                    }
+                    className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    {copiedKey === 'all' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copié !</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copier tout</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div
+                  dir={activeIsArabic ? 'rtl' : 'ltr'}
+                  className={`p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar ${
+                    activeIsArabic ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2 text-neutral-400 py-4 justify-center">
+                      <Sparkles className="w-4 h-4 animate-spin text-indigo-400" />
+                      <span>Rédaction en cours par l'IA...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p>{currentCopy.caption}</p>
+                      {currentCopy.hashtags && (
+                        <p className="text-indigo-400 mt-3">{currentCopy.hashtags}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-neutral-800">
             <button
@@ -222,6 +264,8 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
             </button>
           </div>
         </div>
+      );
+    })()}
       </div>
     </div>
   );

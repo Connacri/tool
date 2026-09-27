@@ -412,6 +412,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </div>
                   <input
                     type="text"
+                    dir="auto"
                     value={activeSlide.kicker || ''}
                     onChange={(e) => updateActiveSlide({ kicker: e.target.value })}
                     placeholder="Ex: VISION & LEADERSHIP"
@@ -460,6 +461,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </div>
                   <textarea
                     rows={4}
+                    dir="auto"
                     value={activeSlide.text}
                     onChange={(e) => updateActiveSlide({ text: e.target.value })}
                     placeholder="Votre phrase ou citation percutante..."
@@ -508,6 +510,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   </div>
                   <input
                     type="text"
+                    dir="auto"
                     value={activeSlide.subtitle || ''}
                     onChange={(e) => updateActiveSlide({ subtitle: e.target.value })}
                     placeholder="Ex: Épisode 01 · @moncompte"
