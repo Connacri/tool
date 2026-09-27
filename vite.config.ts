@@ -6,6 +6,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    // Chemins d'assets RELATIFS ('./assets/...') pour les deux cibles :
+    //  - build Capacitor (npm run build:mobile) : le bundle est chargé depuis le
+    //    stockage local du device (scheme capacitor://localhost), pas depuis la
+    //    racine d'un vrai serveur web ;
+    //  - déploiement GitHub Pages : le site est servi sous un sous-chemin
+    //    (/AutoPost-Studio/), où '/assets/...' pointait à la racine du domaine.
+    // Un chemin absolu ('/') casserait l'un des deux.
     base: './',
     plugins: [
       react(),

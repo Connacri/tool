@@ -6,6 +6,7 @@ import { AutomatedExportModal } from './components/AutomatedExportModal';
 import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
+import { getApiUrl } from './utils/apiConfig';
 import {
   ASPECT_RATIOS,
   INITIAL_COLOR_FILTER,
@@ -113,7 +114,7 @@ export default function App() {
   const handleQuickAiGenerate = async () => {
     setIsAiGenerating(true);
     try {
-      const res = await fetch('/api/generate-phrases', {
+      const res = await fetch(getApiUrl('/api/generate-phrases'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

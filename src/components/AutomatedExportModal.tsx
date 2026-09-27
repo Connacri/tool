@@ -25,6 +25,7 @@ import {
   WebhookConfig,
 } from '../types';
 import { renderSlideToCanvas } from '../utils/canvasRenderer';
+import { getApiUrl } from '../utils/apiConfig';
 
 interface AutomatedExportModalProps {
   isOpen: boolean;
@@ -185,7 +186,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
         })),
       };
 
-      const response = await fetch('/api/export-webhook', {
+      const response = await fetch(getApiUrl('/api/export-webhook'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

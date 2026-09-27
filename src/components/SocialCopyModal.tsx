@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Copy, Check, Share2, Layers } from 'lucide-react';
 import { SlideItem } from '../types';
+import { getApiUrl } from '../utils/apiConfig';
 
 interface SocialCopyModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/generate-social-copy', {
+      const res = await fetch(getApiUrl('/api/generate-social-copy'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
