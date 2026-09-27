@@ -223,6 +223,7 @@ export interface SlideItem {
   customOverlayImage?: OverlayImageConfig;
   customDirection?: TextDirectionType;
   customAlign?: TextAlign;
+  customKickerAlign?: TextAlign | 'inherit';
   customTextColor?: string;
   customKickerColor?: string;
   customSubtitleColor?: string;

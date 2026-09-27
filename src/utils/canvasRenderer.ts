@@ -34,6 +34,68 @@ export function resolveLayoutDirection(
 }
 
 /**
+ * Resolves the effective text alignment considering Arabic / RTL reading order.
+ * In Arabic typography, sentence start is on the RIGHT (the inverse of LTR).
+ * - For LTR (French, English): 'left' is start, 'right' is end.
+ * - For RTL (Arabic): 'right' is start (inverse of LTR), 'left' is end.
+ * Explicit per-slide customAlign ('left' | 'center' | 'right') is always respected.
+ */
+export function resolveEffectiveAlignment(
+  phraseDir: 'rtl' | 'ltr',
+  slideCustomAlign?: TextAlign,
+  typographyPhraseAlign?: TextAlign | 'inherit',
+  typographyAlign?: TextAlign
+): TextAlign {
+  // If the individual slide has an explicit custom alignment override:
+  if (slideCustomAlign && ['left', 'center', 'right'].includes(slideCustomAlign)) {
+    return slideCustomAlign;
+  }
+
+  // Base preference from typography settings ('left' | 'center' | 'right')
+  const basePref: TextAlign =
+    typographyPhraseAlign && typographyPhraseAlign !== 'inherit'
+      ? typographyPhraseAlign
+      : (typographyAlign || 'left');
+
+  // Center is always centered for both languages
+  if (basePref === 'center') {
+    return 'center';
+  }
+
+  // For Arabic (RTL), sentence alignment is the inverse of LTR:
+  // Standard/Start alignment is 'right' (inverse of LTR 'left')
+  // End/Opposite alignment is 'left' (inverse of LTR 'right')
+  if (phraseDir === 'rtl') {
+    return basePref === 'left' ? 'right' : 'left';
+  }
+
+  // For LTR (French, English):
+  return basePref === 'right' ? 'right' : 'left';
+}
+
+/**
+ * Resolves the effective title (kicker) alignment
+ */
+export function resolveEffectiveKickerAlignment(
+  kickerDir: 'rtl' | 'ltr',
+  phraseAlign: TextAlign,
+  slideCustomKickerAlign?: TextAlign | 'inherit',
+  typographyKickerAlign?: TextAlign | 'inherit'
+): TextAlign {
+  const custom = slideCustomKickerAlign || typographyKickerAlign || 'inherit';
+  if (custom === 'inherit') {
+    return phraseAlign;
+  }
+  if (custom === 'center') {
+    return 'center';
+  }
+  if (kickerDir === 'rtl') {
+    return custom === 'left' ? 'right' : 'left';
+  }
+  return custom as TextAlign;
+}
+
+/**
  * Loads an image from a URL or Data URL and returns an HTMLImageElement
  */
 export function loadImage(src: string): Promise<HTMLImageElement> {
@@ -54,24 +116,34 @@ function wrapText(
   text: string,
   maxWidth: number
 ): string[] {
-  const words = text.split(' ');
+  if (!text) return [];
+  const paragraphs = text.split('\n');
   const lines: string[] = [];
-  let currentLine = '';
 
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && currentLine) {
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) {
+      lines.push('');
+      continue;
+    }
+    const words = trimmed.split(/\s+/);
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) {
       lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
     }
   }
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  return lines;
+  return lines.length > 0 ? lines : [''];
 }
 
 /**
@@ -409,19 +481,21 @@ export async function renderSlideToCanvas(
   const paddingX = Math.round((width - contentWidth) / 2);
   const paddingY = Math.round(height * 0.08);
 
-  // Alignment configuration (user choice for title & phrase)
-  const defaultAlign: TextAlign = phraseDir === 'rtl' ? 'right' : 'left';
-  const baseAlign: TextAlign = slide.customAlign || (typography.align !== undefined && typography.align !== null ? typography.align : defaultAlign);
+  // Alignment configuration:
+  // For Arabic (RTL), sentence alignment is the inverse of LTR (standard start is on the right).
+  const phraseAlign: TextAlign = resolveEffectiveAlignment(
+    phraseDir,
+    slide.customAlign,
+    typography.phraseAlign,
+    typography.align
+  );
 
-  const kickerAlign: TextAlign =
-    typography.kickerAlign && typography.kickerAlign !== 'inherit'
-      ? typography.kickerAlign
-      : baseAlign;
-
-  const phraseAlign: TextAlign =
-    typography.phraseAlign && typography.phraseAlign !== 'inherit'
-      ? typography.phraseAlign
-      : baseAlign;
+  const kickerAlign: TextAlign = resolveEffectiveKickerAlignment(
+    kickerDir,
+    phraseAlign,
+    slide.customKickerAlign,
+    typography.kickerAlign
+  );
 
   ctx.font = `600 ${baseSize}px ${phraseFont}`;
   const lines = wrapText(ctx, displayText, contentWidth);

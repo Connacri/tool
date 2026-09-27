@@ -44,6 +44,8 @@ import {
   renderSlideToCanvas,
   downloadCanvasAsPng,
   resolveLayoutDirection,
+  resolveEffectiveAlignment,
+  resolveEffectiveKickerAlignment,
   isArabicText,
 } from '../utils/canvasRenderer';
 import { formatArabicDigits, loadGoogleFont } from '../utils/googleFonts';
@@ -1467,17 +1469,21 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
     boxClasses = 'drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)]';
   }
 
-  // Individual user-selectable alignments for title (kicker) and phrase
-  const defaultAlign: TextAlign = phraseDir === 'rtl' ? 'right' : 'left';
-  const baseAlign: TextAlign = slide.customAlign || (typography.align !== undefined && typography.align !== null ? typography.align : defaultAlign);
-  const kickerAlign: TextAlign =
-    typography.kickerAlign && typography.kickerAlign !== 'inherit'
-      ? typography.kickerAlign
-      : baseAlign;
-  const phraseAlign: TextAlign =
-    typography.phraseAlign && typography.phraseAlign !== 'inherit'
-      ? typography.phraseAlign
-      : baseAlign;
+  // Individual user-selectable alignments:
+  // For Arabic (RTL), sentence alignment is the inverse of LTR (standard start is on the right).
+  const phraseAlign: TextAlign = resolveEffectiveAlignment(
+    phraseDir,
+    slide.customAlign,
+    typography.phraseAlign,
+    typography.align
+  );
+
+  const kickerAlign: TextAlign = resolveEffectiveKickerAlignment(
+    kickerDir,
+    phraseAlign,
+    slide.customKickerAlign,
+    typography.kickerAlign
+  );
 
   const getAlignContainerClass = (align: TextAlign) => {
     if (align === 'center') return 'text-center items-center';

@@ -12,6 +12,7 @@ import {
   Trash2,
   Upload,
   Palette,
+  Copy,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -48,7 +49,7 @@ import {
 } from 'lucide-react';
 import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WatermarkConfig, WebhookConfig } from '../types';
 import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES, GRADIENT_BLUR_PRESETS, PRESET_OVERLAYS, WATERMARK_PRESETS, INITIAL_WATERMARK, INITIAL_LOGO } from '../constants/presets';
-import { isArabicText } from '../utils/canvasRenderer';
+import { isArabicText, resolveEffectiveAlignment, resolveEffectiveKickerAlignment } from '../utils/canvasRenderer';
 import { CURATED_FRENCH_FONTS, CURATED_ARABIC_FONTS, loadGoogleFont } from '../utils/googleFonts';
 
 /**
@@ -515,125 +516,213 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 </div>
 
                 {/* Alignment & Direction Controls for this slide */}
-                <div className="pt-2 border-t border-neutral-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-neutral-300">
-                      Alignement & Direction de texte
-                    </span>
-                    {isArabicText(`${activeSlide.kicker || ''} ${activeSlide.text || ''}`) && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-[10px] text-emerald-300 font-medium">
-                        Arabe détecté (RTL)
-                      </span>
-                    )}
-                  </div>
+                {(() => {
+                  const activePhraseIsArabic = isArabicText(activeSlide.text || '');
+                  const activeKickerIsArabic = isArabicText(activeSlide.kicker || '');
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Unified Text Alignment */}
-                    <div>
-                      <span className="block text-[10px] text-neutral-400 mb-1">
-                        Alignement Textes
-                      </span>
-                      <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800">
-                        {[
-                          { id: 'left', icon: AlignLeft, title: 'Gauche' },
-                          { id: 'center', icon: AlignCenter, title: 'Centré' },
-                          { id: 'right', icon: AlignRight, title: 'Droite' },
-                        ].map((al) => {
-                          const Icon = al.icon;
-                          const currentAlign =
-                            activeSlide.customAlign || typography.phraseAlign || typography.align;
-                          const isActive = currentAlign === al.id;
-                          return (
-                            <button
-                              key={al.id}
-                              onClick={() => {
-                                updateActiveSlide({ customAlign: al.id as any });
-                                setTypography((prev) => ({
-                                  ...prev,
-                                  align: al.id as any,
-                                  phraseAlign: al.id as any,
-                                  kickerAlign: 'inherit',
-                                }));
-                              }}
-                              title={al.title}
-                              className={`flex-1 py-1 flex items-center justify-center rounded transition-colors ${
-                                isActive
-                                  ? 'bg-neutral-800 text-white shadow-sm ring-1 ring-neutral-700'
-                                  : 'text-neutral-400 hover:text-white'
-                              }`}
-                            >
-                              <Icon className="w-3.5 h-3.5" />
-                            </button>
-                          );
-                        })}
+                  const activePhraseDir: 'rtl' | 'ltr' =
+                    activeSlide.customDirection === 'rtl' || typography.direction === 'rtl'
+                      ? 'rtl'
+                      : activeSlide.customDirection === 'ltr' || typography.direction === 'ltr'
+                      ? 'ltr'
+                      : (activePhraseIsArabic ? 'rtl' : 'ltr');
+
+                  const activeKickerDir: 'rtl' | 'ltr' =
+                    activeSlide.customDirection === 'rtl' || typography.direction === 'rtl'
+                      ? 'rtl'
+                      : activeSlide.customDirection === 'ltr' || typography.direction === 'ltr'
+                      ? 'ltr'
+                      : (activeKickerIsArabic ? 'rtl' : 'ltr');
+
+                  const effectiveAlign = resolveEffectiveAlignment(
+                    activePhraseDir,
+                    activeSlide.customAlign,
+                    typography.phraseAlign,
+                    typography.align
+                  );
+
+                  const isRtlMode = activePhraseDir === 'rtl';
+
+                  return (
+                    <div className="pt-2 border-t border-neutral-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-neutral-300">
+                          Alignement & Direction de texte
+                        </span>
+                        {isRtlMode ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-[10px] text-emerald-300 font-medium">
+                            Arabe (RTL · Début à droite)
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-400 font-medium">
+                            Français (LTR · Début à gauche)
+                          </span>
+                        )}
                       </div>
-                    </div>
 
-                    {/* Direction RTL / LTR / Auto */}
-                    <div>
-                      <span className="block text-[10px] text-neutral-400 mb-1">
-                        Sens d'écriture
-                      </span>
-                      <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-[10px]">
-                        {[
-                          { id: 'auto', label: 'Auto' },
-                          { id: 'rtl', label: 'RTL (عربي)' },
-                          { id: 'ltr', label: 'LTR' },
-                        ].map((dir) => {
-                          const currentDir =
-                            activeSlide.customDirection || typography.direction || 'auto';
-                          const isActive = currentDir === dir.id;
-                          return (
-                            <button
-                              key={dir.id}
-                              onClick={() => {
-                                updateActiveSlide({ customDirection: dir.id as any });
-                                setTypography((prev) => ({ ...prev, direction: dir.id as any }));
-                              }}
-                              className={`flex-1 py-1 rounded transition-colors ${
-                                isActive
-                                  ? 'bg-indigo-600 text-white font-medium shadow-sm'
-                                  : 'text-neutral-400 hover:text-white'
-                              }`}
-                            >
-                              {dir.label}
-                            </button>
-                          );
-                        })}
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Unified Text Alignment */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="block text-[10px] text-neutral-400">
+                              Alignement Textes
+                            </span>
+                            {activeSlide.customAlign && (
+                              <button
+                                type="button"
+                                onClick={() => updateActiveSlide({ customAlign: undefined })}
+                                className="text-[9.5px] text-indigo-400 hover:text-indigo-300 underline"
+                                title="Réinitialiser à l'alignement naturel automatique"
+                              >
+                                Auto
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                            {[
+                              {
+                                id: 'left',
+                                icon: AlignLeft,
+                                title: isRtlMode ? 'Gauche (Fin de phrase Arabe)' : 'Gauche (Début de phrase LTR)',
+                              },
+                              {
+                                id: 'center',
+                                icon: AlignCenter,
+                                title: 'Centré',
+                              },
+                              {
+                                id: 'right',
+                                icon: AlignRight,
+                                title: isRtlMode ? 'Droite (Début naturel Arabe · Inversé LTR)' : 'Droite (Fin de phrase LTR)',
+                              },
+                            ].map((al) => {
+                              const Icon = al.icon;
+                              const isActive = effectiveAlign === al.id;
+                              return (
+                                <button
+                                  key={al.id}
+                                  type="button"
+                                  onClick={() => {
+                                    updateActiveSlide({ customAlign: al.id as any });
+                                  }}
+                                  title={al.title}
+                                  className={`flex-1 py-1 flex items-center justify-center rounded transition-colors ${
+                                    isActive
+                                      ? 'bg-neutral-800 text-white shadow-sm ring-1 ring-neutral-700'
+                                      : 'text-neutral-400 hover:text-white'
+                                  }`}
+                                >
+                                  <Icon className="w-3.5 h-3.5" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Direction RTL / LTR / Auto */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="block text-[10px] text-neutral-400">
+                              Sens d&apos;écriture
+                            </span>
+                          </div>
+                          <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-[10px]">
+                            {[
+                              { id: 'auto', label: 'Auto' },
+                              { id: 'rtl', label: 'RTL (عربي)' },
+                              { id: 'ltr', label: 'LTR' },
+                            ].map((dir) => {
+                              const currentDir =
+                                activeSlide.customDirection || typography.direction || 'auto';
+                              const isActive = currentDir === dir.id;
+                              return (
+                                <button
+                                  key={dir.id}
+                                  type="button"
+                                  onClick={() => {
+                                    updateActiveSlide({ customDirection: dir.id as any });
+                                    setTypography((prev) => ({ ...prev, direction: dir.id as any }));
+                                  }}
+                                  className={`flex-1 py-1 rounded transition-colors ${
+                                    isActive
+                                      ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                                      : 'text-neutral-400 hover:text-white'
+                                  }`}
+                                >
+                                  {dir.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Independent Title (Kicker) Alignment override */}
-                  <div className="flex items-center justify-between text-[10px] pt-1">
-                    <span className="text-neutral-400">Alignement Titre :</span>
-                    <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800">
-                      {[
-                        { id: 'inherit', label: 'Comme phrase' },
-                        { id: 'left', label: 'Gauche' },
-                        { id: 'center', label: 'Centré' },
-                        { id: 'right', label: 'Droite' },
-                      ].map((item) => {
-                        const isAct = (typography.kickerAlign || 'inherit') === item.id;
-                        return (
+                      {/* Align to all slides shortcut */}
+                      {setSlides && (
+                        <div className="flex items-center justify-between pt-0.5">
                           <button
-                            key={item.id}
                             type="button"
-                            onClick={() => setTypography((prev) => ({ ...prev, kickerAlign: item.id as any }))}
-                            className={`px-1.5 py-0.5 rounded text-[9.5px] transition-colors ${
-                              isAct ? 'bg-indigo-600 text-white font-medium' : 'text-neutral-400 hover:text-white'
-                            }`}
+                            onClick={() => {
+                              setSlides((prev) =>
+                                prev.map((s) => ({
+                                  ...s,
+                                  customAlign: effectiveAlign,
+                                }))
+                              );
+                            }}
+                            className="text-[9.5px] text-neutral-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
                           >
-                            {item.label}
+                            <Copy className="w-3 h-3" />
+                            Appliquer cet alignement ({effectiveAlign === 'right' ? 'Droite' : effectiveAlign === 'center' ? 'Centré' : 'Gauche'}) à tout le lot
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                      )}
 
-                  <p className="text-[10px] text-neutral-500">
-                    💡 Les pseudos (@nom) et chiffres restent toujours orientés LTR latin de gauche à droite.
-                  </p>
+                      {/* Independent Title (Kicker) Alignment override */}
+                      <div className="flex items-center justify-between text-[10px] pt-1">
+                        <span className="text-neutral-400">Alignement Titre :</span>
+                        <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800">
+                          {[
+                            { id: 'inherit', label: 'Comme phrase' },
+                            { id: 'left', label: 'Gauche' },
+                            { id: 'center', label: 'Centré' },
+                            { id: 'right', label: 'Droite' },
+                          ].map((item) => {
+                            const currentKickerSetting = activeSlide.customKickerAlign || typography.kickerAlign || 'inherit';
+                            const isAct = currentKickerSetting === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  updateActiveSlide({ customKickerAlign: item.id as any });
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[9.5px] transition-colors ${
+                                  isAct ? 'bg-indigo-600 text-white font-medium' : 'text-neutral-400 hover:text-white'
+                                }`}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="p-2 rounded-lg bg-neutral-900/80 border border-neutral-800 text-[10px] text-neutral-400 space-y-1">
+                        <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
+                          <Lightbulb className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>Règle typographique bilingue :</span>
+                        </div>
+                        <p>
+                          Pour l&apos;arabe (RTL), l&apos;alignement de phrase est <strong>l&apos;inverse du LTR latin</strong> : le texte commence naturellement à <strong>droite</strong>.
+                        </p>
+                        <p className="text-neutral-500 text-[9.5px]">
+                          Les pseudos (@nom) et chiffres conservent toujours leur orientation LTR latine de gauche à droite.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                   {/* SECTION COULEURS DES TEXTES (Titre, Phrase, Sous-titre) */}
                   <div className="pt-2.5 border-t border-neutral-800/80 space-y-3">
@@ -875,7 +964,6 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                       </div>
                     </div>
                   </div>
-                </div>
 
                 {/* Text Resizing & Dimensions for this Slide */}
                 <div className="pt-2 border-t border-neutral-800 space-y-3">
@@ -2931,6 +3019,9 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     );
                   })}
                 </div>
+                <p className="mt-1.5 text-[10.5px] text-neutral-400 leading-normal">
+                  💡 <span className="text-neutral-300 font-medium">Bilingue intelligent :</span> Pour l&apos;arabe (RTL), l&apos;alignement de phrase s&apos;adapte automatiquement (commence à droite, l&apos;inverse du français). « Gauche » correspond au début de phrase en français, et « Droite » au début de phrase en arabe.
+                </p>
               </div>
             </div>
 
