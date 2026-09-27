@@ -14,8 +14,10 @@ import {
   ArrowRight,
   HelpCircle,
   Layers,
+  Info,
 } from 'lucide-react';
 import { SlideItem } from '../types';
+import { BatchFormatInfoModal } from './BatchFormatInfoModal';
 
 interface BatchInputModalProps {
   isOpen: boolean;
@@ -25,10 +27,15 @@ interface BatchInputModalProps {
   setCurrentSlideIndex: (idx: number) => void;
 }
 
-interface ParsedSlideInput {
+export interface ParsedSlideInput {
   kicker?: string;
   text: string;
   subtitle?: string;
+}
+
+export interface ParseBatchResult {
+  hasPrefixSyntax: boolean;
+  slides: ParsedSlideInput[];
 }
 
 /**
@@ -36,21 +43,25 @@ interface ParsedSlideInput {
  * 1. Prefix format:
  *    :Titre ou Kicker:
  *    .Phrase principale
- *    /Sous-titre, citation ou /date d'aujourd'hui
+ *    /Sous-titre, signature ou /date d'aujourd'hui
  * 2. Standard format (1 phrase per line)
  */
-function parseBatchInputText(rawText: string): ParsedSlideInput[] {
-  const lines = rawText
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+export function parseBatchInputText(rawText: string): ParseBatchResult {
+  if (!rawText || rawText.trim().length === 0) {
+    return { hasPrefixSyntax: false, slides: [] };
+  }
 
-  if (lines.length === 0) return [];
+  const allLines = rawText.split('\n');
 
-  // Check if prefix syntax is present
-  const hasPrefixSyntax = lines.some(
-    (l) => l.startsWith('.') || l.startsWith(':') || l.startsWith('/')
-  );
+  // Check if any non-empty line starts with our special prefixes
+  const hasPrefixSyntax = allLines.some((l) => {
+    const trimmed = l.trim();
+    return (
+      trimmed.startsWith(':') ||
+      trimmed.startsWith('.') ||
+      trimmed.startsWith('/')
+    );
+  });
 
   const todayFormatted = new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',
@@ -58,64 +69,105 @@ function parseBatchInputText(rawText: string): ParsedSlideInput[] {
     year: 'numeric',
   }).format(new Date());
 
+  const resolveSubtitle = (rawSub: string): string => {
+    let sub = rawSub.replace(/^\/+/, '').trim();
+    sub = sub.replace(/\/+$/, '').trim();
+    const isDateKeyword = /^(date(\s+d['’]?aujourd['’]?hui|\s+du\s+jour|\s+actuelle)?|today|aujourd['’]?hui)$/i.test(
+      sub
+    );
+    return isDateKeyword ? todayFormatted : sub;
+  };
+
+  const resolveKicker = (rawKicker: string): string => {
+    let cleaned = rawKicker.replace(/^:+/, '').trim();
+    cleaned = cleaned.replace(/:+$/, '').trim();
+    return cleaned;
+  };
+
+  const resolveText = (rawTextLine: string): string => {
+    return rawTextLine.replace(/^\.+/, '').trim();
+  };
+
+  // If no prefix syntax is detected, fall back to simple line-by-line mode
   if (!hasPrefixSyntax) {
-    return lines.map((line) => ({
-      text: line,
-    }));
+    const nonBlankLines = allLines
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    return {
+      hasPrefixSyntax: false,
+      slides: nonBlankLines.map((line) => ({
+        text: line,
+      })),
+    };
   }
 
-  const result: ParsedSlideInput[] = [];
+  // Prefix mode: process stream of lines
+  const slides: ParsedSlideInput[] = [];
   let currentKicker: string | undefined = undefined;
   let currentText: string | undefined = undefined;
   let currentSubtitle: string | undefined = undefined;
 
-  const pushCurrent = () => {
+  const pushCurrentSlide = () => {
     if (currentText && currentText.trim().length > 0) {
-      result.push({
-        kicker: currentKicker,
+      slides.push({
+        kicker: currentKicker !== undefined ? currentKicker.trim() : undefined,
         text: currentText.trim(),
-        subtitle: currentSubtitle,
+        subtitle: currentSubtitle !== undefined ? currentSubtitle.trim() : undefined,
       });
-      currentKicker = undefined;
-      currentText = undefined;
-      currentSubtitle = undefined;
     }
+    currentKicker = undefined;
+    currentText = undefined;
+    currentSubtitle = undefined;
   };
 
-  for (const line of lines) {
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i].trim();
+
+    // Empty lines act as slide boundaries when text is already accumulated
+    if (line.length === 0) {
+      if (currentText && currentText.length > 0) {
+        pushCurrentSlide();
+      }
+      continue;
+    }
+
     if (line.startsWith(':')) {
-      // If we already had a slide with text, push it first
-      if (currentText) {
-        pushCurrent();
+      // Colon prefix denotes Title / Kicker
+      // If we already accumulated a slide text, or if this slide already has a kicker,
+      // starting a new colon line signifies the beginning of a new slide.
+      if (currentText || currentKicker !== undefined) {
+        pushCurrentSlide();
       }
-      let cleaned = line.replace(/^:+/, '').trim();
-      cleaned = cleaned.replace(/:+$/, '').trim();
-      currentKicker = cleaned;
+      currentKicker = resolveKicker(line);
     } else if (line.startsWith('.')) {
-      // A dot indicates a new phrase
-      if (currentText) {
-        pushCurrent();
+      // Dot prefix denotes the main phrase
+      // If the current slide already has a phrase, a new dot line triggers the NEXT slide.
+      if (currentText && currentText.length > 0) {
+        pushCurrentSlide();
       }
-      currentText = line.replace(/^\.+/, '').trim();
+      currentText = resolveText(line);
     } else if (line.startsWith('/')) {
-      // Slash indicates subtitle / signature / date
-      let sub = line.replace(/^\/+/, '').trim();
-      if (/^date(\s+d'aujourd'hui)?$/i.test(sub) || sub.toLowerCase() === 'today') {
-        sub = todayFormatted;
-      }
-      currentSubtitle = sub;
+      // Slash prefix denotes the subtitle / signature / date
+      currentSubtitle = resolveSubtitle(line);
     } else {
-      // Line without prefix
-      if (!currentText) {
-        currentText = line;
-      } else {
+      // Unprefixed line:
+      // If we already have a phrase, append to it (multiline support)
+      // Otherwise initialize the phrase
+      if (currentText) {
         currentText += ' ' + line;
+      } else {
+        currentText = line;
       }
     }
   }
 
-  pushCurrent();
-  return result;
+  // Push final slide in buffer
+  pushCurrentSlide();
+
+  return {
+    hasPrefixSyntax: true,
+    slides,
+  };
 }
 
 export const BatchInputModal: React.FC<BatchInputModalProps> = ({
@@ -130,19 +182,23 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
     return slides
       .map((s) => {
         const parts: string[] = [];
-        if (s.kicker) parts.push(`:${s.kicker}:`);
-        if (s.text) parts.push(`.${s.text}`);
-        if (s.subtitle) parts.push(`/${s.subtitle}`);
+        if (s.kicker && s.kicker.trim().length > 0) parts.push(`:${s.kicker.trim()}:`);
+        if (s.text && s.text.trim().length > 0) parts.push(`.${s.text.trim()}`);
+        if (s.subtitle && s.subtitle.trim().length > 0) parts.push(`/${s.subtitle.trim()}`);
         return parts.join('\n');
       })
+      .filter((block) => block.trim().length > 0)
       .join('\n\n');
   });
 
   const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'guide'>('edit');
   const [isGuideOpen, setIsGuideOpen] = useState(true);
   const [copiedSample, setCopiedSample] = useState(false);
+  const [isFormatInfoModalOpen, setIsFormatInfoModalOpen] = useState(false);
 
-  const parsedSlides = useMemo(() => parseBatchInputText(rawText), [rawText]);
+  const parseResult = useMemo(() => parseBatchInputText(rawText), [rawText]);
+  const parsedSlides = parseResult.slides;
+  const hasPrefixSyntax = parseResult.hasPrefixSyntax;
 
   if (!isOpen) return null;
 
@@ -152,17 +208,45 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
     const newSlides: SlideItem[] = parsedSlides.map((parsed, index) => {
       const existing = slides[index];
       const number = index + 1;
+
+      // Assign segments accurately to corresponding SlideItem properties:
+      // - kicker: detected from ':'
+      // - text: detected from '.'
+      // - subtitle: detected from '/'
+      const kickerValue = hasPrefixSyntax
+        ? (parsed.kicker !== undefined ? parsed.kicker.trim() : '')
+        : (existing?.kicker || `CONSEIL #0${number}`);
+
+      const textValue = parsed.text.trim();
+
+      const subtitleValue = hasPrefixSyntax
+        ? (parsed.subtitle !== undefined ? parsed.subtitle.trim() : '')
+        : (existing?.subtitle || `Épisode 0${number} · AutoPost Studio`);
+
       return {
         id: existing?.id || `slide-${Date.now()}-${index}`,
         number,
-        text: parsed.text,
-        kicker: parsed.kicker || existing?.kicker || `CONSEIL #0${number}`,
-        subtitle: parsed.subtitle || existing?.subtitle || `Épisode 0${number} · AutoPost Studio`,
+        text: textValue,
+        kicker: kickerValue,
+        subtitle: subtitleValue,
         imageUrl: existing?.imageUrl || slides[0]?.imageUrl || '',
+        imageAlt: existing?.imageAlt,
         imageZoom: existing?.imageZoom ?? 1,
+        imagePanX: existing?.imagePanX,
+        imagePanY: existing?.imagePanY,
         imageBrightness: existing?.imageBrightness ?? 100,
         customOverlayOpacity: existing?.customOverlayOpacity ?? 0.45,
         scheduledTime: existing?.scheduledTime,
+        customTextX: existing?.customTextX,
+        customTextY: existing?.customTextY,
+        customTextScale: existing?.customTextScale,
+        customKickerScale: existing?.customKickerScale,
+        customSubtitleScale: existing?.customSubtitleScale,
+        customBlur: existing?.customBlur,
+        customFilter: existing?.customFilter,
+        customOverlayImage: existing?.customOverlayImage,
+        customDirection: existing?.customDirection,
+        customAlign: existing?.customAlign,
       };
     });
 
@@ -261,12 +345,23 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-neutral-400 hover:text-white rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFormatInfoModalOpen(true)}
+              className="px-2.5 py-1 text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+              title="Ouvrir le guide complet du format requis (:Titre, .Phrase, /Signature ou Date)"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Format requis</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 text-neutral-400 hover:text-white rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Syntax Quick Helper Bar */}
@@ -282,6 +377,15 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
             <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono">
               <strong>/Signature ou /date</strong>
             </span>
+            <button
+              type="button"
+              onClick={() => setIsFormatInfoModalOpen(true)}
+              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium underline flex items-center gap-1 ml-1"
+              title="Explications détaillées du format"
+            >
+              <Info className="w-3 h-3" />
+              <span>Comment ça marche ?</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -359,9 +463,17 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
               </button>
             </div>
 
-            <span className="text-[11px] font-mono text-neutral-400">
-              {parsedSlides.length} diapo{parsedSlides.length > 1 ? 's' : ''} prête{parsedSlides.length > 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-2">
+              {hasPrefixSyntax && (
+                <span className="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <span>Préfixes détectés (: . /)</span>
+                </span>
+              )}
+              <span className="text-[11px] font-mono text-neutral-400">
+                {parsedSlides.length} diapo{parsedSlides.length > 1 ? 's' : ''} prête{parsedSlides.length > 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
 
           {/* TAB 1: TEXT EDITOR */}
@@ -444,6 +556,20 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
                           /date d'aujourd'hui
                         </div>
                       </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between pt-1 border-t border-neutral-800/80 gap-2">
+                      <span className="text-[10.5px] text-neutral-400">
+                        Besoin d'exemples détaillés et d'une démonstration visuelle ?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsFormatInfoModalOpen(true)}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 hover:underline"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Ouvrir la fiche d'aide détaillée</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -695,6 +821,17 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal d'information sur le format requis */}
+      <BatchFormatInfoModal
+        isOpen={isFormatInfoModalOpen}
+        onClose={() => setIsFormatInfoModalOpen(false)}
+        onInsertSample={() => {
+          handleInsertUserSample();
+          setIsFormatInfoModalOpen(false);
+        }}
+        onCopyTemplate={handleCopyTemplate}
+      />
     </div>
   );
 };
