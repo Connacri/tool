@@ -21,6 +21,9 @@ android/.idea/
 
 # Keystore de signature Play Store — JAMAIS commité (mot de passe + clé
 # privée irremplaçable). Voir android/KEYSTORE_README.md pour la procédure.
+# Règles globales : un .keystore déposé à la racine par un build local ou
+# par un script de release ne doit jamais être rattrapé par git.
+keystore.properties
+*.keystore
+*.jks
 android/keystore.properties
-android/*.keystore
-android/*.jks
