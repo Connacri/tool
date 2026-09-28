@@ -4,7 +4,26 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "android/**",
+      "android-project/**",
+      "assets/**",
+      "dist/**",
+      "scripts/**",
+      "src/**",
+      "**/*.sh",
+      "**/gradlew",
+      "**/gradlew.bat",
+      "**/*.keystore",
+      "**/*.jks",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "vite.config.ts",
+      "capacitor.config.json",
+      "server.ts",
+      "*.md",
+      "**/*.md"
     ],
     "rewrites": [
       {

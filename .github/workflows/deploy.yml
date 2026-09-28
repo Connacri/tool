@@ -34,7 +34,7 @@ jobs:
           cache: 'npm'
 
       - name: Installer les dépendances
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Compiler le site web pour GitHub Pages
         run: npm run build
@@ -82,7 +82,7 @@ jobs:
           cache: 'npm'
 
       - name: Installer les dépendances
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Compiler l'application web pour Android (chemins relatifs)
         run: npm run build:mobile
