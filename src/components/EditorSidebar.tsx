@@ -199,17 +199,37 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     setTimeout(() => setAppliedAllNotice(null), 4000);
   };
 
-  // Apply complete layout: alignement, orientation, position X/Y & tailles des textes
+  // Apply complete layout: alignement, orientation RTL/LTR, position X/Y & tailles des textes
   const handleApplyAllFormattingToAllSlides = (
-    align: TextAlign,
-    dir: TextDirectionType,
-    kickerAlign: TextAlign | 'inherit',
+    align?: TextAlign,
+    dir?: TextDirectionType,
+    kickerAlign?: TextAlign | 'inherit',
     posX?: number,
     posY?: number,
     textScale?: number,
     kickerScale?: number,
     subtitleScale?: number
   ) => {
+    const targetAlign =
+      align ??
+      activeSlide.customAlign ??
+      (typography.phraseAlign && typography.phraseAlign !== 'inherit'
+        ? typography.phraseAlign
+        : typography.align) ??
+      'left';
+
+    const targetDir =
+      dir ??
+      activeSlide.customDirection ??
+      typography.direction ??
+      'auto';
+
+    const targetKickerAlign =
+      kickerAlign ??
+      activeSlide.customKickerAlign ??
+      typography.kickerAlign ??
+      'inherit';
+
     const targetX = posX ?? activeSlide.customTextX ?? typography.freePositionX ?? 50;
     const targetY = posY ?? activeSlide.customTextY ?? typography.freePositionY ?? 75;
     const targetScale = textScale ?? activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
@@ -219,9 +239,9 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     setSlides((prev) =>
       prev.map((s) => ({
         ...s,
-        customAlign: align,
-        customDirection: dir,
-        customKickerAlign: kickerAlign,
+        customAlign: targetAlign,
+        customDirection: targetDir,
+        customKickerAlign: targetKickerAlign,
         customTextX: targetX,
         customTextY: targetY,
         customTextScale: targetScale,
@@ -232,10 +252,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
     setTypography((prev) => ({
       ...prev,
-      align,
-      phraseAlign: align,
-      direction: dir,
-      kickerAlign,
+      align: targetAlign,
+      phraseAlign: targetAlign,
+      direction: targetDir,
+      kickerAlign: targetKickerAlign,
       position: 'free',
       freePositionX: targetX,
       freePositionY: targetY,
@@ -244,10 +264,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
       subtitleSize: targetSubScale,
     }));
 
-    const alignLabel = align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite';
-    const dirLabel = dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    const alignLabel = targetAlign === 'left' ? 'Gauche' : targetAlign === 'center' ? 'Centré' : 'Droite';
+    const dirLabel = targetDir === 'rtl' ? 'RTL (Arabe)' : targetDir === 'ltr' ? 'LTR (Français)' : 'Auto';
     setAppliedAllNotice(
-      `✨ Alignement (${alignLabel}), orientation (${dirLabel}), position (${targetX}%, ${targetY}%) & tailles appliqués à l'ensemble des ${slides.length} images !`
+      `✨ Orientation RTL/LTR (${dirLabel}), alignement (${alignLabel}), position (${targetX}%, ${targetY}%) & tailles appliqués à l'ensemble des ${slides.length} images !`
     );
     setTimeout(() => setAppliedAllNotice(null), 4500);
   };
@@ -930,15 +950,15 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                           </span>
                         </div>
 
-                        {/* Master Apply to All button: Alignement, Orientation, Position & Tailles */}
+                        {/* Master Apply to All button: Alignement, Orientation RTL/LTR, Position & Tailles */}
                         <button
                           type="button"
                           onClick={() => handleApplyAllFormattingToAllSlides(effectiveAlign, currentDirSetting, currentKickerSetting)}
                           className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
-                          title="Propager l'alignement, le sens de lecture, la position et les dimensions de cette image sur toutes les autres"
+                          title="Propager l'orientation RTL/LTR, l'alignement, la position et les dimensions de cette image sur toutes les autres"
                         >
                           <Copy className="w-3.5 h-3.5 shrink-0" />
-                          <span>Appliquer à TOUT (Alignement, Orientation, Position & Tailles)</span>
+                          <span>Appliquer à TOUT (Orientation RTL/LTR, Alignement, Position & Tailles)</span>
                         </button>
 
                         {/* Individual shortcuts grid */}
@@ -957,7 +977,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                             className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
                             title={`Appliquer uniquement l'orientation (${dirLabel}) à toutes les images`}
                           >
-                            Sens seul ({dirLabel})
+                            Orientation RTL/LTR ({dirLabel})
                           </button>
                           <button
                             type="button"
@@ -3053,6 +3073,15 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => handleApplyDirectionToAll(typography.direction || 'auto')}
+                  className="w-full mt-2 py-1.5 px-2 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  title="Appliquer cette orientation (RTL / LTR / Auto) à l'ensemble des images"
+                >
+                  <Copy className="w-3 h-3 text-indigo-400" />
+                  <span>Appliquer l&apos;orientation ({typography.direction === 'rtl' ? 'RTL Arabe' : typography.direction === 'ltr' ? 'LTR Français' : 'Auto'}) à tout</span>
+                </button>
               </div>
 
               {/* Number Format: Western (1, 2, 3 ordered LTR) vs Eastern Arabic (١، ٢، ٣) */}
@@ -3342,22 +3371,62 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   type="button"
                   onClick={() =>
                     handleApplyAllFormattingToAllSlides(
-                      (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align) as TextAlign,
-                      typography.direction || 'auto',
-                      typography.kickerAlign || 'inherit',
-                      typography.freePositionX,
-                      typography.freePositionY,
-                      typography.fontSize,
-                      typography.kickerSize,
-                      typography.subtitleSize
+                      (activeSlide.customAlign || (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align)) as TextAlign,
+                      activeSlide.customDirection || typography.direction || 'auto',
+                      activeSlide.customKickerAlign || typography.kickerAlign || 'inherit',
+                      activeSlide.customTextX ?? typography.freePositionX,
+                      activeSlide.customTextY ?? typography.freePositionY,
+                      activeSlide.customTextScale ?? typography.fontSize,
+                      activeSlide.customKickerScale ?? typography.kickerSize,
+                      activeSlide.customSubtitleScale ?? typography.subtitleSize
                     )
                   }
                   className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
-                  title="Propager l'alignement, l'orientation, la position et les dimensions de cette image sur toutes les autres"
+                  title="Propager l'orientation RTL/LTR, l'alignement, la position et les dimensions sur toutes les images"
                 >
                   <Copy className="w-3.5 h-3.5 shrink-0" />
-                  <span>Appliquer à TOUT (Alignement, Orientation, Position & Tailles)</span>
+                  <span>Appliquer à TOUT (Orientation RTL/LTR, Alignement, Position & Tailles)</span>
                 </button>
+
+                {/* Quick individual propagate buttons */}
+                <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleApplyAlignToAll(
+                        (activeSlide.customAlign || (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align)) as TextAlign
+                      )
+                    }
+                    className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                    title="Appliquer uniquement l'alignement actuel à toutes les images"
+                  >
+                    Alignement seul
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDirectionToAll(activeSlide.customDirection || typography.direction || 'auto')}
+                    className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                    title="Appliquer uniquement l'orientation RTL/LTR actuelle à toutes les images"
+                  >
+                    Orientation RTL/LTR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPositionToAll()}
+                    className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                    title="Appliquer uniquement la position X/Y à toutes les images"
+                  >
+                    Position seule (X/Y)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplySizesToAll()}
+                    className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                    title="Appliquer uniquement les tailles des textes à toutes les images"
+                  >
+                    Tailles seules
+                  </button>
+                </div>
 
                 <div className="flex items-center gap-2">
                   <button
