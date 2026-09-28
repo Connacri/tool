@@ -72,7 +72,7 @@ jobs:
     name: 📱 Build Android (APK & AAB)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Cloner le dépôt
         uses: actions/checkout@v4
@@ -198,3 +198,33 @@ jobs:
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 90
+
+      # ==============================================================
+      # Les artefacts Actions expirent au bout de 90 jours. Les pièces
+      # jointes d'une GitHub Release, elles, ne expirent jamais : c'est le
+      # seul endroit où conserver durablement l'APK et l'AAB signés.
+      - name: Publier une GitHub Release (APK + AAB)
+        uses: softprops/action-gh-release@v2
+        with:
+          # Tag horodaté : un nouveau par build, jamais de collision, et
+          # l'ordre alphabétique des tags suit l'ordre chronologique.
+          tag_name: build-${{ github.run_number }}-${{ github.sha }}
+          name: Build ${{ github.run_number }} (${{ github.sha }})
+          commit: ${{ github.sha }}
+          # Pas de "latest" : on fige un historique de versions, ce qui
+          # simplifie la comparaison et le retour arrière.
+          prerelease: false
+          # Ne pas échouer le build si la publication de la release échoue :
+          # les artefacts restent récupérables depuis la page du run.
+          fail_on_unmatched_files: false
+          body: |
+            Build automatique depuis le commit `${{ github.sha }}`.
+
+            - `app-release.apk` : APK release signé, pour installation directe (sideloading).
+            - `app-release.aab` : Android App Bundle signé, **c'est ce fichier qu'on uploader sur le Play Store**.
+
+            Installation manuelle : Android refuse de remplacer une app déjà installée
+            si la clé de signature change. Désinstaller l'ancienne version avant.
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
