@@ -108,7 +108,38 @@ Si tu actives plus tard le SDK Analytics natif pour Android, cette section
 et le formulaire « Sécurité des données » de la Play Console doivent être
 mis à jour.]
 
-## 6. Permissions demandées par l'Application
+## 6. Publicités (Google AdSense)
+
+La version web de l'Application affiche des publicités grâce à
+[Google AdSense](https://www.google.com/adsense/start/).
+
+Google et ses annonceurs utilisent des cookies et d'autres identifiants
+(appareil, adresse IP) pour servir des annonces, mesurer leurs performances
+et, si vous y avez consenti, vous proposer des annonces adaptées à vos
+centres d'intérêt. Aucun de ces contenus publicitaires ne modifie le prix :
+l'Application reste entièrement gratuite.
+
+Vous pouvez gérer ou désactiver les annonces personnalisées ici :
+[Paramètres des annonces Google](https://www.google.com/settings/ads).
+Pour des réglages plus fins, voir
+[aboutads.info](https://www.aboutads.info/choices/) ou
+[Google Privacy & Terms](https://policies.google.com/technologies/partner-sites).
+Le désactivation via un bloqueur ou le refus des cookies tiers empêche
+également l'affichage des annonces.
+
+Dans l'espace économique européen, au Royaume-Uni et en Suisse, la diffusion
+d'annonces dépend d'un consentement préalable obtenu via un bandeau.
+
+[À CONFIRMER — dépend de tes réglages dans la console AdSense :
+  - si tu as activé les annonces personnalisées, mentionne-le explicitement
+    et ajoute le lien de désactivation ci-dessus dans le bandeau ;
+  - si tu n'as pas installé de bandeau de consentement, AdSense peut limiter
+    ou bloquer la diffusion dans l'EEE, et Google peut refuser l'approbation
+    du site ;
+  - le "numéro de éditeur" et l'adresse du site doivent être renseignés dans
+    les paramètres AdSense avant toute demande de paiement.]
+
+## 7. Permissions demandées par l'Application
 
 - **Accès à Internet** : nécessaire pour les fonctionnalités de
   génération par IA, le chargement des polices, et l'envoi vers un
@@ -119,12 +150,14 @@ mis à jour.]
   partie d'un contenu que vous exportez ou transmettez vous-même via la
   fonction de webhook.
 
-## 7. Ce que nous ne faisons PAS
+## 8. Ce que nous ne faisons PAS
 
 - Nous ne vendons ni ne partageons vos données avec des tiers à des fins
   publicitaires.
-- Nous n'affichons pas de publicités dans l'Application [À CONFIRMER —
-  ajuste cette section si tu ajoutes de la publicité ou des achats intégrés].
+- Nous n'affichons pas de publicités dans l'Application Android. La version
+  web, elle, affiche des annonces Google AdSense décrites en section 6 :
+  nous n'y avons accès à aucun résultat personnel, nous ne choisissons pas
+  les annonceurs et nous n'en tirons aucun revenu direct.
 - Nous ne suivons pas votre activité en dehors de l'Application.
 - Nous ne collectons pas d'identifiants publicitaires, de données de
   géolocalisation précise, ni de données de contacts.
@@ -132,12 +165,12 @@ mis à jour.]
   n'identifie pas les personnes et ne sert pas à diffuser de publicité
   ciblée.
 
-## 8. Enfants
+## 9. Enfants
 
 L'Application n'est pas spécifiquement conçue pour les enfants de moins de
 13 ans et ne collecte sciemment aucune donnée personnelle les concernant.
 
-## 9. Vos droits
+## 10. Vos droits
 
 Puisque vos données sont stockées localement sur votre appareil et non sur
 nos serveurs, vous en gardez la maîtrise complète : vous pouvez les
@@ -147,7 +180,7 @@ l'Application ou via les réglages de votre appareil.
 Pour toute question concernant cette politique, vous pouvez nous contacter
 à : **[À COMPLÉTER — ton adresse e-mail de contact professionnel]**
 
-## 10. Modifications de cette politique
+## 11. Modifications de cette politique
 
 Nous pouvons mettre à jour cette politique de confidentialité si les
 fonctionnalités de l'Application évoluent. La date de dernière mise à jour

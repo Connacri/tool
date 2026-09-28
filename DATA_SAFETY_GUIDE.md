@@ -99,8 +99,27 @@ professionnel/créatif).
 
 ## Déclaration sur les annonces (Ads)
 
-Le code actuel ne contient aucun SDK publicitaire (AdMob ou autre) → réponds
-**"Non, mon app ne contient pas d'annonces"**, sauf si tu comptes en ajouter
-prochainement, auquel cas attends de les avoir intégrées pour remplir cette
-section (une réponse "non" alors que l'app contient des pubs peut entraîner
-un rejet ou une suspension).
+**L'app contient bien des publicités** → réponds **"Oui, mon app contient des
+annonces"**. Ne réponds surtout pas "non" : l'écart entre la déclaration et le
+contenu réel entraîne un rejet, voire une suspension du compte développeur.
+
+Ne pas confondre les deux plateformes :
+
+| Plateforme | Publicités | Déclaration Play Console |
+|---|---|---|
+| Application Android | AdMob, intégré via `src/services/adService.ts` et les identifiants `VITE_ADMOB_*` | Case « Publicités » → **Oui** |
+| Version web | Google AdSense, snippet `ca-pub-2282149611905342` dans `index.html` | Hors périmètre Play Store |
+
+Points à vérifier avant de remplir :
+
+- Par défaut, `.env.example` utilise les **identifiants de test** Google
+  (`ca-app-pub-3940256099942544`). Ils ne génèrent aucun revenu et ne
+  sont pas autorisés en production : renseigne les identifiants réels.
+- Si les annonces **personnalisées** sont activées dans la console AdMob,
+  Google impose de déclarer l'identifiant publicitaire dans la catégorie
+  « Identifiants » du formulaire.
+- Pour l'EEE, le Royaume-Uni et la Suisse, Google exige un bandeau de
+  consentement (UMP) sous peine de limiter la diffusion. C'est aussi une
+  obligation RGPD indépendante de Google.
+- La politique de confidentialité doit décrire ces annonces : c'est fait
+  dans `PRIVACY_POLICY_DRAFT.md`, section 6.
