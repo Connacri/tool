@@ -42,6 +42,7 @@ jobs:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
           VITE_ADMOB_APP_ID: ${{ vars.VITE_ADMOB_APP_ID || secrets.VITE_ADMOB_APP_ID }}
           VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
+          VITE_ADMOB_REWARDED_ID: ${{ vars.VITE_ADMOB_REWARDED_ID || secrets.VITE_ADMOB_REWARDED_ID }}
           VITE_ADSENSE_CLIENT_ID: ${{ vars.VITE_ADSENSE_CLIENT_ID || secrets.VITE_ADSENSE_CLIENT_ID }}
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY || secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -98,6 +99,7 @@ jobs:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
           VITE_ADMOB_APP_ID: ${{ vars.VITE_ADMOB_APP_ID || secrets.VITE_ADMOB_APP_ID }}
           VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
+          VITE_ADMOB_REWARDED_ID: ${{ vars.VITE_ADMOB_REWARDED_ID || secrets.VITE_ADMOB_REWARDED_ID }}
           VITE_ADSENSE_CLIENT_ID: ${{ vars.VITE_ADSENSE_CLIENT_ID || secrets.VITE_ADSENSE_CLIENT_ID }}
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY || secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -187,7 +189,7 @@ jobs:
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
       - name: Téléverser le bundle AAB (Google Play Store)
         uses: actions/upload-artifact@v4
@@ -195,4 +197,4 @@ jobs:
           name: AutoPost-Studio-AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90

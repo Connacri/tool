@@ -29,13 +29,17 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Google AdMob Application ID (ID officiel de test Google, à remplacer par le vôtre en production) -->
+        <!-- Google AdMob Application ID (ID officiel de l'app AutoPost Studio,
+             declare dans la console AdMob pour le package com.autopost.studio) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2282149611905342~8127093911"/>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Obligatoire depuis targetSdk 33 : sans elle, le SDK Google Mobile Ads
+         echoue au chargement des annonces sur Android 13 et superieurs. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 </manifest>
