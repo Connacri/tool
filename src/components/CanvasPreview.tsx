@@ -30,6 +30,9 @@ import {
   Check,
   Copy,
   CheckCircle2,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import {
   AspectRatioOption,
@@ -39,6 +42,7 @@ import {
   OverlayImageConfig,
   SlideItem,
   TextAlign,
+  TextDirectionType,
   TypographyConfig,
   WatermarkConfig,
 } from '../types';
@@ -261,7 +265,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     const targetScale = activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
     const targetKScale = activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
     const targetSubScale = activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
-    const targetAlign = activeSlide.customAlign ?? typography.align ?? 'left';
+    const targetAlign = activeSlide.customAlign ?? (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align) ?? 'left';
     const targetKickerAlign = activeSlide.customKickerAlign ?? typography.kickerAlign ?? 'inherit';
     const targetDir = activeSlide.customDirection ?? typography.direction ?? 'auto';
 
@@ -295,8 +299,99 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
       }));
     }
 
-    setCanvasNotice(`✨ Alignement, orientation, position (${targetX}%, ${targetY}%) & tailles appliqués à toutes les ${slides.length} images !`);
-    setTimeout(() => setCanvasNotice(null), 3500);
+    const alignLabel = targetAlign === 'left' ? 'Gauche' : targetAlign === 'center' ? 'Centré' : 'Droite';
+    const dirLabel = targetDir === 'rtl' ? 'RTL (Arabe)' : targetDir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    setCanvasNotice(`✨ Orientation RTL/LTR (${dirLabel}), alignement (${alignLabel}), position (${targetX}%, ${targetY}%) & tailles appliqués à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 4000);
+  };
+
+  const handleApplyDirectionToAllSlides = (dir?: TextDirectionType) => {
+    if (!setSlides) return;
+    const targetDir = dir ?? activeSlide.customDirection ?? typography.direction ?? 'auto';
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customDirection: targetDir,
+      }))
+    );
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        direction: targetDir,
+      }));
+    }
+    const dirLabel = targetDir === 'rtl' ? 'RTL (Arabe)' : targetDir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    setCanvasNotice(`Orientation RTL/LTR (${dirLabel}) appliquée à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3000);
+  };
+
+  const handleApplyAlignToAllSlides = (align?: TextAlign) => {
+    if (!setSlides) return;
+    const targetAlign = align ?? activeSlide.customAlign ?? (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align) ?? 'left';
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: targetAlign,
+      }))
+    );
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        align: targetAlign,
+        phraseAlign: targetAlign,
+      }));
+    }
+    const alignLabel = targetAlign === 'left' ? 'Gauche' : targetAlign === 'center' ? 'Centré' : 'Droite';
+    setCanvasNotice(`Alignement (${alignLabel}) appliqué à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3000);
+  };
+
+  const handleApplyPositionToAllSlides = () => {
+    if (!setSlides) return;
+    const targetX = activeSlide.customTextX ?? typography.freePositionX ?? 50;
+    const targetY = activeSlide.customTextY ?? typography.freePositionY ?? 75;
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customTextX: targetX,
+        customTextY: targetY,
+      }))
+    );
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        position: 'free',
+        freePositionX: targetX,
+        freePositionY: targetY,
+      }));
+    }
+    setCanvasNotice(`Position (${targetX}%, ${targetY}%) appliquée à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3000);
+  };
+
+  const handleApplySizesToAllSlides = () => {
+    if (!setSlides) return;
+    const targetScale = activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
+    const targetKScale = activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
+    const targetSubScale = activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customTextScale: targetScale,
+        customKickerScale: targetKScale,
+        customSubtitleScale: targetSubScale,
+      }))
+    );
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        fontSize: targetScale,
+        kickerSize: targetKScale,
+        subtitleSize: targetSubScale,
+      }));
+    }
+    setCanvasNotice(`Tailles des textes appliquées à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3000);
   };
 
   const handleResetAllTextFormatting = () => {
@@ -1060,6 +1155,71 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                   </button>
                 </div>
 
+                {/* Orientation RTL/LTR & Alignement */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+                    <span className="block text-[10px] text-neutral-400 mb-1">Orientation (RTL / LTR)</span>
+                    <div className="flex bg-neutral-900 p-0.5 rounded border border-neutral-800 text-[10.5px]">
+                      {[
+                        { id: 'auto', label: 'Auto' },
+                        { id: 'rtl', label: 'RTL (Arabe)' },
+                        { id: 'ltr', label: 'LTR' },
+                      ].map((dir) => {
+                        const isDirActive = (activeSlide.customDirection || typography.direction || 'auto') === dir.id;
+                        return (
+                          <button
+                            key={dir.id}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({ customDirection: dir.id as any });
+                              if (setTypography) setTypography((prev) => ({ ...prev, direction: dir.id as any }));
+                            }}
+                            className={`flex-1 py-1 rounded transition-colors ${
+                              isDirActive
+                                ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                                : 'text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {dir.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+                    <span className="block text-[10px] text-neutral-400 mb-1">Alignement</span>
+                    <div className="flex bg-neutral-900 p-0.5 rounded border border-neutral-800">
+                      {[
+                        { id: 'left', icon: AlignLeft, label: 'Gauche' },
+                        { id: 'center', icon: AlignCenter, label: 'Centré' },
+                        { id: 'right', icon: AlignRight, label: 'Droite' },
+                      ].map((al) => {
+                        const Icon = al.icon;
+                        const isAlignActive = (activeSlide.customAlign || (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align) || 'left') === al.id;
+                        return (
+                          <button
+                            key={al.id}
+                            type="button"
+                            onClick={() => {
+                              updateActiveSlide({ customAlign: al.id as any });
+                              if (setTypography) setTypography((prev) => ({ ...prev, align: al.id as any, phraseAlign: al.id as any }));
+                            }}
+                            className={`flex-1 py-1 flex items-center justify-center rounded transition-colors ${
+                              isAlignActive
+                                ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                                : 'text-neutral-400 hover:text-white'
+                            }`}
+                            title={al.label}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   {/* Phrase Size */}
                   <div className="bg-neutral-950 p-2 rounded-lg border border-neutral-800">
@@ -1164,11 +1324,47 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                     type="button"
                     onClick={handleApplyTextFormattingToAllSlides}
                     className="w-full py-2 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
-                    title="Propager l'alignement, le sens de lecture, la position et les dimensions de cette image sur toutes les autres"
+                    title="Propager l'orientation RTL/LTR, l'alignement, la position et les dimensions de cette image sur toutes les autres"
                   >
                     <Copy className="w-3.5 h-3.5 shrink-0" />
-                    <span>Appliquer à TOUT (Alignement, Position & Tailles)</span>
+                    <span>Appliquer à TOUT (Orientation RTL/LTR, Alignement, Position & Tailles)</span>
                   </button>
+
+                  {/* Individual shortcuts grid */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyAlignToAllSlides()}
+                      className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                      title="Appliquer uniquement l'alignement actuel à toutes les images"
+                    >
+                      Alignement seul
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDirectionToAllSlides()}
+                      className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                      title="Appliquer uniquement l'orientation RTL/LTR actuelle à toutes les images"
+                    >
+                      Orientation RTL/LTR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPositionToAllSlides()}
+                      className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                      title="Appliquer uniquement la position X/Y à toutes les images"
+                    >
+                      Position seule (X/Y)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplySizesToAllSlides()}
+                      className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                      title="Appliquer uniquement les tailles des textes à toutes les images"
+                    >
+                      Tailles seules
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <button
