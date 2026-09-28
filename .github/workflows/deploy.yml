@@ -38,6 +38,11 @@ jobs:
 
       - name: Compiler le site web pour GitHub Pages
         run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
+          VITE_ADMOB_APP_ID: ${{ vars.VITE_ADMOB_APP_ID || secrets.VITE_ADMOB_APP_ID }}
+          VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
+          VITE_ADSENSE_CLIENT_ID: ${{ vars.VITE_ADSENSE_CLIENT_ID || secrets.VITE_ADSENSE_CLIENT_ID }}
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5
@@ -81,6 +86,10 @@ jobs:
 
       - name: Compiler l'application web pour Android (chemins relatifs)
         run: npm run build:mobile
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
+          VITE_ADMOB_APP_ID: ${{ vars.VITE_ADMOB_APP_ID || secrets.VITE_ADMOB_APP_ID }}
+          VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
 
       - name: Synchroniser Capacitor avec le projet Android
         run: npx cap sync android
