@@ -7,6 +7,7 @@ coverage/
 .env*
 !.env.example
 
+
 # Android / Capacitor — le dossier android/ lui-même EST versionné (il contient
 # les personnalisations natives : icônes, manifeste, config Gradle), mais pas
 # ses artefacts générés à chaque build ni les secrets de signature.
