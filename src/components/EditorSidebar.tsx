@@ -138,6 +138,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   const [overlayUrlInput, setOverlayUrlInput] = useState('');
   const [brandingSubTab, setBrandingSubTab] = useState<'logo' | 'watermark'>('logo');
   const [appliedAllNotice, setAppliedAllNotice] = useState<string | null>(null);
+  const [confirmResetAll, setConfirmResetAll] = useState<boolean>(false);
 
   const handleApplyAlignToAll = (align: TextAlign) => {
     setSlides((prev) =>
@@ -195,6 +196,156 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     const alignLabel = align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite';
     const dirLabel = dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto';
     setAppliedAllNotice(`✨ Alignement (${alignLabel}) & Direction (${dirLabel}) appliqués à toutes les diapos (${slides.length}) !`);
+    setTimeout(() => setAppliedAllNotice(null), 4000);
+  };
+
+  // Apply complete layout: alignement, orientation, position X/Y & tailles des textes
+  const handleApplyAllFormattingToAllSlides = (
+    align: TextAlign,
+    dir: TextDirectionType,
+    kickerAlign: TextAlign | 'inherit',
+    posX?: number,
+    posY?: number,
+    textScale?: number,
+    kickerScale?: number,
+    subtitleScale?: number
+  ) => {
+    const targetX = posX ?? activeSlide.customTextX ?? typography.freePositionX ?? 50;
+    const targetY = posY ?? activeSlide.customTextY ?? typography.freePositionY ?? 75;
+    const targetScale = textScale ?? activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
+    const targetKScale = kickerScale ?? activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
+    const targetSubScale = subtitleScale ?? activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: align,
+        customDirection: dir,
+        customKickerAlign: kickerAlign,
+        customTextX: targetX,
+        customTextY: targetY,
+        customTextScale: targetScale,
+        customKickerScale: targetKScale,
+        customSubtitleScale: targetSubScale,
+      }))
+    );
+
+    setTypography((prev) => ({
+      ...prev,
+      align,
+      phraseAlign: align,
+      direction: dir,
+      kickerAlign,
+      position: 'free',
+      freePositionX: targetX,
+      freePositionY: targetY,
+      fontSize: targetScale,
+      kickerSize: targetKScale,
+      subtitleSize: targetSubScale,
+    }));
+
+    const alignLabel = align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite';
+    const dirLabel = dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    setAppliedAllNotice(
+      `✨ Alignement (${alignLabel}), orientation (${dirLabel}), position (${targetX}%, ${targetY}%) & tailles appliqués à l'ensemble des ${slides.length} images !`
+    );
+    setTimeout(() => setAppliedAllNotice(null), 4500);
+  };
+
+  const handleApplyPositionToAll = (posX?: number, posY?: number) => {
+    const targetX = posX ?? activeSlide.customTextX ?? typography.freePositionX ?? 50;
+    const targetY = posY ?? activeSlide.customTextY ?? typography.freePositionY ?? 75;
+
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customTextX: targetX,
+        customTextY: targetY,
+      }))
+    );
+
+    setTypography((prev) => ({
+      ...prev,
+      position: 'free',
+      freePositionX: targetX,
+      freePositionY: targetY,
+    }));
+
+    setAppliedAllNotice(`Position (X: ${targetX}%, Y: ${targetY}%) appliquée à toutes les ${slides.length} images !`);
+    setTimeout(() => setAppliedAllNotice(null), 3500);
+  };
+
+  const handleApplySizesToAll = (textScale?: number, kickerScale?: number, subtitleScale?: number) => {
+    const targetScale = textScale ?? activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
+    const targetKScale = kickerScale ?? activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
+    const targetSubScale = subtitleScale ?? activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customTextScale: targetScale,
+        customKickerScale: targetKScale,
+        customSubtitleScale: targetSubScale,
+      }))
+    );
+
+    setTypography((prev) => ({
+      ...prev,
+      fontSize: targetScale,
+      kickerSize: targetKScale,
+      subtitleSize: targetSubScale,
+    }));
+
+    setAppliedAllNotice(
+      `Tailles des textes (Phrase: ${Math.round(targetScale * 100)}%, Titre: ${Math.round(targetKScale * 100)}%) appliquées à toutes les ${slides.length} images !`
+    );
+    setTimeout(() => setAppliedAllNotice(null), 3500);
+  };
+
+  const handleResetCurrentSlideFormatting = () => {
+    updateActiveSlide({
+      customAlign: undefined,
+      customKickerAlign: undefined,
+      customDirection: undefined,
+      customTextX: 50,
+      customTextY: 75,
+      customTextScale: 1.1,
+      customKickerScale: 1.0,
+      customSubtitleScale: 1.0,
+    });
+    setAppliedAllNotice(`Image #${activeSlide.number} : Alignement, orientation, position et tailles réinitialisés.`);
+    setTimeout(() => setAppliedAllNotice(null), 3000);
+  };
+
+  const handleResetAllSlidesFormatting = () => {
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: undefined,
+        customKickerAlign: undefined,
+        customDirection: undefined,
+        customTextX: 50,
+        customTextY: 75,
+        customTextScale: 1.1,
+        customKickerScale: 1.0,
+        customSubtitleScale: 1.0,
+      }))
+    );
+    setTypography((prev) => ({
+      ...prev,
+      align: 'left',
+      phraseAlign: undefined,
+      kickerAlign: 'inherit',
+      direction: 'auto',
+      position: 'bottom',
+      freePositionX: 50,
+      freePositionY: 75,
+      fontSize: 1.1,
+      kickerSize: 1.0,
+      subtitleSize: 1.0,
+    }));
+    setConfirmResetAll(false);
+    setAppliedAllNotice(`🔄 Alignement, orientation, position et tailles réinitialisés sur l'ensemble des ${slides.length} images !`);
     setTimeout(() => setAppliedAllNotice(null), 4000);
   };
 
@@ -767,46 +918,107 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                         </div>
                       </div>
 
-                      {/* 4. ACTIONS "APPLIQUER À TOUT" (Apply to all slides) */}
-                      <div className="p-2.5 rounded-xl bg-neutral-950/90 border border-neutral-800 space-y-2">
+                      {/* 4. ACTIONS "APPLIQUER À TOUT" & RÉINITIALISATION */}
+                      <div className="p-3 rounded-xl bg-neutral-950/95 border border-neutral-800 space-y-2.5 shadow-md">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold text-neutral-300 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-amber-400" />
-                            <span>Appliquer à toutes les diapos</span>
+                          <span className="text-[11px] font-semibold text-neutral-200 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Mise en Page Globale & Propagation</span>
                           </span>
-                          <span className="text-[9.5px] text-neutral-500 font-mono">
-                            {slides.length} diapos
+                          <span className="text-[10px] text-indigo-400 font-mono font-medium">
+                            {slides.length} images
                           </span>
                         </div>
 
-                        {/* Master Apply to All button */}
+                        {/* Master Apply to All button: Alignement, Orientation, Position & Tailles */}
                         <button
                           type="button"
-                          onClick={() => handleApplyAllToAll(effectiveAlign, currentDirSetting, currentKickerSetting)}
-                          className="w-full py-2 px-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                          onClick={() => handleApplyAllFormattingToAllSlides(effectiveAlign, currentDirSetting, currentKickerSetting)}
+                          className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                          title="Propager l'alignement, le sens de lecture, la position et les dimensions de cette image sur toutes les autres"
                         >
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Appliquer alignement & direction à tout ({slides.length})</span>
+                          <Copy className="w-3.5 h-3.5 shrink-0" />
+                          <span>Appliquer à TOUT (Alignement, Orientation, Position & Tailles)</span>
                         </button>
 
-                        {/* Individual shortcuts */}
-                        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                        {/* Individual shortcuts grid */}
+                        <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
                           <button
                             type="button"
                             onClick={() => handleApplyAlignToAll(effectiveAlign)}
-                            className="py-1 px-2 text-[10px] text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
-                            title={`Appliquer uniquement l'alignement ${alignLabel} à toutes les diapos`}
+                            className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title={`Appliquer uniquement l'alignement (${alignLabel}) à toutes les images`}
                           >
                             Alignement seul ({alignLabel})
                           </button>
                           <button
                             type="button"
                             onClick={() => handleApplyDirectionToAll(currentDirSetting)}
-                            className="py-1 px-2 text-[10px] text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
-                            title={`Appliquer uniquement la direction ${dirLabel} à toutes les diapos`}
+                            className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title={`Appliquer uniquement l'orientation (${dirLabel}) à toutes les images`}
                           >
-                            Direction seule ({dirLabel})
+                            Sens seul ({dirLabel})
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyPositionToAll()}
+                            className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title="Appliquer uniquement la position X/Y de cette image à toutes les autres"
+                          >
+                            Position seule (X/Y)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplySizesToAll()}
+                            className="py-1 px-2 text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title="Appliquer uniquement les tailles des textes de cette image à toutes les autres"
+                          >
+                            Tailles seules
+                          </button>
+                        </div>
+
+                        {/* Reset Buttons */}
+                        <div className="pt-2 border-t border-neutral-800/80 flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleResetCurrentSlideFormatting}
+                              className="flex-1 py-1.5 px-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                              title="Réinitialiser l'alignement, l'orientation, la position et les tailles de cette image"
+                            >
+                              <RotateCcw className="w-3 h-3 text-neutral-400" />
+                              <span>Réinitialiser cette image</span>
+                            </button>
+
+                            {!confirmResetAll ? (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmResetAll(true)}
+                                className="py-1.5 px-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 hover:border-rose-700/60 text-rose-300 hover:text-rose-200 rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1 transition-colors"
+                                title="Réinitialiser l'alignement, l'orientation, la position et les tailles sur l'ensemble des images"
+                              >
+                                <RotateCcw className="w-3 h-3 text-rose-400" />
+                                <span>Réinitialiser tout</span>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={handleResetAllSlidesFormatting}
+                                  className="py-1.5 px-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10.5px] font-bold flex items-center justify-center gap-1 shadow animate-pulse"
+                                >
+                                  <span>Confirmer ?</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmResetAll(false)}
+                                  className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-[10.5px]"
+                                >
+                                  Non
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -3122,6 +3334,69 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 <p className="mt-1.5 text-[10.5px] text-neutral-400 leading-normal">
                   💡 <span className="text-neutral-300 font-medium">Bilingue intelligent :</span> Pour l&apos;arabe (RTL), l&apos;alignement de phrase s&apos;adapte automatiquement (commence à droite, l&apos;inverse du français). « Gauche » correspond au début de phrase en français, et « Droite » au début de phrase en arabe.
                 </p>
+              </div>
+
+              {/* Actions de propagation et réinitialisation globale */}
+              <div className="pt-3 border-t border-neutral-800 space-y-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleApplyAllFormattingToAllSlides(
+                      (typography.phraseAlign && typography.phraseAlign !== 'inherit' ? typography.phraseAlign : typography.align) as TextAlign,
+                      typography.direction || 'auto',
+                      typography.kickerAlign || 'inherit',
+                      typography.freePositionX,
+                      typography.freePositionY,
+                      typography.fontSize,
+                      typography.kickerSize,
+                      typography.subtitleSize
+                    )
+                  }
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  title="Propager l'alignement, l'orientation, la position et les dimensions de cette image sur toutes les autres"
+                >
+                  <Copy className="w-3.5 h-3.5 shrink-0" />
+                  <span>Appliquer à TOUT (Alignement, Orientation, Position & Tailles)</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResetCurrentSlideFormatting}
+                    className="flex-1 py-1.5 px-2 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3 text-neutral-400" />
+                    <span>Réinitialiser cette image</span>
+                  </button>
+
+                  {!confirmResetAll ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmResetAll(true)}
+                      className="py-1.5 px-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 hover:border-rose-700/60 text-rose-300 hover:text-rose-200 rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <RotateCcw className="w-3 h-3 text-rose-400" />
+                      <span>Réinitialiser tout</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleResetAllSlidesFormatting}
+                        className="py-1.5 px-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10.5px] font-bold flex items-center justify-center gap-1 shadow animate-pulse"
+                      >
+                        <span>Confirmer ?</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmResetAll(false)}
+                        className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-[10.5px]"
+                      >
+                        Non
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -28,6 +28,8 @@ import {
   Droplets,
   Hand,
   Check,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   AspectRatioOption,
@@ -102,6 +104,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   const [gridDensity, setGridDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [isExportingSingle, setIsExportingSingle] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
+  const [confirmResetAllCanvas, setConfirmResetAllCanvas] = useState<boolean>(false);
 
   // Canvas interactive tool mode in Single View
   const [activeCanvasTool, setActiveCanvasTool] = useState<'auto' | 'image' | 'text' | 'logo' | 'blur'>('auto');
@@ -209,8 +213,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     });
   };
 
-  const handleShareSingle = async (slide: SlideItem, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const executeShareSingle = async (slide: SlideItem) => {
     try {
       const canvas = await renderSlideToCanvas(
         slide,
@@ -239,6 +242,96 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     } catch {
       // fallback
     }
+  };
+
+  const handleShareSingle = async (slide: SlideItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    adManager.triggerAd({
+      actionTitle: `Partage & Export Diapo #${slide.number}`,
+      actionType: 'single_download',
+      slideNumber: slide.number,
+      onAdCompleted: () => executeShareSingle(slide),
+    });
+  };
+
+  const handleApplyTextFormattingToAllSlides = () => {
+    if (!setSlides) return;
+    const targetX = activeSlide.customTextX ?? typography.freePositionX ?? 50;
+    const targetY = activeSlide.customTextY ?? typography.freePositionY ?? 75;
+    const targetScale = activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
+    const targetKScale = activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
+    const targetSubScale = activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+    const targetAlign = activeSlide.customAlign ?? typography.align ?? 'left';
+    const targetKickerAlign = activeSlide.customKickerAlign ?? typography.kickerAlign ?? 'inherit';
+    const targetDir = activeSlide.customDirection ?? typography.direction ?? 'auto';
+
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: targetAlign,
+        customKickerAlign: targetKickerAlign,
+        customDirection: targetDir,
+        customTextX: targetX,
+        customTextY: targetY,
+        customTextScale: targetScale,
+        customKickerScale: targetKScale,
+        customSubtitleScale: targetSubScale,
+      }))
+    );
+
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        align: targetAlign,
+        phraseAlign: targetAlign,
+        direction: targetDir,
+        kickerAlign: targetKickerAlign,
+        position: 'free',
+        freePositionX: targetX,
+        freePositionY: targetY,
+        fontSize: targetScale,
+        kickerSize: targetKScale,
+        subtitleSize: targetSubScale,
+      }));
+    }
+
+    setCanvasNotice(`✨ Alignement, orientation, position (${targetX}%, ${targetY}%) & tailles appliqués à toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3500);
+  };
+
+  const handleResetAllTextFormatting = () => {
+    if (!setSlides) return;
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: undefined,
+        customKickerAlign: undefined,
+        customDirection: undefined,
+        customTextX: 50,
+        customTextY: 75,
+        customTextScale: 1.1,
+        customKickerScale: 1.0,
+        customSubtitleScale: 1.0,
+      }))
+    );
+    if (setTypography) {
+      setTypography((prev) => ({
+        ...prev,
+        align: 'left',
+        phraseAlign: undefined,
+        kickerAlign: 'inherit',
+        direction: 'auto',
+        position: 'bottom',
+        freePositionX: 50,
+        freePositionY: 75,
+        fontSize: 1.1,
+        kickerSize: 1.0,
+        subtitleSize: 1.0,
+      }));
+    }
+    setConfirmResetAllCanvas(false);
+    setCanvasNotice(`🔄 Alignement, orientation, position et tailles réinitialisés sur toutes les ${slides.length} images !`);
+    setTimeout(() => setCanvasNotice(null), 3500);
   };
 
   // Drag and drop overlay image file handler
@@ -692,6 +785,14 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         {/* VIEW 2: SINGLE SLIDE FOCUS WITH DIRECT ON-CANVAS DRAG & RESIZING */}
         {viewMode === 'single' && (
           <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center my-auto space-y-3">
+            {/* Notification Banner when applied to all in canvas */}
+            {canvasNotice && (
+              <div className="w-full max-w-lg p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-700/80 flex items-center gap-2 text-xs text-emerald-300 shadow-xl animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span className="font-medium">{canvasNotice}</span>
+              </div>
+            )}
+
             {/* Interactive Modes Toolbar */}
             <div className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800 shadow-lg text-xs">
               <button
@@ -1054,6 +1155,64 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                         +
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Master Apply to All & Reset actions in Canvas Toolbar */}
+                <div className="pt-2 border-t border-neutral-800 flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleApplyTextFormattingToAllSlides}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                    title="Propager l'alignement, le sens de lecture, la position et les dimensions de cette image sur toutes les autres"
+                  >
+                    <Copy className="w-3.5 h-3.5 shrink-0" />
+                    <span>Appliquer à TOUT (Alignement, Position & Tailles)</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateActiveSlide({ customTextX: 50, customTextY: 75, customTextScale: 1.1, customKickerScale: 1.0, customSubtitleScale: 1.0 });
+                        if (setTypography) setTypography((prev) => ({ ...prev, fontSize: 1.1, kickerSize: 1.0, subtitleSize: 1.0, position: 'bottom' }));
+                        setCanvasNotice(`Image #${activeSlide.number} : Dimensions et position réinitialisées.`);
+                        setTimeout(() => setCanvasNotice(null), 3000);
+                      }}
+                      className="flex-1 py-1 px-2 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <RotateCcw className="w-3 h-3 text-neutral-400" />
+                      <span>Réinitialiser cette image</span>
+                    </button>
+
+                    {!confirmResetAllCanvas ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmResetAllCanvas(true)}
+                        className="py-1 px-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/50 hover:border-rose-700/60 text-rose-300 hover:text-rose-200 rounded-lg text-[10.5px] font-medium flex items-center justify-center gap-1 transition-colors"
+                        title="Réinitialiser l'alignement, la position et les tailles sur toutes les images"
+                      >
+                        <RotateCcw className="w-3 h-3 text-rose-400" />
+                        <span>Réinitialiser tout</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={handleResetAllTextFormatting}
+                          className="py-1 px-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10.5px] font-bold shadow animate-pulse"
+                        >
+                          Confirmer ?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmResetAllCanvas(false)}
+                          className="py-1 px-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-[10.5px]"
+                        >
+                          Non
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
