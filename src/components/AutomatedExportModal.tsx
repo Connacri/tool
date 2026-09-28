@@ -26,6 +26,7 @@ import {
 } from '../types';
 import { renderSlideToCanvas } from '../utils/canvasRenderer';
 import { getApiUrl } from '../utils/apiConfig';
+import { adManager } from '../services/adService';
 
 interface AutomatedExportModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   if (!isOpen) return null;
 
   // Handle batch ZIP generation and download
-  const handleGenerateZip = async () => {
+  const executeGenerateZip = async () => {
     try {
       setZipProgress(5);
       setZipStatusText('Initialisation de l archive ZIP...');
@@ -152,16 +153,16 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
     }
   };
 
-  // Handle Webhook Dispatch to Zapier / Make / Buffer
-  const handleDispatchWebhook = async () => {
-    if (!webhookUrl) {
-      setWebhookResult({
-        success: false,
-        message: 'Veuillez saisir l URL de votre Webhook (ex: https://hook.eu1.make.com/...)',
-      });
-      return;
-    }
+  const handleGenerateZip = () => {
+    adManager.triggerAd({
+      actionTitle: `Export du lot HD (${slides.length} diapos en ZIP)`,
+      actionType: 'batch_zip',
+      onAdCompleted: () => executeGenerateZip(),
+    });
+  };
 
+  // Handle Webhook Dispatch to Zapier / Make / Buffer
+  const executeDispatchWebhook = async () => {
     setIsSendingWebhook(true);
     setWebhookResult(null);
 
@@ -215,6 +216,22 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
     } finally {
       setIsSendingWebhook(false);
     }
+  };
+
+  const handleDispatchWebhook = () => {
+    if (!webhookUrl) {
+      setWebhookResult({
+        success: false,
+        message: 'Veuillez saisir l\'URL de votre Webhook (ex: https://hook.eu1.make.com/...)',
+      });
+      return;
+    }
+
+    adManager.triggerAd({
+      actionTitle: `Envoi automatisé Webhook (${webhookPlatform.toUpperCase()})`,
+      actionType: 'webhook_export',
+      onAdCompleted: () => executeDispatchWebhook(),
+    });
   };
 
   // Generate and download .ICS calendar schedule file

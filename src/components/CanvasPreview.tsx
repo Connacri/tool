@@ -48,6 +48,7 @@ import {
   resolveEffectiveKickerAlignment,
   isArabicText,
 } from '../utils/canvasRenderer';
+import { adManager } from '../services/adService';
 import { formatArabicDigits, loadGoogleFont } from '../utils/googleFonts';
 
 interface CanvasPreviewProps {
@@ -173,8 +174,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     );
   }, [currentSlideIndex, setSlides]);
 
-  const handleDownloadSingle = async (slide: SlideItem, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const executeDownloadSingle = async (slide: SlideItem) => {
     setIsExportingSingle(true);
     try {
       const canvas = await renderSlideToCanvas(
@@ -197,6 +197,16 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     } finally {
       setIsExportingSingle(false);
     }
+  };
+
+  const handleDownloadSingle = async (slide: SlideItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    adManager.triggerAd({
+      actionTitle: `Téléchargement HD Diapo #${slide.number}`,
+      actionType: 'single_download',
+      slideNumber: slide.number,
+      onAdCompleted: () => executeDownloadSingle(slide),
+    });
   };
 
   const handleShareSingle = async (slide: SlideItem, e?: React.MouseEvent) => {

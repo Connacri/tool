@@ -6,6 +6,7 @@ import { AutomatedExportModal } from './components/AutomatedExportModal';
 import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
+import { AdInterstitialModal } from './components/AdInterstitialModal';
 import { getApiUrl } from './utils/apiConfig';
 import {
   ASPECT_RATIOS,
@@ -302,6 +303,9 @@ export default function App() {
         isOpen={isAndroidModalOpen}
         onClose={() => setIsAndroidModalOpen(false)}
       />
+
+      {/* Interstitiel Publicitaire (AdMob Mobile & Web) avant export / téléchargement HD */}
+      <AdInterstitialModal />
     </div>
   );
 }
