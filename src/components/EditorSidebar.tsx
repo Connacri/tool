@@ -137,6 +137,66 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   const [overlayCategoryTab, setOverlayCategoryTab] = useState<'all' | 'trust' | 'promo' | 'arabic' | 'social'>('all');
   const [overlayUrlInput, setOverlayUrlInput] = useState('');
   const [brandingSubTab, setBrandingSubTab] = useState<'logo' | 'watermark'>('logo');
+  const [appliedAllNotice, setAppliedAllNotice] = useState<string | null>(null);
+
+  const handleApplyAlignToAll = (align: TextAlign) => {
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: align,
+      }))
+    );
+    setTypography((prev) => ({
+      ...prev,
+      align,
+      phraseAlign: align,
+    }));
+    const alignLabel = align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite';
+    setAppliedAllNotice(`Alignement (${alignLabel}) appliqué avec succès à toutes les diapos (${slides.length}) !`);
+    setTimeout(() => setAppliedAllNotice(null), 3500);
+  };
+
+  const handleApplyDirectionToAll = (dir: TextDirectionType) => {
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customDirection: dir,
+      }))
+    );
+    setTypography((prev) => ({
+      ...prev,
+      direction: dir,
+    }));
+    const dirLabel = dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    setAppliedAllNotice(`Direction (${dirLabel}) appliquée avec succès à toutes les diapos (${slides.length}) !`);
+    setTimeout(() => setAppliedAllNotice(null), 3500);
+  };
+
+  const handleApplyAllToAll = (
+    align: TextAlign,
+    dir: TextDirectionType,
+    kickerAlign?: TextAlign | 'inherit'
+  ) => {
+    setSlides((prev) =>
+      prev.map((s) => ({
+        ...s,
+        customAlign: align,
+        customDirection: dir,
+        customKickerAlign: kickerAlign ?? s.customKickerAlign,
+      }))
+    );
+    setTypography((prev) => ({
+      ...prev,
+      align,
+      phraseAlign: align,
+      direction: dir,
+      kickerAlign: kickerAlign ?? prev.kickerAlign,
+    }));
+    const alignLabel = align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite';
+    const dirLabel = dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto';
+    setAppliedAllNotice(`✨ Alignement (${alignLabel}) & Direction (${dirLabel}) appliqués à toutes les diapos (${slides.length}) !`);
+    setTimeout(() => setAppliedAllNotice(null), 4000);
+  };
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -335,6 +395,14 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Notification Banner when applied to all */}
+            {appliedAllNotice && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-700/70 flex items-center gap-2 text-xs text-emerald-300 shadow-lg animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span className="font-medium">{appliedAllNotice}</span>
+              </div>
+            )}
 
             {/* Slide Selector Carousel Tabs */}
             <div className="grid grid-cols-6 gap-1 p-1 bg-neutral-900 rounded-lg border border-neutral-800">
@@ -546,36 +614,45 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
                   const isRtlMode = activePhraseDir === 'rtl';
 
+                  const currentKickerSetting = activeSlide.customKickerAlign || typography.kickerAlign || 'inherit';
+                  const currentDirSetting: TextDirectionType = activeSlide.customDirection || typography.direction || 'auto';
+
+                  const alignLabel = effectiveAlign === 'left' ? 'Gauche' : effectiveAlign === 'center' ? 'Centré' : 'Droite';
+                  const dirLabel = currentDirSetting === 'rtl' ? 'RTL (Arabe)' : currentDirSetting === 'ltr' ? 'LTR (Français)' : 'Auto';
+
                   return (
-                    <div className="pt-2 border-t border-neutral-800 space-y-3">
+                    <div className="pt-3 border-t border-neutral-800 space-y-3">
+                      {/* Section Header */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-neutral-300">
-                          Alignement & Direction de texte
+                        <span className="text-[11px] font-semibold text-neutral-200 flex items-center gap-1.5">
+                          <AlignCenter className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Alignement & Sens de Lecture</span>
                         </span>
                         {isRtlMode ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-[10px] text-emerald-300 font-medium">
-                            Arabe (RTL · Début à droite)
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-[10px] text-emerald-300 font-medium">
+                            Arabe (RTL · Droite)
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-400 font-medium">
-                            Français (LTR · Début à gauche)
+                            Français (LTR · Gauche)
                           </span>
                         )}
                       </div>
 
+                      {/* Alignement & Direction Dual Controls */}
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Unified Text Alignment */}
+                        {/* 1. Text Alignment */}
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="block text-[10px] text-neutral-400">
-                              Alignement Textes
+                            <span className="block text-[10px] font-medium text-neutral-400">
+                              Alignement Texte
                             </span>
                             {activeSlide.customAlign && (
                               <button
                                 type="button"
                                 onClick={() => updateActiveSlide({ customAlign: undefined })}
                                 className="text-[9.5px] text-indigo-400 hover:text-indigo-300 underline"
-                                title="Réinitialiser à l'alignement naturel automatique"
+                                title="Réinitialiser à l'alignement naturel"
                               >
                                 Auto
                               </button>
@@ -586,17 +663,20 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                               {
                                 id: 'left',
                                 icon: AlignLeft,
-                                title: isRtlMode ? 'Gauche (Fin de phrase Arabe)' : 'Gauche (Début de phrase LTR)',
+                                title: isRtlMode ? 'Gauche (Fin de phrase en Arabe)' : 'Gauche (Début de phrase LTR)',
+                                label: 'Gauche',
                               },
                               {
                                 id: 'center',
                                 icon: AlignCenter,
-                                title: 'Centré',
+                                title: 'Centré (Équilibré)',
+                                label: 'Centré',
                               },
                               {
                                 id: 'right',
                                 icon: AlignRight,
-                                title: isRtlMode ? 'Droite (Début naturel Arabe · Inversé LTR)' : 'Droite (Fin de phrase LTR)',
+                                title: isRtlMode ? 'Droite (Début naturel en Arabe)' : 'Droite (Fin de phrase LTR)',
+                                label: 'Droite',
                               },
                             ].map((al) => {
                               const Icon = al.icon;
@@ -609,10 +689,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                                     updateActiveSlide({ customAlign: al.id as any });
                                   }}
                                   title={al.title}
-                                  className={`flex-1 py-1 flex items-center justify-center rounded transition-colors ${
+                                  className={`flex-1 py-1.5 flex items-center justify-center rounded transition-all ${
                                     isActive
-                                      ? 'bg-neutral-800 text-white shadow-sm ring-1 ring-neutral-700'
-                                      : 'text-neutral-400 hover:text-white'
+                                      ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400 font-medium'
+                                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
                                   }`}
                                 >
                                   <Icon className="w-3.5 h-3.5" />
@@ -622,10 +702,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                           </div>
                         </div>
 
-                        {/* Direction RTL / LTR / Auto */}
+                        {/* 2. Direction RTL / LTR / Auto */}
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="block text-[10px] text-neutral-400">
+                            <span className="block text-[10px] font-medium text-neutral-400">
                               Sens d&apos;écriture
                             </span>
                           </div>
@@ -635,9 +715,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                               { id: 'rtl', label: 'RTL (عربي)' },
                               { id: 'ltr', label: 'LTR' },
                             ].map((dir) => {
-                              const currentDir =
-                                activeSlide.customDirection || typography.direction || 'auto';
-                              const isActive = currentDir === dir.id;
+                              const isActive = currentDirSetting === dir.id;
                               return (
                                 <button
                                   key={dir.id}
@@ -646,10 +724,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                                     updateActiveSlide({ customDirection: dir.id as any });
                                     setTypography((prev) => ({ ...prev, direction: dir.id as any }));
                                   }}
-                                  className={`flex-1 py-1 rounded transition-colors ${
+                                  className={`flex-1 py-1.5 rounded transition-all ${
                                     isActive
-                                      ? 'bg-indigo-600 text-white font-medium shadow-sm'
-                                      : 'text-neutral-400 hover:text-white'
+                                      ? 'bg-indigo-600 text-white font-medium shadow-sm ring-1 ring-indigo-400'
+                                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
                                   }`}
                                 >
                                   {dir.label}
@@ -660,28 +738,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                         </div>
                       </div>
 
-                      {/* Align to all slides shortcut */}
-                      {setSlides && (
-                        <div className="flex items-center justify-between pt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlides((prev) =>
-                                prev.map((s) => ({
-                                  ...s,
-                                  customAlign: effectiveAlign,
-                                }))
-                              );
-                            }}
-                            className="text-[9.5px] text-neutral-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
-                          >
-                            <Copy className="w-3 h-3" />
-                            Appliquer cet alignement ({effectiveAlign === 'right' ? 'Droite' : effectiveAlign === 'center' ? 'Centré' : 'Gauche'}) à tout le lot
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Independent Title (Kicker) Alignment override */}
+                      {/* 3. Independent Title (Kicker) Alignment override */}
                       <div className="flex items-center justify-between text-[10px] pt-1">
                         <span className="text-neutral-400">Alignement Titre :</span>
                         <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800">
@@ -691,7 +748,6 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                             { id: 'center', label: 'Centré' },
                             { id: 'right', label: 'Droite' },
                           ].map((item) => {
-                            const currentKickerSetting = activeSlide.customKickerAlign || typography.kickerAlign || 'inherit';
                             const isAct = currentKickerSetting === item.id;
                             return (
                               <button
@@ -700,7 +756,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                                 onClick={() => {
                                   updateActiveSlide({ customKickerAlign: item.id as any });
                                 }}
-                                className={`px-1.5 py-0.5 rounded text-[9.5px] transition-colors ${
+                                className={`px-2 py-0.5 rounded text-[9.5px] transition-colors ${
                                   isAct ? 'bg-indigo-600 text-white font-medium' : 'text-neutral-400 hover:text-white'
                                 }`}
                               >
@@ -711,16 +767,57 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                         </div>
                       </div>
 
-                      <div className="p-2 rounded-lg bg-neutral-900/80 border border-neutral-800 text-[10px] text-neutral-400 space-y-1">
+                      {/* 4. ACTIONS "APPLIQUER À TOUT" (Apply to all slides) */}
+                      <div className="p-2.5 rounded-xl bg-neutral-950/90 border border-neutral-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-semibold text-neutral-300 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-amber-400" />
+                            <span>Appliquer à toutes les diapos</span>
+                          </span>
+                          <span className="text-[9.5px] text-neutral-500 font-mono">
+                            {slides.length} diapos
+                          </span>
+                        </div>
+
+                        {/* Master Apply to All button */}
+                        <button
+                          type="button"
+                          onClick={() => handleApplyAllToAll(effectiveAlign, currentDirSetting, currentKickerSetting)}
+                          className="w-full py-2 px-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950/40 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Appliquer alignement & direction à tout ({slides.length})</span>
+                        </button>
+
+                        {/* Individual shortcuts */}
+                        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleApplyAlignToAll(effectiveAlign)}
+                            className="py-1 px-2 text-[10px] text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title={`Appliquer uniquement l'alignement ${alignLabel} à toutes les diapos`}
+                          >
+                            Alignement seul ({alignLabel})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyDirectionToAll(currentDirSetting)}
+                            className="py-1 px-2 text-[10px] text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded transition-colors text-center truncate"
+                            title={`Appliquer uniquement la direction ${dirLabel} à toutes les diapos`}
+                          >
+                            Direction seule ({dirLabel})
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Typographic guidance note */}
+                      <div className="p-2 rounded-lg bg-neutral-900/60 border border-neutral-800 text-[10px] text-neutral-400 space-y-1">
                         <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
                           <Lightbulb className="w-3 h-3 text-amber-400 shrink-0" />
-                          <span>Règle typographique bilingue :</span>
+                          <span>Typographie bilingue :</span>
                         </div>
                         <p>
-                          Pour l&apos;arabe (RTL), l&apos;alignement de phrase est <strong>l&apos;inverse du LTR latin</strong> : le texte commence naturellement à <strong>droite</strong>.
-                        </p>
-                        <p className="text-neutral-500 text-[9.5px]">
-                          Les pseudos (@nom) et chiffres conservent toujours leur orientation LTR latine de gauche à droite.
+                          En Arabe (RTL), le début naturel du texte est à <strong>droite</strong>. En Français (LTR), le début est à <strong>gauche</strong>.
                         </p>
                       </div>
                     </div>

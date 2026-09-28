@@ -13,15 +13,30 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   // Initialize Gemini AI SDK if GEMINI_API_KEY is present
-  const apiKey = process.env.GEMINI_API_KEY;
-  const ai = apiKey ? new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  }) : null;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  let ai: GoogleGenAI | null = null;
+  try {
+    if (apiKey) {
+      ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+    } else {
+      ai = new GoogleGenAI({
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+    }
+  } catch (e) {
+    console.warn('GoogleGenAI client initialized without API key (AI generation will be disabled until key is configured):', e);
+  }
 
   // Endpoint to generate 6 phrases or batch phrases
   app.post('/api/generate-phrases', async (req, res) => {

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "build:mobile": "vite build",
+    "build:mobile": "BUILD_TARGET=capacitor vite build",
     "cap:sync": "npm run build:mobile && npx cap sync android",
     "cap:open": "npx cap open android",
     "android": "npm run cap:sync && npm run cap:open"

@@ -1,26 +1,28 @@
-name: Déploiement GitHub Pages
+name: CI/CD Web & Android (APK + AAB)
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
 
-# Permissions nécessaires pour GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: 'pages'
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # ==============================================================
+  # JOB 1 : Déploiement Web GitHub Pages
+  # ==============================================================
+  deploy-web:
+    name: 🌐 Déploiement GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Cloner le dépôt
         uses: actions/checkout@v4
@@ -28,23 +30,19 @@ jobs:
       - name: Configurer Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: 'npm'
 
       - name: Installer les dépendances
-        run: |
-          if [ -f package-lock.json ]; then
-            npm install --legacy-peer-deps
-          else
-            npm install --legacy-peer-deps --no-package-lock
-          fi
+        run: npm install --legacy-peer-deps
 
-      - name: Compiler le site statique (Vite build)
+      - name: Compiler le site web pour GitHub Pages
         run: npm run build
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Téléverser les fichiers de distribution
+      - name: Téléverser l'artefact GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
@@ -52,3 +50,124 @@ jobs:
       - name: Déployer sur GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ==============================================================
+  # JOB 2 : Build Android Natif (APK Débug + Release Signé & AAB)
+  # ==============================================================
+  build-android:
+    name: 📱 Build Android (APK & AAB)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Cloner le dépôt
+        uses: actions/checkout@v4
+
+      - name: Configurer Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Installer les dépendances
+        run: npm install --legacy-peer-deps
+
+      - name: Compiler l'application web pour Android (chemins relatifs)
+        run: npm run build:mobile
+
+      - name: Synchroniser Capacitor avec le projet Android
+        run: npx cap sync android
+
+      - name: Configurer les permissions d'exécution de Gradlew
+        run: chmod +x android/gradlew
+
+      - name: Configurer le Keystore de signature
+        run: |
+          mkdir -p android android-project/android
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "Utilisation du keystore de signature fourni via les secrets GitHub..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/autopost-studio-release.keystore
+            cp android/autopost-studio-release.keystore autopost-studio-release.keystore
+            cp android/autopost-studio-release.keystore android-project/autopost-studio-release.keystore
+            cp android/autopost-studio-release.keystore android-project/android/autopost-studio-release.keystore
+            cat <<EOF > android/keystore.properties
+          storeFile=autopost-studio-release.keystore
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+          else
+            echo "Aucun secret de signature : génération d'un Keystore de release CI valide et signé..."
+            keytool -genkeypair -v \
+              -keystore android/autopost-studio-release.keystore \
+              -alias autopost-studio \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storetype PKCS12 \
+              -storepass autopoststudio123 \
+              -keypass autopoststudio123 \
+              -dname "CN=AutoPost Studio, OU=Mobile, O=AutoPost, L=Oran, S=Oran, C=DZ"
+            cp android/autopost-studio-release.keystore autopost-studio-release.keystore
+            cp android/autopost-studio-release.keystore android-project/autopost-studio-release.keystore
+            cp android/autopost-studio-release.keystore android-project/android/autopost-studio-release.keystore
+            cat <<EOF > android/keystore.properties
+          storeFile=autopost-studio-release.keystore
+          storePassword=autopoststudio123
+          keyAlias=autopost-studio
+          keyPassword=autopoststudio123
+          EOF
+          fi
+          cp android/keystore.properties android-project/keystore.properties
+          cp android/keystore.properties android-project/android/keystore.properties
+
+      - name: Synchroniser les assets web dans android-project
+        run: |
+          mkdir -p android-project/app/src/main/assets/public
+          mkdir -p android-project/android/app/src/main/assets/public
+          cp -r android/app/src/main/assets/* android-project/app/src/main/assets/
+          cp -r android/app/src/main/assets/* android-project/android/app/src/main/assets/
+
+      - name: Compiler l'APK Debug (installable immédiatement)
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+          mkdir -p ../android-project/app/build/outputs/apk/debug
+          cp -r app/build/outputs/apk/debug/* ../android-project/app/build/outputs/apk/debug/ 2>/dev/null || true
+
+      - name: Compiler l'APK Release signé
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+          mkdir -p ../android-project/app/build/outputs/apk/release
+          cp -r app/build/outputs/apk/release/* ../android-project/app/build/outputs/apk/release/ 2>/dev/null || true
+
+      - name: Compiler l'AAB Release signé (Android App Bundle pour Google Play)
+        run: |
+          cd android
+          ./gradlew bundleRelease --no-daemon
+          mkdir -p ../android-project/app/build/outputs/bundle/release
+          cp -r app/build/outputs/bundle/release/* ../android-project/app/build/outputs/bundle/release/ 2>/dev/null || true
+
+      - name: Téléverser les APKs (Debug & Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoPost-Studio-APK
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Téléverser le bundle AAB (Google Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoPost-Studio-AAB
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
