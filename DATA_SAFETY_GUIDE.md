@@ -20,6 +20,33 @@ toi-même.)
 |---|---|---|---|---|---|
 | Photos et vidéos | Photos | Oui (si l'utilisateur importe une image) | Non (reste sur l'appareil, sauf export volontaire via webhook configuré par l'utilisateur) | — | Fonctionnalité de l'app |
 | Messages | Autres contenus générés par l'utilisateur | Oui (le texte du visuel) | Oui, uniquement pour la fonction IA | Google (API Gemini) | Fonctionnalité de l'app (génération de contenu) |
+| Interactions et diagnostic | Interactions dans l'app / Événements d'analyse | Oui (uniquement sur la **version web**) | Oui | Google (Firebase Analytics) | Analytique |
+
+[À CONFIRMER — la ligne « Interactions » n'est à cocher que si tu actives
+réellement la mesure d'audience. Dans l'état actuel du code, le module
+Firebase Analytics est **inactif dans l'application Android** (il ne s'exécute
+que sur le site web, où il n'a pas à être déclaré dans la fiche Play Store).
+Si tu actives le SDK Analytics natif pour Android, ajoute aussi les catégories
+« Informations sur l'appareil » et « Identifiants d'application ».]
+
+### Firebase Analytics (à lire avant de cocher la case)
+
+Si tu mesures l'audience, sache que Google impose de déclarer les données
+collectées par un service tiers **même** quand tu ne les reçois pas
+directement : c'est le cas de Firebase Analytics. Aucune case n'exonère de
+cette déclaration.
+
+Points d'attention :
+
+- **Aucune donnée publicitaire.** Si tu laisses les « rapports publicitaires »
+  désactivés dans la console Firebase, aucun identifiant publicitaire n'est
+  envoyé. Ne les active pas sans vouloir Basculer en collecte publicitaire.
+- **Purge automatique.** Active la suppression automatique des données
+  (rétention 14 mois maximum) dans la console Analytics, sinon Google
+  Play peut considérer que les données sont conservées indéfiniment.
+- **Cohérence obligatoire.** La politique de confidentialité doit mentionner
+  cette collecte, sinon l'app risque un refus. C'est fait dans
+  `PRIVACY_POLICY_DRAFT.md` section 5.
 
 Pour toutes les autres catégories proposées par le formulaire (position,
 informations personnelles, contacts, historique de navigation,

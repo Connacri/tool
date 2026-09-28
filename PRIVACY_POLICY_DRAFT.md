@@ -70,7 +70,45 @@ réseau standard vers les serveurs de Google. Voir la politique de
 confidentialité de Google Fonts :
 [https://developers.google.com/fonts/faq/privacy](https://developers.google.com/fonts/faq/privacy)
 
-## 5. Permissions demandées par l'Application
+## 5. Mesure d'audience (Firebase Analytics)
+
+Sur la **version web** de l'Application, nous utilisons [Firebase
+Analytics](https://firebase.google.com/docs/analytics) (un service de Google)
+pour mesurer l'usage de façon agrégée et comprendre quelles fonctionnalités
+sont utilisées.
+
+Ce que cette mesure peut collecter :
+
+- le fait d'ouvrir l'Application et d'y naviguer ;
+- les pages et fonctionnalités visitées ;
+- des informations techniques sur l'appareil et le navigateur (modèle,
+  système d'exploitation, langue, résolution d'écran, pays) ;
+- des données de performance (temps de chargement, erreurs techniques).
+
+Ce qu'elle ne collecte pas :
+
+- le **contenu** que vous créez ou exportez (textes, images, visuels) ;
+- vos identifiants de compte ou de réseau social ;
+- votre géolocalisation précise, vos contacts, vos fichiers.
+
+Ces données sont agrégées et ne permettent pas de vous identifier
+individuellement. Elles sont traitées par Google selon sa politique de
+confidentialité :
+[https://policies.google.com/privacy](https://policies.google.com/privacy)
+
+Vous pouvez désactiver cette mesure à tout moment : les règles de
+consentement de votre navigateur (par exemple « Bloquer les cookies
+tiers ») l'empêchent déjà de fonctionner, et le paramètre
+`VITE_FIREBASE_ANALYTICS_ENABLED=false` permet de la couper sans modifier
+le code.
+
+[À CONFIRMER — cette mesure n'est active que sur la version web. Dans
+l'application Android, le module d'Analytics est volontairement inactif.
+Si tu actives plus tard le SDK Analytics natif pour Android, cette section
+et le formulaire « Sécurité des données » de la Play Console doivent être
+mis à jour.]
+
+## 6. Permissions demandées par l'Application
 
 - **Accès à Internet** : nécessaire pour les fonctionnalités de
   génération par IA, le chargement des polices, et l'envoi vers un
@@ -81,7 +119,7 @@ confidentialité de Google Fonts :
   partie d'un contenu que vous exportez ou transmettez vous-même via la
   fonction de webhook.
 
-## 6. Ce que nous ne faisons PAS
+## 7. Ce que nous ne faisons PAS
 
 - Nous ne vendons ni ne partageons vos données avec des tiers à des fins
   publicitaires.
@@ -90,13 +128,16 @@ confidentialité de Google Fonts :
 - Nous ne suivons pas votre activité en dehors de l'Application.
 - Nous ne collectons pas d'identifiants publicitaires, de données de
   géolocalisation précise, ni de données de contacts.
+- La mesure d'audience décrite en section 5 reste anonyme et agrégée : elle
+  n'identifie pas les personnes et ne sert pas à diffuser de publicité
+  ciblée.
 
-## 7. Enfants
+## 8. Enfants
 
 L'Application n'est pas spécifiquement conçue pour les enfants de moins de
 13 ans et ne collecte sciemment aucune donnée personnelle les concernant.
 
-## 8. Vos droits
+## 9. Vos droits
 
 Puisque vos données sont stockées localement sur votre appareil et non sur
 nos serveurs, vous en gardez la maîtrise complète : vous pouvez les
@@ -106,7 +147,7 @@ l'Application ou via les réglages de votre appareil.
 Pour toute question concernant cette politique, vous pouvez nous contacter
 à : **[À COMPLÉTER — ton adresse e-mail de contact professionnel]**
 
-## 9. Modifications de cette politique
+## 10. Modifications de cette politique
 
 Nous pouvons mettre à jour cette politique de confidentialité si les
 fonctionnalités de l'Application évoluent. La date de dernière mise à jour
