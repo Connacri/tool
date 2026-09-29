@@ -15,6 +15,23 @@ async function startServer() {
   // Initialize Gemini AI SDK if GEMINI_API_KEY is present
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   let ai: GoogleGenAI | null = null;
+
+  /**
+   * Modeles appeles, du plus capable au plus econome.
+   *
+   * Les valeurs par defaut visent le palier gratuit de Google AI Studio, qui
+   * ne couvre plus que la serie 2.5 depuis le 1er avril 2026 : la serie Pro
+   * est passee en payant, et un compte gratuit ne peut pas appeler
+   * gemini-3.x. Sans carte bancaire, gemini-2.5-flash tient 10 requetes
+   * par minute et 250 par jour, gemini-2.5-flash-lite 15 et 1 000.
+   *
+   * Ils restent configurables : les modeles gratuits changent, et un compte
+   * payant dispose de modeles plus recents qu'il vaut mieux pouvoir viser
+   * sans toucher au code.
+   */
+  const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash';
+  const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-flash-lite';
+
   try {
     if (apiKey) {
       ai = new GoogleGenAI({
@@ -66,17 +83,17 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
       let response;
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: MODEL_PRIMARY,
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
           },
         });
       } catch (firstErr: any) {
-        console.warn('Fallback from gemini-3.8-flash to gemini-3.1-flash-lite or retry:', firstErr?.message);
+        console.warn(`Echec sur ${MODEL_PRIMARY}, repli sur ${MODEL_FALLBACK} :`, firstErr?.message);
         try {
           response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
+            model: MODEL_FALLBACK,
             contents: prompt,
             config: {
               responseMimeType: 'application/json',
@@ -185,14 +202,14 @@ Réponds STRICTEMENT avec un JSON valide respectant cette structure sans markdow
       let response;
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: MODEL_PRIMARY,
           contents: prompt,
           config: { responseMimeType: 'application/json' },
         });
       } catch (firstErr: any) {
         console.warn('Fallback in generate-phrases-with-social:', firstErr?.message);
         response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
+          model: MODEL_FALLBACK,
           contents: prompt,
           config: { responseMimeType: 'application/json' },
         });
@@ -270,17 +287,17 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
       let response;
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: MODEL_PRIMARY,
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
           },
         });
       } catch (firstErr: any) {
-        console.warn('Fallback from gemini-3.8-flash in social copy:', firstErr?.message);
+        console.warn(`Echec sur ${MODEL_PRIMARY}, repli sur ${MODEL_FALLBACK} :`, firstErr?.message);
         try {
           response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
+            model: MODEL_FALLBACK,
             contents: prompt,
             config: {
               responseMimeType: 'application/json',
