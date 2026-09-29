@@ -296,6 +296,7 @@ export default function App() {
         slides={slides}
         setSlides={setSlides}
         setCurrentSlideIndex={setCurrentSlideIndex}
+        onOpenAiModal={() => setIsAiModalOpen(true)}
       />
 
       <SocialCopyModal

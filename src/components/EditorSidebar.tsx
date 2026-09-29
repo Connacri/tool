@@ -5096,15 +5096,26 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
                       <div>
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-neutral-300">Taille</span>
-                          <span className="font-mono text-amber-400 font-bold text-[11px]">
-                            {Math.round((watermark.scale ?? 1.0) * 100)}%
-                          </span>
+                          <span className="font-semibold text-neutral-300">Taille (jusqu'à 1000%)</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="10"
+                              max="1000"
+                              value={Math.round((watermark.scale ?? 1.0) * 100)}
+                              onChange={(e) => {
+                                const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                                setWatermark({ ...watermark, scale: val });
+                              }}
+                              className="w-14 bg-neutral-950 border border-neutral-800 rounded px-1 py-0.5 text-[10px] text-right font-mono text-amber-400 font-bold"
+                            />
+                            <span className="text-[10px] text-neutral-400">%</span>
+                          </div>
                         </div>
                         <input
                           type="range"
-                          min="0.5"
-                          max="2.5"
+                          min="0.1"
+                          max="10.0"
                           step="0.05"
                           value={watermark.scale ?? 1.0}
                           onChange={(e) =>

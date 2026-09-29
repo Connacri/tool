@@ -26,6 +26,7 @@ interface BatchInputModalProps {
   slides: SlideItem[];
   setSlides: React.Dispatch<React.SetStateAction<SlideItem[]>>;
   setCurrentSlideIndex: (idx: number) => void;
+  onOpenAiModal?: () => void;
 }
 
 export interface ParsedSlideInput {
@@ -177,6 +178,7 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
   slides,
   setSlides,
   setCurrentSlideIndex,
+  onOpenAiModal,
 }) => {
   const [rawText, setRawText] = useState<string>(() => {
     // Generate initial text from existing slides with the prefix syntax
@@ -420,6 +422,20 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
+            {onOpenAiModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenAiModal();
+                }}
+                className="text-[11px] text-indigo-300 hover:text-white font-semibold bg-indigo-950/60 hover:bg-indigo-900/70 px-2.5 py-0.5 rounded border border-indigo-700/60 transition-colors flex items-center gap-1 shadow-sm"
+                title="Ouvrir le générateur IA sur mesure avec description et pack réseaux"
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>Rédiger par IA</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleInsertUserSample}
