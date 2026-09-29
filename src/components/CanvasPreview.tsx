@@ -636,7 +636,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
       onDragEnter={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative flex-1 flex flex-col h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden ${
+      className={`relative flex-1 flex flex-col h-[calc(100dvh-4rem)] bg-neutral-950 overflow-hidden ${
         mobileView === 'editor' ? 'hidden md:flex' : 'flex'
       }`}
     >

@@ -524,7 +524,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
   return (
     <aside
-      className={`border-r border-neutral-800 bg-neutral-950 flex flex-col h-[calc(100vh-4rem)] shrink-0 transition-all ${
+      className={`border-r border-neutral-800 bg-neutral-950 flex flex-col h-[calc(100dvh-4rem)] shrink-0 transition-all ${
         mobileView === 'preview' ? 'hidden md:flex md:w-80 lg:w-96' : 'w-full md:w-80 lg:w-96'
       }`}
     >
