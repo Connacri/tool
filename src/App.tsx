@@ -8,6 +8,7 @@ import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
 import { AiPhraseGeneratorModal } from './components/AiPhraseGeneratorModal';
 import { AdInterstitialModal } from './components/AdInterstitialModal';
+import { AboutModal } from './components/AboutModal';
 import { getApiUrl } from './utils/apiConfig';
 import {
   ASPECT_RATIOS,
@@ -65,6 +66,7 @@ export default function App() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isSocialCopyModalOpen, setIsSocialCopyModalOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
@@ -204,6 +206,7 @@ export default function App() {
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+        onOpenAboutModal={() => setIsAboutModalOpen(true)}
         onQuickAiGenerate={handleQuickAiGenerate}
         onOpenAiModal={() => setIsAiModalOpen(true)}
         isAiGenerating={isAiGenerating}
@@ -319,6 +322,9 @@ export default function App() {
         setCurrentSlideIndex={setCurrentSlideIndex}
         currentSlideIndex={currentSlideIndex}
       />
+
+      {/* Informations sur l'application et sa version */}
+      <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
 
       {/* Interstitiel Publicitaire (AdMob Mobile & Web) avant export / téléchargement HD */}
       <AdInterstitialModal />

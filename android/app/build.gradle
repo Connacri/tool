@@ -13,6 +13,24 @@ if (hasReleaseSigning) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Version de l'application.
+//
+// La source de verite est le tag Git (format SemVer : v1.2.3), converti par
+// scripts/version.mjs qui produit un versionName et un versionCode. La CI
+// injecte les deux via -PAPP_VERSION_NAME / -PAPP_VERSION_CODE au moment du
+// build, ce qui garantit que l'APK, l'AAB et la GitHub Release portent
+// exactement la meme version.
+//
+// Les valeurs de repli ci-dessous servent aux builds locaux et au debug : elles
+// doivent rester alignees sur la derniere version publiee, sinon Play refusera
+// l'upload (le versionCode doit etre strictement croissant).
+def appVersionName = project.findProperty("APP_VERSION_NAME") ?: "1.0.0"
+def appVersionCode = project.findProperty("APP_VERSION_CODE") ?: "1000000"
+def appVersionCodeInt = appVersionCode.toString().toInteger()
+if (appVersionCodeInt < 1) {
+    throw new GradleException("APP_VERSION_CODE doit etre >= 1, recu : ${appVersionCodeInt}")
+}
+
 android {
     namespace = "com.autopost.studio"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -20,8 +38,8 @@ android {
         applicationId "com.autopost.studio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCodeInt
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

@@ -3,11 +3,15 @@ name: CI/CD Web & Android (APK + AAB)
 on:
   push:
     branches: [main, master]
+    # Un tag SemVer (v1.2.3) declenche une build ET la publication de la
+    # GitHub Release correspondante.
+    tags: ['v[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-*']
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Une release ne doit jamais etre interrompue par un nouveau push.
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 jobs:
   # ==============================================================
@@ -160,33 +164,83 @@ jobs:
           cp -r android/app/src/main/assets/* android-project/app/src/main/assets/
           cp -r android/app/src/main/assets/* android-project/android/app/src/main/assets/
 
+      # ==============================================================
+      # VERSIONNAGE
+      # Source de verite : le tag Git au format SemVer (v1.2.3). Une release
+      # n'est publiee que sur un tag ; un push sur main ne produit que des
+      # artefacts de verification, pour ne pas polluer l'historique de versions.
+      - name: Resoudre la version de l'application
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            RAW_VERSION="${{ github.ref_name }}"
+          else
+            # Hors tag : on repart de la derniere version publiee et on
+            # suffixe avec le numero de run pour identifier le build.
+            BASE_VERSION="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
+            BASE_VERSION="${BASE_VERSION:-1.0.0}"
+            RAW_VERSION="${BASE_VERSION}-build.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "raw=$RAW_VERSION" >> "$GITHUB_OUTPUT"
+          node scripts/version.mjs "$RAW_VERSION" | tee -a "$GITHUB_OUTPUT_ENV"
+          echo "Version resolue : $RAW_VERSION"
+          # L'ecran "A propos de" lit VITE_APP_VERSION.
+          echo "VITE_APP_VERSION=$RAW_VERSION" >> "$GITHUB_OUTPUT_ENV"
+
       - name: Compiler l'APK Debug (installable immédiatement)
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/apk/debug
           cp -r app/build/outputs/apk/debug/* ../android-project/app/build/outputs/apk/debug/ 2>/dev/null || true
 
       - name: Compiler l'APK Release signé
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/apk/release
           cp -r app/build/outputs/apk/release/* ../android-project/app/build/outputs/apk/release/ 2>/dev/null || true
 
       - name: Compiler l'AAB Release signé (Android App Bundle pour Google Play)
         run: |
           cd android
-          ./gradlew bundleRelease --no-daemon
+          ./gradlew bundleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/bundle/release
           cp -r app/build/outputs/bundle/release/* ../android-project/app/build/outputs/bundle/release/ 2>/dev/null || true
+
+      # Les noms de fichiers portent la version : plusieurs versions peuvent
+      # ainsi coexister dans le telechargement de l'utilisateur sans se
+      # confondre, et Play Console est moins susceptible de melanger deux
+      # bundles lors d'un upload manuel.
+      - name: Nommer les binaires avec la version
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.raw }}"
+          cd android/app/build/outputs
+          cp apk/release/app-release.apk "apk/release/autopost-studio-$V.apk"
+          cp bundle/release/app-release.aab "bundle/release/autopost-studio-$V.aab"
+          echo "Binaires :"
+          ls -lh "apk/release/autopost-studio-$V.apk" "bundle/release/autopost-studio-$V.aab"
+
+      - name: Verifier la signature des binaires produits
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.raw }}"
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --print-certs "android/app/build/outputs/apk/release/autopost-studio-$V.apk" | tee -a "$GITHUB_STEP_SUMMARY"
+          # Un artefact non signe ou signe avec une autre cle doit faire echouer
+          # le build, pas passer inapercu.
+          "$APKSIGNER" verify "android/app/build/outputs/apk/release/autopost-studio-$V.apk"
+          jarsigner -verify "android/app/build/outputs/bundle/release/autopost-studio-$V.aab"
+          echo "Signature APK et AAB verifiee." | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Téléverser les APKs (Debug & Release)
         uses: actions/upload-artifact@v4
         with:
           name: AutoPost-Studio-APK
           path: |
-            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/release/autopost-studio-${{ steps.version.outputs.raw }}.apk
             android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 90
@@ -195,36 +249,41 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AutoPost-Studio-AAB
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: android/app/build/outputs/bundle/release/autopost-studio-${{ steps.version.outputs.raw }}.aab
           if-no-files-found: error
           retention-days: 90
 
       # ==============================================================
       # Les artefacts Actions expirent au bout de 90 jours. Les pièces
-      # jointes d'une GitHub Release, elles, ne expirent jamais : c'est le
+      # jointes d'une GitHub Release, elles, n'expirent jamais : c'est le
       # seul endroit où conserver durablement l'APK et l'AAB signés.
-      - name: Publier une GitHub Release (APK + AAB)
+      #
+      # Publication uniquement sur un tag SemVer. Sur un push vers main, ce
+      # build n'est qu'une vérification : pas de release, pas de tag, donc
+      # l'historique de versions reste propre.
+      - name: Publier la GitHub Release (APK + AAB)
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          # Tag horodaté : un nouveau par build, jamais de collision, et
-          # l'ordre alphabétique des tags suit l'ordre chronologique.
-          tag_name: build-${{ github.run_number }}-${{ github.sha }}
-          name: Build ${{ github.run_number }} (${{ github.sha }})
+          tag_name: ${{ github.ref_name }}
+          name: AutoPost Studio ${{ steps.version.outputs.raw }}
           commit: ${{ github.sha }}
-          # Pas de "latest" : on fige un historique de versions, ce qui
-          # simplifie la comparaison et le retour arrière.
-          prerelease: false
-          # Ne pas échouer le build si la publication de la release échoue :
-          # les artefacts restent récupérables depuis la page du run.
+          # Une prerelease SemVer (1.2.0-rc.1) est marquee comme telle sur
+          # GitHub, ce qui evite qu'elle soit prise pour une version stable.
+          prerelease: ${{ steps.version.outputs.IS_PRERELEASE == 'true' }}
           fail_on_unmatched_files: false
           body: |
-            Build automatique depuis le commit `${{ github.sha }}`.
+            Version `${{ steps.version.outputs.raw }}`
+            (versionCode `:${{ steps.version.outputs.VERSION_CODE }}`) — build automatique depuis le commit `${{ github.sha }}`.
 
-            - `app-release.apk` : APK release signé, pour installation directe (sideloading).
-            - `app-release.aab` : Android App Bundle signé, **c'est ce fichier qu'on uploader sur le Play Store**.
+            | Fichier | Usage |
+            |---|---|
+            | `autopost-studio-${{ steps.version.outputs.raw }}.apk` | Installation directe sur un appareil (sideloading) |
+            | `autopost-studio-${{ steps.version.outputs.raw }}.aab` | **Fichier à uploader sur Google Play Console** |
 
-            Installation manuelle : Android refuse de remplacer une app déjà installée
-            si la clé de signature change. Désinstaller l'ancienne version avant.
+            Installation manuelle : Android refuse de remplacer une application déjà
+            installée si la clé de signature change. Désinstaller l'ancienne version
+            avant d'en installer une nouvelle.
           files: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/autopost-studio-${{ steps.version.outputs.raw }}.apk
+            android/app/build/outputs/bundle/release/autopost-studio-${{ steps.version.outputs.raw }}.aab

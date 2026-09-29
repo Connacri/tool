@@ -27,3 +27,9 @@ keystore.properties
 *.keystore
 *.jks
 android/keystore.properties
+
+# Intermediaires de @capacitor/assets : regeneres depuis public/icon.svg par
+# scripts/generate-brand-assets.mjs, pas besoin de les versionner.
+assets/icon.png
+assets/logo.png
+assets/preview-*.png

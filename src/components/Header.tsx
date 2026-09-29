@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   Download,
+  Info,
   Check,
   RotateCcw,
   PenTool,
@@ -26,6 +27,7 @@ interface HeaderProps {
   onOpenBatchModal: () => void;
   onOpenExportModal: () => void;
   onOpenAndroidModal: () => void;
+  onOpenAboutModal: () => void;
   onQuickAiGenerate: () => void;
   onOpenAiModal?: () => void;
   isAiGenerating: boolean;
@@ -41,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   onOpenExportModal,
   onOpenAndroidModal,
+  onOpenAboutModal,
   onQuickAiGenerate,
   onOpenAiModal,
   isAiGenerating,
@@ -189,6 +192,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden md:inline">App Android</span>
+          </button>
+
+          {/* About / version de l'application */}
+          <button
+            onClick={onOpenAboutModal}
+            className="flex items-center p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-lg transition-colors"
+            title="À propos de l'application"
+            aria-label="À propos de l'application"
+          >
+            <Info className="w-3.5 h-3.5" />
           </button>
 
           {/* Export Button */}
