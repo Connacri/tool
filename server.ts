@@ -35,27 +35,15 @@ async function startServer() {
 const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-flash-latest';
 const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-flash-lite-latest';
 
+  // Aucune option httpOptions ici : ce client s'identifiait comme le client
+  // officiel AI Studio via un User-Agent deguise, sans aucun interet technique
+  // et en violation des conditions de Google. Si la cle est absente, le SDK
+  // echouera de toute facon a l'appel, ce que la route /api/health signale via
+  // aiConfigured, et le repli local prend le relais.
   try {
-    if (apiKey) {
-      ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
-    } else {
-      ai = new GoogleGenAI({
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
-    }
+    ai = new GoogleGenAI({ apiKey });
   } catch (e) {
-    console.warn('GoogleGenAI client initialized without API key (AI generation will be disabled until key is configured):', e);
+    console.warn('GoogleGenAI client could not be created (AI generation disabled):', e);
   }
 
   // Sonde de sante pour l'hebergeur (health check Render) et pour verifier
