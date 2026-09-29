@@ -4,9 +4,18 @@
  *
  * Stratégie retenue :
  *  - Interstitiel « ouverture » affiché une seule fois au lancement de l'app.
- *  - Annonce récompensée (« avec recompense ») affichée quand l'utilisateur
- *    sauvegarde ou exporte. La récompense est l'export lui-même : l'utilisateur
- *    n'est jamais bloqué, qu'il regarde la pub ou qu'il la ferme.
+ *  - Interstitiel avant un export, plafonné en fréquence. L'utilisateur en est
+ *    prévenu avant son affichage et peut annuler l'export s'il ne souhaite pas
+ *    voir de publicité.
+ *
+ * Pourquoi il n'y a plus d'annonce récompensée :
+ * Google n'accepte une « rewarded ad » que si la récompense est un avantage que
+ * l'utilisateur n'obtiendrait pas autrement. Or l'export était produit dans les
+ * deux cas : la vidéo récompensée n'apportait donc rien, et cette présentation
+ * constitue du trafic invalide susceptible d'entraîner la suspension du compte.
+ * Une annonce récompensée ne pourra être réintroduite que le jour où les deux
+ * branches offrent des résultats réellement différents (par exemple un export
+ * sans filigrane contre un export avec filigrane).
  *
  * Principes :
  *  - Une aucune configuration ou un échec réseau ne doit jamais empêcher
@@ -32,12 +41,19 @@ export interface AdTriggerOptions {
 }
 
 const interstitialAdId = (import.meta.env.VITE_ADMOB_INTERSTITIAL_ID || '').trim();
-const rewardedAdId = (import.meta.env.VITE_ADMOB_REWARDED_ID || '').trim();
+
+/**
+ * Intervalle minimal entre deux interstitiels. Google sanctionne les
+ * interstitiels répétés au même endroit ou trop rapprochés : sans ce plafond,
+ * deux exports successifs declencheraient deux annonces d'affilee, et
+ * l'interstitiel de lancement pourrait suivre de peu un premier export.
+ */
+const MIN_INTERSTITIAL_INTERVAL_MS = 90_000;
 
 type AdListener = (isOpen: boolean, options: AdTriggerOptions | null) => void;
 
 /** Reponse de l'utilisateur au message d'annonce pre-ad. */
-export type AdNoticeDecision = 'show_ad' | 'skip_ad';
+export type AdNoticeDecision = 'accept' | 'dismiss';
 
 type AdNoticeResolver = (decision: AdNoticeDecision) => void;
 
@@ -51,6 +67,8 @@ class AdManager {
   private isAdMobReady: boolean = false;
   private initPromise: Promise<void> | null = null;
   private hasShownOpeningAd: boolean = false;
+  /** Instant du dernier interstitiel diffuse (lancement ou export). */
+  private lastInterstitialAt: number = 0;
   /**
    * Passe à false uniquement lorsque Google confirme soit un consentement
    * accordé, soit l'absence d'obligation de consentement. Le défaut `true`
@@ -152,9 +170,15 @@ class AdManager {
     }
   }
 
-  private async preloadRewarded(): Promise<void> {
-    if (!rewardedAdId) return;
-    await AdMob.prepareRewardVideoAd({ adId: rewardedAdId, npa: this.nonPersonalizedAds });
+  /**
+   * Un interstitiel ne peut pas s'afficher dans n'importe quel contexte.
+   * On respecte ici le point de transition naturel (la fin d'un export) et le
+   * plafond de frequence : l'utilisateur ne subit jamais deux annonces a la
+   * suite, meme s'il enchaîne plusieurs exports.
+   */
+  private canShowInterstitial(): boolean {
+    if (!interstitialAdId) return false;
+    return Date.now() - this.lastInterstitialAt >= MIN_INTERSTITIAL_INTERVAL_MS;
   }
 
   /**
@@ -178,19 +202,23 @@ class AdManager {
 
   /**
    * Déclenche la publicité avant une action sensible (téléchargement HD,
-   * export ZIP, envoi webhook). Sur Android il s'agit de l'annonce récompensée ;
-   * sur le web, le modal AdSense existant prend le relais.
+   * export ZIP, envoi webhook). Sur Android il s'agit d'un interstitiel
+   * plafonné en fréquence ; sur le web, AdSense diffuse en arrière-plan et ce
+   * message n'est qu'un rappel (voir services/adsenseLoader.ts).
    */
   public async triggerAd(options: AdTriggerOptions) {
     this.currentOptions = options;
 
-    // 1. Application native Android : message d'annonce puis vidéo récompensée
+    // 1. Application native Android : message d'annonce puis interstitiel
     if (this.isNative) {
-      if (!rewardedAdId) {
-        // Aucune unité configurée : on ne bloque surtout pas l'export.
+      // Plafond de frequence : si un interstitiel vient d'etre diffuse, on ne
+      // fait pas subir une deuxieme annonce a l'utilisateur. L'export a lieu
+      // dans tous les cas, l'application n'est jamais bloquee par la pub.
+      if (!this.canShowInterstitial()) {
         await options.onAdCompleted();
         return;
       }
+
       try {
         await this.initialize();
         if (!this.isAdMobReady) {
@@ -198,21 +226,26 @@ class AdManager {
           return;
         }
 
-        // Google exige que l'utilisateur sache qu'une annonce va être jouée et
-        // ce qu'il obtient en la regardant. On demande donc son accord avant de
-        // lancer la vidéo. S'il refuse, l'export a lieu quand même : la pub
-        // finance l'application, elle n'est jamais un verrou.
+        // L'utilisateur est prevenu avant l'affichage, et peut annuler
+        // l'export plutot que d'accepter de voir l'annonce. Aucune recompense
+        // n'est promise : c'est une interstitielle, pas une video recompensee.
         const decision = await this.askNotice(options);
 
-        if (decision === 'show_ad') {
-          await this.preloadRewarded();
-          await AdMob.showRewardVideoAd();
+        if (decision === 'dismiss') {
+          this.currentOptions = null;
+          options.onAdDismissed?.();
+          return;
         }
+
+        this.lastInterstitialAt = Date.now();
+        await AdMob.showInterstitial();
+        // On recharge immediatement l'unite pour la prochaine occasion.
+        await this.preloadInterstitial();
 
         await options.onAdCompleted();
         return;
       } catch (err) {
-        console.warn('[AdMob] Annonce recompensee impossible, poursuite de l\'action :', err);
+        console.warn('[AdMob] Interstitiel avant export impossible, poursuite de l\'action :', err);
         await options.onAdCompleted();
         return;
       }
@@ -235,7 +268,10 @@ class AdManager {
    */
   private askNotice(options: AdTriggerOptions): Promise<AdNoticeDecision> {
     const listener = this.listener;
-    if (!listener) return Promise.resolve('skip_ad');
+    // Sans composant de message monte, on accepte par defaut : l'export ne
+    // doit jamais etre annule par uneabsence d'interface. 'dismiss' ne peut
+    // provenir que d'un clic explicite de l'utilisateur.
+    if (!listener) return Promise.resolve<AdNoticeDecision>('accept');
 
     return new Promise<AdNoticeDecision>((resolve) => {
       let settled = false;
