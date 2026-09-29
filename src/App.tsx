@@ -7,7 +7,7 @@ import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
 import { AiPhraseGeneratorModal } from './components/AiPhraseGeneratorModal';
-import { AdInterstitialModal } from './components/AdInterstitialModal';
+import { ExportAdNotice } from './components/ExportAdNotice';
 import { AboutModal } from './components/AboutModal';
 import { getApiUrl } from './utils/apiConfig';
 import {
@@ -327,7 +327,8 @@ export default function App() {
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
 
       {/* Interstitiel Publicitaire (AdMob Mobile & Web) avant export / téléchargement HD */}
-      <AdInterstitialModal />
+        <ExportAdNotice />
+
     </div>
   );
 }

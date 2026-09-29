@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Info, ShieldCheck, FileText, Heart, Github } from 'lucide-react';
+import { adManager } from '../services/adService';
 
 /**
  * Version affichee dans l'ecran "A propos de".
@@ -18,6 +19,22 @@ interface AboutModalProps {
 }
 
 export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+  const [privacyOptionsRequired, setPrivacyOptionsRequired] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Interroge le SDK de consentement sans lancer d'annonce : si l'utilisateur
+    // a déjà accordé son accord, Google exige un moyen de le retirer.
+    void adManager
+      .isPrivacyOptionsRequired()
+      .then(setPrivacyOptionsRequired)
+      .catch(() => setPrivacyOptionsRequired(false));
+  }, [isOpen]);
+
+  const handleOpenPrivacyOptions = async () => {
+    await adManager.showPrivacyOptions();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -92,6 +109,27 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               développement et le service reste gratuit.
             </span>
           </p>
+
+          {/* Google impose de pouvoir revenir sur le consentement publicitaire
+              après l'avoir accordé : ce bouton n'apparaît que si le SDK UMP le
+              signale, et il ouvre le formulaire officiel. */}
+          {privacyOptionsRequired && (
+            <button
+              type="button"
+              onClick={handleOpenPrivacyOptions}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-950/60 transition-colors text-left"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-neutral-300">Options de confidentialité</span>
+            </button>
+          )}
+
+          {privacyOptionsRequired && (
+            <p className="text-[10px] text-neutral-600 leading-relaxed">
+              Vous pouvez modifier ou retirer votre accord sur les annonces personnalisées à
+              tout moment.
+            </p>
+          )}
 
           <p className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-neutral-600">
             Fait avec <Heart className="w-3 h-3 text-rose-500" fill="currentColor" /> à Oran

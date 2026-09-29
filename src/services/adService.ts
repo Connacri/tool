@@ -36,8 +36,16 @@ const rewardedAdId = (import.meta.env.VITE_ADMOB_REWARDED_ID || '').trim();
 
 type AdListener = (isOpen: boolean, options: AdTriggerOptions | null) => void;
 
+/** Reponse de l'utilisateur au message d'annonce pre-ad. */
+export type AdNoticeDecision = 'show_ad' | 'skip_ad';
+
+type AdNoticeResolver = (decision: AdNoticeDecision) => void;
+
+
 class AdManager {
   private listener: AdListener | null = null;
+  private noticeResolver: AdNoticeResolver | null = null;
+
   private currentOptions: AdTriggerOptions | null = null;
   private isNative: boolean = false;
   private isAdMobReady: boolean = false;
@@ -176,7 +184,7 @@ class AdManager {
   public async triggerAd(options: AdTriggerOptions) {
     this.currentOptions = options;
 
-    // 1. Application native Android : annonce récompensée
+    // 1. Application native Android : message d'annonce puis vidéo récompensée
     if (this.isNative) {
       if (!rewardedAdId) {
         // Aucune unité configurée : on ne bloque surtout pas l'export.
@@ -189,10 +197,18 @@ class AdManager {
           await options.onAdCompleted();
           return;
         }
-        await this.preloadRewarded();
-        await AdMob.showRewardVideoAd();
-        // La récompense est l'export : on l'execute que l'utilisateur ait ou non
-        // regardé la pub jusqu'au bout.
+
+        // Google exige que l'utilisateur sache qu'une annonce va être jouée et
+        // ce qu'il obtient en la regardant. On demande donc son accord avant de
+        // lancer la vidéo. S'il refuse, l'export a lieu quand même : la pub
+        // finance l'application, elle n'est jamais un verrou.
+        const decision = await this.askNotice(options);
+
+        if (decision === 'show_ad') {
+          await this.preloadRewarded();
+          await AdMob.showRewardVideoAd();
+        }
+
         await options.onAdCompleted();
         return;
       } catch (err) {
@@ -202,13 +218,86 @@ class AdManager {
       }
     }
 
-    // 2. Web : modal AdSense
+    // 2. Web : message d'annonce (les annonces réelles sont diffusées par
+    // AdSense en arrière-plan, voir services/adsenseLoader.ts)
     if (this.listener) {
       this.listener(true, options);
     } else {
       // Si aucun composant d'annonce n'est monté, on exécute l'action sans bloquer l'utilisateur
       await options.onAdCompleted();
     }
+  }
+
+  /**
+   * Affiche le message d'annonce et attend la décision de l'utilisateur.
+   * Sans composant monté, ou si l'utilisateur ne répond pas, on ne montre pas
+   * l'annonce : l'export ne doit jamais rester bloqué.
+   */
+  private askNotice(options: AdTriggerOptions): Promise<AdNoticeDecision> {
+    const listener = this.listener;
+    if (!listener) return Promise.resolve('skip_ad');
+
+    return new Promise<AdNoticeDecision>((resolve) => {
+      let settled = false;
+      const finish = (decision: AdNoticeDecision) => {
+        if (settled) return;
+        settled = true;
+        this.noticeResolver = null;
+        listener(false, null);
+        resolve(decision);
+      };
+
+      this.noticeResolver = finish;
+      listener(true, options);
+    });
+  }
+
+  /**
+   * Appelé par le composant d'annonce pour signaler le choix de l'utilisateur.
+   */
+  public resolveNotice(decision: AdNoticeDecision) {
+    this.noticeResolver?.(decision);
+  }
+
+  /**
+   * Google exige, après l'avoir recueilli, de pouvoir laisser l'utilisateur
+   * retirer ou modifier son accord. Interroge le SDK pour savoir si ce point
+   * d'entrée doit être proposé. Sans effet sur le web et en cas d'échec.
+   */
+  public async isPrivacyOptionsRequired(): Promise<boolean> {
+    if (!this.isNative) return false;
+    try {
+      await this.initialize();
+      const info = await AdMob.requestConsentInfo();
+      // L'enum PrivacyOptionsRequirementStatus n'est pas reexporte par le
+      // plugin, on compare donc sur sa valeur.
+      return info.privacyOptionsRequirementStatus === 'REQUIRED';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Ouvre le formulaire officiel de modification du consentement.
+   */
+  public async showPrivacyOptions(): Promise<void> {
+    if (!this.isNative) return;
+    try {
+      await this.initialize();
+      await AdMob.showPrivacyOptionsForm();
+      // Le choix vient d'évoluer : on réévalue le mode npa sans relancer le SDK.
+      await this.resolveConsent();
+    } catch (err) {
+      console.warn('[AdMob] Formulaire de confidentialite indisponible :', err);
+    }
+  }
+
+  public registerNoticeResolver(resolver: AdNoticeResolver) {
+    this.noticeResolver = resolver;
+  }
+
+  public unregisterNoticeResolver() {
+    this.noticeResolver = null;
   }
 
   /**
