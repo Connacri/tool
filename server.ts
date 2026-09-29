@@ -55,6 +55,17 @@ async function startServer() {
     console.warn('GoogleGenAI client initialized without API key (AI generation will be disabled until key is configured):', e);
   }
 
+  // Sonde de sante pour l'hebergeur (health check Render) et pour verifier
+  // qu'un deploiement repond. Volontairement sans authentification et sans
+  // appel a Gemini : elle doit rester rapide et ne rien consummer du quota.
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      status: 'ok',
+      aiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      model: process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash',
+    });
+  });
+
   // Endpoint to generate 6 phrases or batch phrases
   app.post('/api/generate-phrases', async (req, res) => {
     try {

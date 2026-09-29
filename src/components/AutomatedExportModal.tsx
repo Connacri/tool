@@ -27,7 +27,7 @@ import {
   WebhookConfig,
 } from '../types';
 import { renderSlideToCanvas, downloadCanvasAsPng, saveOrShareZip } from '../utils/canvasRenderer';
-import { getApiUrl } from '../utils/apiConfig';
+import { postJson } from '../utils/apiClient';
 import { adManager } from '../services/adService';
 
 interface AutomatedExportModalProps {
@@ -225,25 +225,21 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
         })),
       };
 
-      const response = await fetch(getApiUrl('/api/export-webhook'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webhookUrl,
-          payload,
-        }),
+      const data = await postJson('/api/export-webhook', {
+        webhookUrl,
+        payload,
       });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
+      if (data?.success) {
         setWebhookResult({
           success: true,
-          message: data.message || 'Les données ont été transmises avec succès à votre Webhook.',
+          message:
+            String(data.message ?? '') || 'Les données ont été transmises avec succès à votre Webhook.',
         });
       } else {
         setWebhookResult({
           success: false,
-          message: data.error || data.message || 'Erreur lors de la transmission.',
+          message: String(data?.error ?? data?.message ?? '') || 'Erreur lors de la transmission.',
         });
       }
     } catch (err: any) {

@@ -1,0 +1,34 @@
+# Blueprint Render pour le backend AutoPost Studio (server.ts).
+#
+# L'app web est hebergee sur Firebase Hosting, qui reecrit toutes les routes
+# vers index.html : un appel a /api/... y renvoie du HTML, pas du JSON. Le
+# backend doit donc vivre sur une autre origine, et le front doit connaitre
+# cette origine via VITE_API_BASE_URL au moment du build.
+#
+# Deploiement : rendre ce fichier dans le dashboard Render, ou
+#   render blueprints launch
+services:
+  - type: web
+    name: autopost-studio-api
+    runtime: node
+    plan: free
+    # Le depot contient aussi les projets Android ; la racine reste le serveur.
+    rootDir: .
+    # dist/ est necessaire parce que server.ts sert les fichiers statiques en
+    # production (NODE_ENV=production), en plus des routes /api.
+    buildCommand: npm ci && npm run build
+    # Node ne lit nativement les .ts qu'a partir de 22.18 ; tsx evite de
+    # dependre de cette version. tsx est une devDependency, donc presente
+    # apres le npm ci du build.
+    startCommand: npx tsx server.ts
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL_PRIMARY
+        value: gemini-2.5-flash
+      - key: GEMINI_MODEL_FALLBACK
+        value: gemini-2.5-flash-lite

@@ -19,7 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SlideItem } from '../types';
-import { getApiUrl } from '../utils/apiConfig';
+import { postJson } from '../utils/apiClient';
 import { isArabicText } from '../utils/canvasRenderer';
 
 interface SocialCopyModalProps {
@@ -342,22 +342,15 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
 
     setIsLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/generate-social-copy'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phrase: slide.text,
-          kicker: slide.kicker,
-        }),
+      const data = await postJson('/api/generate-social-copy', {
+        phrase: slide.text,
+        kicker: slide.kicker,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.copy) {
-          setCopyCache((prev) => ({ ...prev, [slideIndex]: data.copy }));
-          setIsLoading(false);
-          return;
-        }
+      if (data?.copy) {
+        setCopyCache((prev) => ({ ...prev, [slideIndex]: data.copy }));
+        setIsLoading(false);
+        return;
       }
     } catch {
       // Fallback

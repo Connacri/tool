@@ -19,7 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { SlideItem } from '../types';
-import { getApiUrl } from '../utils/apiConfig';
+import { postJson } from '../utils/apiClient';
 import { isArabicText } from '../utils/canvasRenderer';
 
 interface AiPhraseGeneratorModalProps {
@@ -140,41 +140,30 @@ export const AiPhraseGeneratorModal: React.FC<AiPhraseGeneratorModalProps> = ({
     const isArabic = selectedLanguage === 'ar' || isArabicText(topicDescription);
 
     try {
-      // 1. Call phrases + social pack API
-      const res = await fetch(getApiUrl('/api/generate-phrases-with-social'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let phrasesData: any[] = [];
+      let copyData: Record<string, any> = {};
+
+      const data = await postJson('/api/generate-phrases-with-social', {
+        topic: topicDescription,
+        count: phraseCount,
+        tone: selectedTone,
+        language: selectedLanguage,
+      });
+
+      if (data) {
+        phrasesData = (data.phrases as any[]) ?? [];
+        copyData = (data.socialCopy as Record<string, any>) ?? {};
+      } else {
+        // Fallback: try standard /api/generate-phrases
+        const fallbackData = await postJson('/api/generate-phrases', {
           topic: topicDescription,
           count: phraseCount,
           tone: selectedTone,
           language: selectedLanguage,
-        }),
-      });
-
-      let phrasesData: any[] = [];
-      let copyData: Record<string, any> = {};
-
-      if (res.ok) {
-        const data = await res.json();
-        phrasesData = data.phrases || [];
-        copyData = data.socialCopy || {};
-      } else {
-        // Fallback: try standard /api/generate-phrases
-        const fallbackRes = await fetch(getApiUrl('/api/generate-phrases'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: topicDescription,
-            count: phraseCount,
-            tone: selectedTone,
-            language: selectedLanguage,
-          }),
         });
 
-        if (fallbackRes.ok) {
-          const fbData = await fallbackRes.json();
-          phrasesData = fbData.phrases || [];
+        if (fallbackData) {
+          phrasesData = (fallbackData.phrases as any[]) ?? [];
         }
       }
 
