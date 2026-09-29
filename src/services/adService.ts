@@ -40,7 +40,11 @@ export interface AdTriggerOptions {
   onAdDismissed?: () => void;
 }
 
+// Google sert des unites distinctes par format : une unite « Annonce à
+// l'ouverture » ne se remplit pas via l'API interstitielle, et l'inverse est
+// vrai aussi. Chaque format a donc sa propre variable.
 const interstitialAdId = (import.meta.env.VITE_ADMOB_INTERSTITIAL_ID || '').trim();
+const appOpenAdId = (import.meta.env.VITE_ADMOB_APP_OPEN_ID || '').trim();
 
 /**
  * Intervalle minimal entre deux interstitiels. Google sanctionne les
@@ -182,20 +186,25 @@ class AdManager {
   }
 
   /**
-   * Interstitiel d'ouverture, affiché une seule fois par session.
-   * Silencieux en cas d'échec : un petit écran qui n'apparaitrait pas est
-   * préférable à une erreur visible au lancement.
-   */
+    * Annonce à l'ouverture (format App Open), affichée une seule fois par
+    * session. Le format est distinct de l'interstitiel : Google sert des
+    * unités séparées pour chaque, et l'API App Open ne charge pas une unité
+    * interstitielle (ni l'inverse). Utiliser la mauvaise API donne une unité
+    * qui ne se remplit jamais.
+    * Silencieux en cas d'échec : un petit écran qui n'apparaitrait pas est
+    * préférable à une erreur visible au lancement.
+    */
   public async showOpeningAd(): Promise<void> {
-    if (!this.isNative || this.hasShownOpeningAd || !interstitialAdId) return;
+    if (!this.isNative || this.hasShownOpeningAd || !appOpenAdId) return;
     this.hasShownOpeningAd = true;
     try {
       await this.initialize();
       if (!this.isAdMobReady) return;
-      await AdMob.showInterstitial();
+      await AdMob.loadAppOpen({ adId: appOpenAdId });
+      await AdMob.showAppOpen({ adId: appOpenAdId });
     } catch (err) {
-      console.warn('[AdMob] Interstitiel « ouverture » non affiche :', err);
-      // On réactive l'interstitiel pour la prochaine tentative.
+      console.warn('[AdMob] Annonce à l\'ouverture non affichée :', err);
+      // On réactive l'annonce pour la prochaine tentative.
       this.hasShownOpeningAd = false;
     }
   }

@@ -29,10 +29,10 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Google AdMob Application ID (ID officiel de test Google, à remplacer par le vôtre en production) -->
+        <!-- Google AdMob Application ID (ID officiel de l'app AutoPost Studio, identique au projet android/ (le miroir ne doit pas diverger)) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2282149611905342~8127393911"/>
     </application>
 
     <!-- Permissions -->
