@@ -13,7 +13,9 @@
     "build:mobile": "vite build --mode mobile",
     "cap:sync": "npm run build:mobile && npx cap sync android",
     "cap:open": "npx cap open android",
-    "android": "npm run cap:sync && npm run cap:open"
+    "android": "npm run cap:sync && npm run cap:open",
+    "assets:sources": "node scripts/generate-brand-assets.mjs",
+    "assets:icones": "capacitor-assets generate --android && node scripts/fix-adaptive-icons.mjs"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.1.0",
