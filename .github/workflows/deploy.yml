@@ -1,4 +1,4 @@
-name: CI/CD Web & Android (APK + AAB)
+﻿name: CI/CD Web & Android (APK + AAB)
 
 on:
   push:
@@ -19,6 +19,11 @@ jobs:
   # ==============================================================
   deploy-web:
     name: 🌐 Déploiement GitHub Pages
+    # Un tag ne redéploie pas le site : le build de vérification et la
+    # publication de la release suffisent. Le déploiement Pages est réservé
+    # aux pushs sur la branche principale, seule référence autorisée par
+    # l'environnement github-pages.
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -183,7 +188,14 @@ jobs:
             RAW_VERSION="${BASE_VERSION}-build.${GITHUB_RUN_NUMBER}"
           fi
           echo "raw=$RAW_VERSION" >> "$GITHUB_OUTPUT"
-          node scripts/version.mjs "$RAW_VERSION" | tee -a "$GITHUB_ENV"
+          # Le script écrit ses variables dans $GITHUB_ENV, ce qui ne les rend pas
+          # disponibles via steps.<id>.outputs. On les reporte donc aussi dans
+          # $GITHUB_OUTPUT, sans quoi VERSION_CODE et IS_PRERELEASE restent vides
+          # pour les etapes suivantes (notes de release, indicateur prerelease).
+          node scripts/version.mjs "$RAW_VERSION" | tee -a "$GITHUB_ENV" | tee -a "$GITHUB_OUTPUT"
+          # Android n'attend pas de prefixe « v » dans le versionName : le tag
+          # git peut le porter, pas le nom affiche dans la Play Console.
+          echo "android_name=${RAW_VERSION#v}" >> "$GITHUB_OUTPUT"
           echo "Version resolue : $RAW_VERSION"
           # L'ecran "A propos de" lit VITE_APP_VERSION.
           echo "VITE_APP_VERSION=$RAW_VERSION" >> "$GITHUB_ENV"
@@ -191,21 +203,21 @@ jobs:
       - name: Compiler l'APK Debug (installable immédiatement)
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
+          ./gradlew assembleDebug --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.android_name }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/apk/debug
           cp -r app/build/outputs/apk/debug/* ../android-project/app/build/outputs/apk/debug/ 2>/dev/null || true
 
       - name: Compiler l'APK Release signé
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
+          ./gradlew assembleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.android_name }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/apk/release
           cp -r app/build/outputs/apk/release/* ../android-project/app/build/outputs/apk/release/ 2>/dev/null || true
 
       - name: Compiler l'AAB Release signé (Android App Bundle pour Google Play)
         run: |
           cd android
-          ./gradlew bundleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.raw }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
+          ./gradlew bundleRelease --no-daemon -PAPP_VERSION_NAME="${{ steps.version.outputs.android_name }}" -PAPP_VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
           mkdir -p ../android-project/app/build/outputs/bundle/release
           cp -r app/build/outputs/bundle/release/* ../android-project/app/build/outputs/bundle/release/ 2>/dev/null || true
 
