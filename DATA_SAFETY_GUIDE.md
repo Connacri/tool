@@ -108,7 +108,7 @@ Ne pas confondre les deux plateformes :
 | Plateforme | Publicités | Déclaration Play Console |
 |---|---|---|
 | Application Android | AdMob, intégré via `src/services/adService.ts` et les identifiants `VITE_ADMOB_*` | Case « Publicités » → **Oui** |
-| Version web | Google AdSense, snippet `ca-pub-2282149611905342` dans `index.html` | Hors périmètre Play Store |
+| Version web | Google AdSense, chargé à l'exécution par `src/services/adsenseLoader.ts` à partir de `VITE_ADSENSE_CLIENT_ID`, et uniquement sur le web (le bundle Android ne contient aucun code AdSense) | Hors périmètre Play Store |
 
 Points à vérifier avant de remplir :
 
