@@ -27,6 +27,22 @@ const svg = readFileSync(join(root, 'public', 'icon.svg'), 'utf8');
 const bgLight = '#0d0d16';
 const bgDark = '#05050a';
 
+// Cible de remplissage : fraction du canevas occupee par le glyphe visible.
+const ICON_CANVAS = 1024;
+const SPLASH_CANVAS = 2732;
+// Android 12+ reserve les 66% centraux au glyphe adaptatif. On vise 61% :
+// assez pour que l'icone se voie sur un lanceur sombre, sans depasser la
+// zone sure qu'un masque circulaire ou en carre arrondi finit par rogner.
+// La valeur est legement inferieure a 61% parce que le degrade du logo
+// déborde du rectangle de marque d'environ 10% : mesurer la sortie a 61%
+// demande de demander ~55% sur le rectangle.
+const ADAPTIVE_FILL = 0.55;
+// Le splash est un carre de reference que @capacitor/assets recadre ensuite
+// pour chaque densite et chaque orientation avec CENTER_CROP. Le recadrage
+// conservant la fraction verticale, 26% ici donnent 26% de la hauteur sur
+// l'ecran final, quelle que soit la densite.
+const SPLASH_FILL = 0.26;
+
 /**
  * Rend le logo sans le fond arrondi : le glyphe seul, transparent autour.
  * Android masque lui-meme l'icone adaptative (cercle, carre arrondi, teaser),
@@ -48,6 +64,37 @@ function foregroundSvg() {
     );
 }
 
+/**
+ * Rend le glyphe seul, agrandi pour que sa partie visible occupe exactement
+ * `fill` du canevas final.
+ *
+ * Pourquoi ne pas se fier au trim() : le rognage automatique se cale sur le
+ * seuil de couleur et garde la bordure diffuse du degrade, dont l'ampleur
+ * depend du rendu du SVG. Le resultat varie avec la palette, et il a ete
+ * mesure a 82% du logo utile pour un seuil de 1. Une valeur de resize
+ * calculée sur une image brute n'a donc aucune chance d'ouvrir juste.
+ *
+ * On passe par la geometrie : le rectangle de marque occupe 260 unites d'un
+ * viewBox de 512, soit GLYPH_SPAN. Il suffit de rendre le viewBox entier a
+ * la taille (canvas * fill / GLYPH_SPAN) pour que la partie visible tombe
+ * pile sur la cible. Deterministe, et insensible au rendu.
+ */
+const GLYPH_SPAN = 260 / 512;
+
+async function glyph(fill, canvas) {
+  const side = Math.round((canvas * fill) / GLYPH_SPAN);
+  const image = sharp(Buffer.from(foregroundSvg()), { density: 384 }).resize(side, side);
+  if (side > canvas) {
+    // Le viewBox rendu depasse le canevas final : ses marges transparentes
+    //sortiraient, et sharp refuse de composer une image plus grande que la
+    // cible. Le rectangle de marque est centre, on garde donc la zone
+    // centree de la taille du canevas.
+    const offset = Math.round((side - canvas) / 2);
+    image.extract({ left: offset, top: offset, width: canvas, height: canvas });
+  }
+  return image.png().toBuffer();
+}
+
 async function main() {
   // 1. Icone pleine (fond arrondi inclus) : utilisee par les lanceurs
   //    precedents et par l'icone "launcher" de l'app.
@@ -56,18 +103,16 @@ async function main() {
     .png()
     .toFile(join(assetsDir, 'icon-only.png'));
 
-  // 2. Icone adaptative : glyphe sur 1024x1024 avec la zone de securite
-  //    respecte. Android 12+ reserve les 66% centraux au glyphe, d'ou le
-  //    retrait a ~62% pour eviter que le logo soit coupe par un masque rond.
-  await sharp(Buffer.from(foregroundSvg()), { density: 384 })
-    .resize(660, 660)
-    .extend({
-      top: 182,
-      bottom: 182,
-      left: 182,
-      right: 182,
+  // 2. Icone adaptative : glyphe sur 1024x1024, a 61% du canevas.
+  await sharp({
+    create: {
+      width: ICON_CANVAS,
+      height: ICON_CANVAS,
+      channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
+    },
+  })
+    .composite([{ input: await glyph(ADAPTIVE_FILL, ICON_CANVAS), gravity: 'center' }])
     .png()
     .toFile(join(assetsDir, 'icon-foreground.png'));
 
@@ -75,8 +120,8 @@ async function main() {
   //    les=uicones adaptatifs, qui appliquent un masque sur le calque.
   await sharp({
     create: {
-      width: 1024,
-      height: 1024,
+      width: ICON_CANVAS,
+      height: ICON_CANVAS,
       channels: 4,
       background: bgLight,
     },
@@ -91,12 +136,9 @@ async function main() {
     ['splash.png', bgLight],
     ['splash-dark.png', bgDark],
   ]) {
-    const logo = await sharp(Buffer.from(foregroundSvg()), { density: 384 })
-      .resize(760, 760)
-      .png()
-      .toBuffer();
+    const logo = await glyph(SPLASH_FILL, SPLASH_CANVAS);
     await sharp({
-      create: { width: 2732, height: 2732, channels: 4, background },
+      create: { width: SPLASH_CANVAS, height: SPLASH_CANVAS, channels: 4, background },
     })
       .composite([{ input: logo, gravity: 'center' }])
       .png()
