@@ -84,6 +84,12 @@ jobs:
     steps:
       - name: Cloner le dépôt
         uses: actions/checkout@v4
+        with:
+          # Les tags sont la source de verite du versionnage. Sans fetch-depth 0,
+          # le clone est superficiel et « git tag --list » ne renvoie rien, ce
+          # qui faisait retomber les builds de CI sur 1.0.0 au lieu de la
+          # derniere version reellement publiee.
+          fetch-depth: 0
 
       - name: Configurer Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -205,7 +211,10 @@ jobs:
             # prerelease. GITHUB_RUN_NUMBER n'etant pas borne, l'ancien
             # « -build.<run> » echouait a partir du run 10.
             BASE_VERSION="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
-            BASE_VERSION="${BASE_VERSION:-1.0.0}"
+            if [ -z "$BASE_VERSION" ]; then
+              echo "::error::Aucun tag v* trouve. Le versionCode du build serait faux : verifier que le checkout recupere bien les tags (fetch-depth: 0)." >&2
+              exit 1
+            fi
             RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$GITHUB_RUN_NUMBER")"
           fi
           # Le script écrit ses variables dans $GITHUB_ENV, ce qui ne les rend pas
