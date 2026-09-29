@@ -65,6 +65,13 @@ export const ASPECT_RATIOS: AspectRatioOption[] = [
 
 export const PREDEFINED_LOGOS = [
   {
+    id: 'autopost-cabalink',
+    name: 'AutoPost Studio by CabaLink (Officiel)',
+    iconType: 'autopost',
+    defaultText: 'AutoPost Studio by CabaLink',
+    defaultHandle: '@cabalink / @caba_link',
+  },
+  {
     id: 'studio-minimal',
     name: 'Studio Minimal',
     iconType: 'sparkles',
@@ -214,6 +221,8 @@ export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   direction: 'auto',
   easternNumerals: false,
   lineHeight: 1.35,
+  titleSpacing: 1.0,
+  subtitleSpacing: 1.0,
   boxStyle: 'scrim',
   position: 'bottom',
   freePositionX: 50,
@@ -250,10 +259,11 @@ export const INITIAL_OVERLAY_IMAGE: OverlayImageConfig = {
 
 export const INITIAL_LOGO: LogoConfig = {
   enabled: true,
-  type: 'predefined',
-  predefinedId: 'studio-minimal',
-  brandText: 'STUDIO HORIZON',
-  brandHandle: '@studio.horizon',
+  type: 'custom',
+  customUrl: '/autopost-studio-logo-white.svg',
+  predefinedId: 'autopost-cabalink',
+  brandText: 'AutoPost Studio by CabaLink',
+  brandHandle: '@cabalink / @caba_link',
   position: 'top-left',
   customX: 10,
   customY: 8,

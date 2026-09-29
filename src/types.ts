@@ -43,7 +43,11 @@ export interface TypographyConfig {
   customArabicFontFamily?: string; // Instant Google Font Arabic name (e.g. 'Cairo', 'Alexandria', etc.)
   direction?: TextDirectionType;
   easternNumerals?: boolean; // Eastern Arabic numerals (١، ٢، ٣) vs Western (1, 2, 3) with LTR order
-  lineHeight?: number; // 1.1 to 1.8 (default 1.35)
+  lineHeight?: number; // 0.8 to 2.5 (default 1.35)
+  titleSpacing?: number; // 0.2 to 3.0 multiplier (espacement titre-texte, default 1.0)
+  subtitleSpacing?: number; // 0.2 to 3.0 multiplier (espacement texte-soustitre, default 1.0)
+  kickerLineHeight?: number; // multiplier for multiline kicker
+  subtitleLineHeight?: number; // multiplier for multiline subtitle
   boxStyle: BoxStyleType;
   position: TextPosition;
   freePositionX?: number; // 0 - 100%

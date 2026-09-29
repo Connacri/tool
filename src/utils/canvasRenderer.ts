@@ -477,7 +477,7 @@ export async function renderSlideToCanvas(
     ? formatArabicDigits(slide.subtitle, true)
     : formatBidiHandlesAndNumbers(slide.subtitle, subtitleDir === 'rtl');
 
-  const textWidthPercent = Math.max(0.4, Math.min(1.0, (typography.textWidth ?? 85) / 100));
+  const textWidthPercent = Math.max(0.3, Math.min(1.0, (typography.textWidth ?? 88) / 100));
   const contentWidth = Math.round(width * textWidthPercent);
   const paddingX = Math.round((width - contentWidth) / 2);
   const paddingY = Math.round(height * 0.08);
@@ -498,12 +498,35 @@ export async function renderSlideToCanvas(
     typography.kickerAlign
   );
 
-  ctx.font = `600 ${baseSize}px ${phraseFont}`;
+  // 1. Measure and wrap Kicker (Title) lines
+  let kickerLines: string[] = [];
+  const kickerLineHeight = Math.round(kickerSize * (typography.kickerLineHeight ?? 1.25));
+  if (typography.showKicker && displayKicker) {
+    ctx.font = `700 ${kickerSize}px ${kickerFont}`;
+    const kickerRawText = kickerIsArabic ? displayKicker : displayKicker.toUpperCase();
+    kickerLines = wrapText(ctx, kickerRawText, contentWidth);
+  }
+
+  // 2. Measure and wrap Phrase lines
+  ctx.font = `700 ${baseSize}px ${phraseFont}`;
   const lines = wrapText(ctx, displayText, contentWidth);
-  const totalTextHeight =
-    lines.length * lineHeight +
-    (typography.showKicker && displayKicker ? kickerSize * 2 : 0) +
-    (typography.showSubtitle && displaySubtitle ? subtitleSize * 2 : 0);
+
+  // 3. Measure and wrap Subtitle lines
+  let subtitleLines: string[] = [];
+  const subtitleLineHeight = Math.round(subtitleSize * (typography.subtitleLineHeight ?? 1.35));
+  if (typography.showSubtitle && displaySubtitle) {
+    ctx.font = `400 ${subtitleSize}px ${subtitleFont}`;
+    subtitleLines = wrapText(ctx, displaySubtitle, contentWidth);
+  }
+
+  // 4. Configurable vertical spacings between title, phrase, and subtitle
+  const titleGap = Math.round(baseSize * 0.40 * (typography.titleSpacing ?? 1.0));
+  const subtitleGap = Math.round(baseSize * 0.35 * (typography.subtitleSpacing ?? 1.0));
+
+  const totalKickerHeight = kickerLines.length > 0 ? kickerLines.length * kickerLineHeight + titleGap : 0;
+  const totalPhraseHeight = lines.length * lineHeight;
+  const totalSubtitleHeight = subtitleLines.length > 0 ? subtitleGap + subtitleLines.length * subtitleLineHeight : 0;
+  const totalTextHeight = totalKickerHeight + totalPhraseHeight + totalSubtitleHeight;
 
   // Determine X & Y position (Free Drag & Drop or Structured)
   const isCustomSlidePos = slide.customTextX !== undefined && slide.customTextY !== undefined;
@@ -582,9 +605,8 @@ export async function renderSlideToCanvas(
   ctx.textBaseline = 'top';
   let currentY = startY;
 
-  // 4. Draw Kicker with user-selected kickerAlign & kickerDir
-
-  if (typography.showKicker && displayKicker) {
+  // 4. Draw Kicker with user-selected kickerAlign & kickerDir (with wrapping if reaches limit!)
+  if (kickerLines.length > 0) {
     ctx.save();
     ctx.direction = kickerDir;
     ctx.textAlign = kickerAlign;
@@ -593,12 +615,13 @@ export async function renderSlideToCanvas(
     ctx.fillStyle = kickerColor;
     if (!kickerIsArabic) {
       ctx.letterSpacing = '2px';
-      ctx.fillText(displayKicker.toUpperCase(), kickerX, currentY);
-    } else {
-      ctx.fillText(displayKicker, kickerX, currentY);
+    }
+    for (const kLine of kickerLines) {
+      ctx.fillText(kLine, kickerX, currentY);
+      currentY += kickerLineHeight;
     }
     ctx.restore();
-    currentY += kickerSize + 20;
+    currentY += titleGap;
   }
 
   // 5. Draw Main Phrase Lines with user-selected phraseAlign & phraseDir
@@ -637,16 +660,19 @@ export async function renderSlideToCanvas(
   }
   ctx.restore();
 
-  // 6. Draw Subtitle / Citation with phrase alignment & subtitleDir
-  if (typography.showSubtitle && displaySubtitle) {
-    currentY += 16;
+  // 6. Draw Subtitle / Citation with phrase alignment & subtitleDir (with wrapping if reaches limit!)
+  if (subtitleLines.length > 0) {
+    currentY += subtitleGap;
     ctx.save();
     ctx.direction = subtitleDir;
     ctx.textAlign = phraseAlign;
     const subX = getAlignX(phraseAlign);
     ctx.font = `400 ${subtitleSize}px ${subtitleFont}`;
     ctx.fillStyle = subtitleColor;
-    ctx.fillText(displaySubtitle, subX, currentY);
+    for (const sLine of subtitleLines) {
+      ctx.fillText(sLine, subX, currentY);
+      currentY += subtitleLineHeight;
+    }
     ctx.restore();
   }
 
@@ -878,7 +904,28 @@ async function renderLogoOnCanvas(
     ctx.strokeStyle = textColor;
     ctx.lineWidth = 2.5 * logoScale;
 
-    if (logo.predefinedId === 'aura-crest') {
+    if (logo.predefinedId === 'autopost-cabalink') {
+      // AutoPost Studio 'OP' Monogram emblem badge with red accent
+      roundRect(ctx, emblemX, finalLy, emblemSize, emblemSize, 8 * logoScale);
+      ctx.fillStyle = logo.theme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 15, 18, 0.92)';
+      ctx.fill();
+      ctx.stroke();
+
+      // Letters "OP"
+      ctx.save();
+      ctx.font = `800 ${Math.round(emblemSize * 0.46)}px 'Syne', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = logo.theme === 'dark' ? '#0a0a0c' : '#ffffff';
+      ctx.fillText('OP', emblemX + emblemSize * 0.46, finalLy + emblemSize * 0.52);
+
+      // Red signature accent dot
+      ctx.beginPath();
+      ctx.arc(emblemX + emblemSize * 0.78, finalLy + emblemSize * 0.32, Math.max(2, 3.5 * logoScale), 0, Math.PI * 2);
+      ctx.fillStyle = '#e11d48';
+      ctx.fill();
+      ctx.restore();
+    } else if (logo.predefinedId === 'aura-crest') {
       ctx.beginPath();
       ctx.moveTo(emblemX + emblemSize / 2, finalLy);
       ctx.lineTo(emblemX + emblemSize, finalLy + emblemSize / 2);

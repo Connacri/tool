@@ -57,12 +57,12 @@ export const Header: React.FC<HeaderProps> = ({
   const navTabs = [
     { id: 'slides', label: 'Diapos & Textes', icon: Layers },
     { id: 'media', label: 'Visuels', icon: Eye },
-    { id: 'typography', label: 'Typo & Tailles', icon: Type },
+    { id: 'typography', label: 'Typo & Espacements', icon: Type },
+    { id: 'filters', label: 'Filtres & Flou', icon: SlidersHorizontal },
     { id: 'overlay', label: 'Superposition', icon: Sliders },
-    { id: 'filters', label: 'Filtres', icon: SlidersHorizontal },
     { id: 'ratios', label: 'Formats', icon: Maximize2 },
-    { id: 'branding', label: 'Logo', icon: Stamp },
-    { id: 'automation', label: 'Auto', icon: Sparkles },
+    { id: 'branding', label: 'Logo & Filigrane', icon: Stamp },
+    { id: 'automation', label: 'Export & Auto', icon: Sparkles },
   ];
 
   const formattedTime = lastSaved

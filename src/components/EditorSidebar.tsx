@@ -638,12 +638,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         {[
           { id: 'slides', label: 'Diapos' },
           { id: 'media', label: 'Médias' },
-          { id: 'typography', label: 'Typo & Arabe' },
+          { id: 'typography', label: 'Typo & Tailles' },
           { id: 'filters', label: 'Filtres & Flou' },
           { id: 'overlay', label: 'Superposition' },
-          { id: 'ratios', label: 'Ratios' },
+          { id: 'ratios', label: 'Formats' },
           { id: 'branding', label: 'Logo & Filigrane' },
-          { id: 'automation', label: 'Export' },
+          { id: 'automation', label: 'Export & Auto' },
         ].map((t) => (
           <button
             key={t.id}
@@ -690,14 +690,6 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 </button>
               </div>
             </div>
-
-            {/* Notification Banner when applied to all */}
-            {appliedAllNotice && (
-              <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-700/70 flex items-center gap-2 text-xs text-emerald-300 shadow-lg animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span className="font-medium">{appliedAllNotice}</span>
-              </div>
-            )}
 
             {/* Slide Selector Carousel Tabs */}
             <div className="grid grid-cols-6 gap-1 p-1 bg-neutral-900 rounded-lg border border-neutral-800">
@@ -1233,143 +1225,22 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {/* 1. Titre (Kicker) Color */}
-                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-neutral-300 font-medium">1. Titre (Kicker)</span>
-                          <div
-                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
-                            style={{ backgroundColor: activeSlide.customKickerColor || typography.accentColor || '#6366f1' }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="color"
-                            value={getSafeHex(activeSlide.customKickerColor || typography.accentColor, '#6366f1')}
-                            onChange={(e) => {
-                              updateActiveSlide({ customKickerColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, accentColor: e.target.value }));
-                            }}
-                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
-                          />
-                          <input
-                            type="text"
-                            value={activeSlide.customKickerColor || typography.accentColor || '#6366f1'}
-                            onChange={(e) => {
-                              updateActiveSlide({ customKickerColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, accentColor: e.target.value }));
-                            }}
-                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
-                          {['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#ffffff', '#f43f5e', '#a855f7'].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                updateActiveSlide({ customKickerColor: c });
-                                setTypography((prev) => ({ ...prev, accentColor: c }));
-                              }}
-                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
-                              style={{ backgroundColor: c }}
-                              title={`Titre: ${c}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 2. Phrase Principale Color */}
-                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-neutral-300 font-medium">2. Phrase Principale</span>
-                          <div
-                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
-                            style={{ backgroundColor: activeSlide.customTextColor || typography.textColor || '#ffffff' }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="color"
-                            value={getSafeHex(activeSlide.customTextColor || typography.textColor, '#ffffff')}
-                            onChange={(e) => {
-                              updateActiveSlide({ customTextColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, textColor: e.target.value }));
-                            }}
-                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
-                          />
-                          <input
-                            type="text"
-                            value={activeSlide.customTextColor || typography.textColor || '#ffffff'}
-                            onChange={(e) => {
-                              updateActiveSlide({ customTextColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, textColor: e.target.value }));
-                            }}
-                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
-                          {['#ffffff', '#fef3c7', '#fef08a', '#bae6fd', '#a7f3d0', '#fed7aa', '#e2e8f0', '#0a0a0a'].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                updateActiveSlide({ customTextColor: c });
-                                setTypography((prev) => ({ ...prev, textColor: c }));
-                              }}
-                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
-                              style={{ backgroundColor: c }}
-                              title={`Phrase: ${c}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 3. Sous-titre / Signature Color */}
-                      <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-neutral-300 font-medium">3. Sous-titre / Auteur</span>
-                          <div
-                            className="w-3.5 h-3.5 rounded border border-white/20 shadow-sm"
-                            style={{ backgroundColor: activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db' }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="color"
-                            value={getSafeHex(activeSlide.customSubtitleColor || typography.subtitleColor, '#d1d5db')}
-                            onChange={(e) => {
-                              updateActiveSlide({ customSubtitleColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, subtitleColor: e.target.value }));
-                            }}
-                            className="w-7 h-7 rounded border border-neutral-700 bg-transparent cursor-pointer shrink-0"
-                          />
-                          <input
-                            type="text"
-                            value={activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db'}
-                            onChange={(e) => {
-                              updateActiveSlide({ customSubtitleColor: e.target.value });
-                              setTypography((prev) => ({ ...prev, subtitleColor: e.target.value }));
-                            }}
-                            className="w-full px-1.5 py-0.5 text-[10px] font-mono bg-neutral-900 border border-neutral-800 rounded text-neutral-200 uppercase"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
-                          {['#d1d5db', '#ffffff', '#fbbf24', '#818cf8', '#34d399', '#f472b6', '#38bdf8', '#9ca3af'].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                updateActiveSlide({ customSubtitleColor: c });
-                                setTypography((prev) => ({ ...prev, subtitleColor: c }));
-                              }}
-                              className="w-3.5 h-3.5 rounded-full border border-white/20 hover:scale-125 transition-transform shrink-0"
-                              style={{ backgroundColor: c }}
-                              title={`Sous-titre: ${c}`}
-                            />
-                          ))}
-                        </div>
+                    {/* Active colors summary badge */}
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-neutral-950 border border-neutral-800 text-xs">
+                      <span className="text-neutral-400 text-[11px]">Couleurs actives :</span>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-[10.5px] text-neutral-300">
+                          <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: activeSlide.customKickerColor || typography.accentColor || '#6366f1' }} />
+                          Titre
+                        </span>
+                        <span className="flex items-center gap-1 text-[10.5px] text-neutral-300">
+                          <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: activeSlide.customTextColor || typography.textColor || '#ffffff' }} />
+                          Phrase
+                        </span>
+                        <span className="flex items-center gap-1 text-[10.5px] text-neutral-300">
+                          <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: activeSlide.customSubtitleColor || typography.subtitleColor || '#d1d5db' }} />
+                          Sous-titre
+                        </span>
                       </div>
                     </div>
 
@@ -3495,17 +3366,29 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </div>
 
               {/* 5. Line Height / Interligne */}
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-neutral-300">Interligne (Hauteur de ligne)</span>
-                  <span className="font-mono text-neutral-200">
-                    {typography.lineHeight ?? 1.35}x
-                  </span>
+              <div className="p-3 rounded-lg bg-neutral-950/70 border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-200 font-medium">Interligne (Hauteur de ligne)</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0.8"
+                      max="2.5"
+                      step="0.05"
+                      value={typography.lineHeight ?? 1.35}
+                      onChange={(e) => {
+                        const val = Math.max(0.8, Math.min(2.5, parseFloat(e.target.value) || 1.35));
+                        setTypography({ ...typography, lineHeight: val });
+                      }}
+                      className="w-16 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-indigo-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">x</span>
+                  </div>
                 </div>
                 <input
                   type="range"
-                  min="1.1"
-                  max="1.8"
+                  min="0.8"
+                  max="2.5"
                   step="0.05"
                   value={typography.lineHeight ?? 1.35}
                   onChange={(e) =>
@@ -3513,19 +3396,150 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   }
                   className="w-full accent-indigo-500"
                 />
+                <div className="flex items-center gap-1 text-[10px]">
+                  {[
+                    { label: 'Serré (1.1x)', val: 1.1 },
+                    { label: 'Normal (1.35x)', val: 1.35 },
+                    { label: 'Aéré (1.6x)', val: 1.6 },
+                    { label: 'Large (2.0x)', val: 2.0 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, lineHeight: p.val })}
+                      className="flex-1 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* 6. Text Block Max Width */}
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-neutral-300">Largeur Maximale du Bloc Texte</span>
-                  <span className="font-mono text-neutral-200">
-                    {typography.textWidth ?? 88}%
-                  </span>
+              {/* 5b. Espacement Titre ↔ Texte */}
+              <div className="p-3 rounded-lg bg-neutral-950/70 border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-200 font-medium">Espacement Titre ↔ Phrase</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0.2"
+                      max="3.0"
+                      step="0.1"
+                      value={typography.titleSpacing ?? 1.0}
+                      onChange={(e) => {
+                        const val = Math.max(0.2, Math.min(3.0, parseFloat(e.target.value) || 1.0));
+                        setTypography({ ...typography, titleSpacing: val });
+                      }}
+                      className="w-16 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-indigo-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">x</span>
+                  </div>
                 </div>
                 <input
                   type="range"
-                  min="40"
+                  min="0.2"
+                  max="3.0"
+                  step="0.1"
+                  value={typography.titleSpacing ?? 1.0}
+                  onChange={(e) =>
+                    setTypography({ ...typography, titleSpacing: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+                <div className="flex items-center gap-1 text-[10px]">
+                  {[
+                    { label: 'Compact (0.5x)', val: 0.5 },
+                    { label: 'Standard (1.0x)', val: 1.0 },
+                    { label: 'Espacé (1.8x)', val: 1.8 },
+                    { label: 'Grand (2.5x)', val: 2.5 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, titleSpacing: p.val })}
+                      className="flex-1 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5c. Espacement Texte ↔ Sous-titre */}
+              <div className="p-3 rounded-lg bg-neutral-950/70 border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-200 font-medium">Espacement Phrase ↔ Sous-titre</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0.2"
+                      max="3.0"
+                      step="0.1"
+                      value={typography.subtitleSpacing ?? 1.0}
+                      onChange={(e) => {
+                        const val = Math.max(0.2, Math.min(3.0, parseFloat(e.target.value) || 1.0));
+                        setTypography({ ...typography, subtitleSpacing: val });
+                      }}
+                      className="w-16 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-indigo-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">x</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="3.0"
+                  step="0.1"
+                  value={typography.subtitleSpacing ?? 1.0}
+                  onChange={(e) =>
+                    setTypography({ ...typography, subtitleSpacing: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-indigo-500"
+                />
+                <div className="flex items-center gap-1 text-[10px]">
+                  {[
+                    { label: 'Compact (0.5x)', val: 0.5 },
+                    { label: 'Standard (1.0x)', val: 1.0 },
+                    { label: 'Espacé (1.8x)', val: 1.8 },
+                    { label: 'Grand (2.5x)', val: 2.5 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, subtitleSpacing: p.val })}
+                      className="flex-1 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. Text Block Max Width (avec renvoi à la ligne automatique garanti) */}
+              <div className="p-3 rounded-lg bg-neutral-950/70 border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-neutral-200 font-medium block">Largeur Maximale du Bloc Texte</span>
+                    <span className="text-[10px] text-indigo-300">Renvoi à la ligne automatique (Titre, Phrase, Sous-titre)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="30"
+                      max="100"
+                      value={typography.textWidth ?? 88}
+                      onChange={(e) => {
+                        const val = Math.max(30, Math.min(100, parseInt(e.target.value) || 88));
+                        setTypography({ ...typography, textWidth: val });
+                      }}
+                      className="w-14 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-indigo-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">%</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="30"
                   max="100"
                   step="2"
                   value={typography.textWidth ?? 88}
@@ -3534,6 +3548,26 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   }
                   className="w-full accent-indigo-500"
                 />
+                <div className="flex items-center gap-1 text-[10px]">
+                  {[
+                    { label: 'Étroit (65%)', val: 65 },
+                    { label: 'Normal (78%)', val: 78 },
+                    { label: 'Recommandé (88%)', val: 88 },
+                    { label: 'Plein (96%)', val: 96 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, textWidth: p.val })}
+                      className="flex-1 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-neutral-400 leading-tight">
+                  ✓ S'applique pixel-par-pixel dans l'aperçu web et dans les images haute résolution exportées (JPG/PNG/ZIP).
+                </p>
               </div>
 
               {/* Quick apply all button */}

@@ -2855,17 +2855,18 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   borderColor: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                 }}
-                className={`border flex items-center justify-center font-bold font-['Syne'] shrink-0 ${
+                className={`relative border flex items-center justify-center font-black font-['Syne'] shrink-0 ${
                   logo.unifyColor && logo.unifiedColor
                     ? 'bg-black/30 backdrop-blur-sm'
                     : logo.theme === 'dark'
                     ? 'bg-neutral-900 border-neutral-700 text-white'
                     : logo.theme === 'accent'
                     ? 'bg-indigo-600 border-indigo-400 text-white'
-                    : 'bg-white/10 border-white/30 text-white backdrop-blur-sm'
+                    : 'bg-neutral-950/85 border-neutral-700 text-white backdrop-blur-sm'
                 }`}
               >
-                AP
+                <span>OP</span>
+                <span className="absolute top-[12%] right-[12%] w-[24%] h-[24%] rounded-full bg-rose-600 ring-1 ring-white/60" />
               </div>
               <div
                 dir={isArabicText(logo.brandText || '') ? 'rtl' : 'ltr'}
@@ -2886,7 +2887,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   }}
                   className="font-bold tracking-tight text-white leading-tight"
                 >
-                  {logo.brandText || 'AUTOPOST STUDIO'}
+                  {logo.brandText || 'AutoPost Studio by CabaLink'}
                 </span>
                 {logo.brandHandle && (
                   <span
@@ -3040,7 +3041,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {typography.showKicker && slide.kicker && (
               <span
                 dir={kickerDir}
-                className={`font-bold tracking-widest uppercase mb-1 block w-full ${
+                className={`font-bold tracking-widest uppercase block w-full break-words ${
                   kickerAlign === 'center'
                     ? 'text-center'
                     : kickerAlign === 'right'
@@ -3051,6 +3052,9 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   color: kickerColor,
                   fontSize: computedKickerFontSize,
                   fontFamily: `'${kickerFontName}', sans-serif`,
+                  marginBottom: `${0.65 * (typography.titleSpacing ?? 1.0)}cqw`,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {renderBiDiText(slide.kicker, kickerIsArabic)}
@@ -3060,7 +3064,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {/* Main Phrase Text with dynamic Google font, BiDi & scaling */}
             <h2
               dir={phraseDir}
-              className={`font-bold tracking-tight block w-full ${
+              className={`font-bold tracking-tight block w-full break-words ${
                 phraseAlign === 'center'
                   ? 'text-center'
                   : phraseAlign === 'right'
@@ -3070,8 +3074,11 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               style={{
                 color: phraseColor,
                 fontSize: computedPhraseFontSize,
-                lineHeight: typography.lineHeight ?? 1.3,
+                lineHeight: typography.lineHeight ?? 1.35,
                 fontFamily: `'${phraseFontName}', sans-serif`,
+                marginBottom: typography.showSubtitle && slide.subtitle ? `${0.55 * (typography.subtitleSpacing ?? 1.0)}cqw` : undefined,
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {renderBiDiText(slide.text, phraseIsArabic)}
@@ -3081,7 +3088,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {typography.showSubtitle && slide.subtitle && (
               <p
                 dir={subtitleDir}
-                className={`mt-1 font-normal leading-relaxed block w-full ${
+                className={`font-normal leading-relaxed block w-full break-words ${
                   phraseAlign === 'center'
                     ? 'text-center'
                     : phraseAlign === 'right'
@@ -3091,7 +3098,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                 style={{
                   color: subtitleColor,
                   fontSize: computedSubtitleFontSize,
+                  lineHeight: (typography.lineHeight ?? 1.35) * 1.05,
                   fontFamily: `'${subtitleFontName}', sans-serif`,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {renderBiDiText(slide.subtitle, subtitleIsArabic)}
@@ -3114,7 +3124,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {typography.showKicker && slide.kicker && (
               <span
                 dir={kickerDir}
-                className={`font-bold tracking-widest uppercase mb-1 block w-full ${
+                className={`font-bold tracking-widest uppercase block w-full break-words ${
                   kickerAlign === 'center'
                     ? 'text-center'
                     : kickerAlign === 'right'
@@ -3125,6 +3135,9 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   color: kickerColor,
                   fontSize: computedKickerFontSize,
                   fontFamily: `'${kickerFontName}', sans-serif`,
+                  marginBottom: `${0.65 * (typography.titleSpacing ?? 1.0)}cqw`,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {renderBiDiText(slide.kicker, kickerIsArabic)}
@@ -3134,7 +3147,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {/* Main Phrase Text with dynamic Google font, BiDi & scaling */}
             <h2
               dir={phraseDir}
-              className={`font-bold tracking-tight block w-full ${
+              className={`font-bold tracking-tight block w-full break-words ${
                 phraseAlign === 'center'
                   ? 'text-center'
                   : phraseAlign === 'right'
@@ -3144,8 +3157,11 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               style={{
                 color: phraseColor,
                 fontSize: computedPhraseFontSize,
-                lineHeight: typography.lineHeight ?? 1.3,
+                lineHeight: typography.lineHeight ?? 1.35,
                 fontFamily: `'${phraseFontName}', sans-serif`,
+                marginBottom: typography.showSubtitle && slide.subtitle ? `${0.55 * (typography.subtitleSpacing ?? 1.0)}cqw` : undefined,
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {renderBiDiText(slide.text, phraseIsArabic)}
@@ -3155,7 +3171,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             {typography.showSubtitle && slide.subtitle && (
               <p
                 dir={subtitleDir}
-                className={`mt-1 font-normal leading-relaxed block w-full ${
+                className={`font-normal leading-relaxed block w-full break-words ${
                   phraseAlign === 'center'
                     ? 'text-center'
                     : phraseAlign === 'right'
@@ -3165,7 +3181,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                 style={{
                   color: subtitleColor,
                   fontSize: computedSubtitleFontSize,
+                  lineHeight: (typography.lineHeight ?? 1.35) * 1.05,
                   fontFamily: `'${subtitleFontName}', sans-serif`,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {renderBiDiText(slide.subtitle, subtitleIsArabic)}

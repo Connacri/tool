@@ -90,7 +90,20 @@ export function loadSavedLogo(): LogoConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_LOGO);
     if (raw) {
-      return { ...INITIAL_LOGO, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      // Upgrade from old initial default if user hasn't created a personalized custom logo
+      if (parsed.brandText === 'STUDIO HORIZON' || !parsed.brandText) {
+        return {
+          ...INITIAL_LOGO,
+          ...parsed,
+          type: INITIAL_LOGO.type,
+          customUrl: INITIAL_LOGO.customUrl,
+          predefinedId: INITIAL_LOGO.predefinedId,
+          brandText: INITIAL_LOGO.brandText,
+          brandHandle: INITIAL_LOGO.brandHandle,
+        };
+      }
+      return { ...INITIAL_LOGO, ...parsed };
     }
   } catch (e) {
     console.warn('Erreur lors du chargement du logo:', e);
