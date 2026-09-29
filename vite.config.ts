@@ -4,7 +4,12 @@ import path from 'path';
 import {defineConfig} from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  // Deux facons de produire le bundle natif :
+  //  - `npm run build:mobile` (utilise en CI et en local) qui passe --mode mobile ;
+  //  - BUILD_TARGET=capacitor, conserve pour les commandes plus anciennes.
+  const isNativeBuild = mode === 'mobile' || process.env.BUILD_TARGET === 'capacitor';
+
   return {
     // Chemins d'assets RELATIFS ('./assets/...') pour les deux cibles :
     //  - build Capacitor (npm run build:mobile) : le bundle est chargé depuis le
@@ -14,6 +19,12 @@ export default defineConfig(() => {
     //    (/AutoPost-Studio/), où '/assets/...' pointait à la racine du domaine.
     // Un chemin absolu ('/') casserait l'un des deux.
     base: './',
+    define: {
+      // Compile-time : permet d'eliminer du bundle Android le code reserve au
+      // web (notamment le chargeur AdSense). Vrai seulement pour le bundle
+      // Capacitor, construit par `npm run build:mobile`.
+      __NATIVE_BUILD__: JSON.stringify(isNativeBuild),
+    },
     plugins: [
       react(),
       tailwindcss(),

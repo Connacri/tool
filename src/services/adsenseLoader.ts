@@ -64,6 +64,15 @@ let injected = false;
  */
 export function loadAdsense(): void {
   if (injected || typeof document === 'undefined') return;
+
+  // Garde-fou de compilation : sur un bundle Capacitor cette constante vaut
+  // `true`, la fonction se termine ici et Rollup supprime tout le reste,
+  // y compris l'URL AdSense. Le code AdSense est donc physiquement absent de
+  // l'APK, et pas seulement neutralise a l'execution. Si le pont Capacitor
+  // n'etait pas pret au moment du chargement, la verification suivante ne
+  // suffirait pas a empeicher le chargement du script.
+  if (__NATIVE_BUILD__) return;
+
   injected = true;
 
   if (isNativeRuntime()) {
