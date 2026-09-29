@@ -16,15 +16,37 @@
  * de la version SemVer plutot que de l'incrementer a la main, ce qui garantit
  * qu'il est reproductible depuis le tag et impossible a oublier :
  *
- *   versionCode = major * 1_000_000 + minor * 1_000 + patch
+ *   versionCode = major * 1_000_000 + minor * 10_000 + patch * 10
  *
- * major est plafonne a 1999 pour rester sous le plafond de Play (1 999 999 999
+ * major est plafonne a 1999 pour rester sous le plafond de Play (2 009 009 990
  * < 2 100 000 000).
  *
- * Prereleases (1.2.0-rc.1) : Play refuse deux APK de meme versionCode, donc
- * une prerelease occupe les codes juste inferieurs a la version finale, ce qui
- * conserve l'ordre chronologique : rc.1 -> 1001999, rc.2 -> 1001998, puis
- * 1.2.0 -> 1002000.
+ * Prereleases (1.2.0-rc.1)
+ * -----------------------
+ * Play refuse deux APK de meme versionCode, et une prerelease doit preceder sa
+ * version finale tout en lui succedant dans l'ordre de publication. Chaque
+ * version finale reserve donc dix codes : les neuf premiers, plus un, sont
+ * pour ses prereleases.
+ *
+ *   1.2.0-rc.1 -> 1002011   1.2.0-rc.2 -> 1002012   1.2.0 -> 1002020
+ *
+ * Trois proprietes en decoulent : les prereleases d'une meme version sont
+ * croissantes entre elles, elles restent inferieures a la finale, et elles
+ * restent superieures a la finale precedente. Aucun code n'est partage.
+ *
+ * Pourquoi le facteur 10 sur le patch : sans lui, deux versions finales
+ * consecutives occupent deux entiers adjacents (1.0.3 -> 1000003,
+ * 1.0.4 -> 1000004) et il ne reste plus aucun entier entre elles ou placer une
+ * prerelease. C'etait le defaut de l'encodage initial, qui attribuait une
+ * prerelease a base - numero : rc.1 recevait base - 1 et rc.2 base - 2, donc
+ * une version superieure se voyait attribuer un versionCode inferieur, que
+ * Play rejette.
+ *
+ * Migration : la 1.0.3 publiee vaut 1000003 sous l'ancien encodage. Le
+ * prochain tag calcule 1.0.4 -> 1000040, qui reste superieur, donc la
+ * transition se fait sans saut de versionCode. Seuls les anciens tags
+ * recalculeraient une valeur differente, ce qui est sans effet puisqu'ils ne
+ * sont pas rebuildes.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -35,6 +57,9 @@ const MAX_VERSION_CODE = 2100000000;
 const MAJOR_LIMIT = 1999;
 const MINOR_LIMIT = 999;
 const PATCH_LIMIT = 999;
+// Codes reserves a chaque version finale pour ses prereleases. La finale
+// occupe le dernier de la plage, les prereleases les precedents.
+const PRERELEASE_SLOTS = 9;
 
 function fail(message) {
   console.error(`[version] ERREUR : ${message}`);
@@ -94,18 +119,24 @@ export function computeVersionCode({ major, minor, patch, prerelease }) {
   if (minor > MINOR_LIMIT) fail(`minor doit rester <= ${MINOR_LIMIT} (versionCode : ${minor}).`);
   if (patch > PATCH_LIMIT) fail(`patch doit rester <= ${PATCH_LIMIT} (versionCode : ${patch}).`);
 
-  const base = major * 1000000 + minor * 1000 + patch;
+  const base = major * 1000000 + minor * 10000 + patch * 10;
 
   if (!prerelease) return base;
 
-  // Ordre des prereleases : rc.1 > rc.2, c'est-a-dire un numero plus petit
-  // doit avoir un versionCode plus grand pour rester avant la version finale.
+  // Ordre des prereleases : rc.1 < rc.2 < version finale. La sequence est
+  // decalee de facon a rester dans la plage reservee au-dessus de la version
+  // finale precedente, et non en dessous de la finale courante comme le
+  // faisait le decalage base - numero, qui rendait chaque prerelease
+  // successive inferieure a la precedente.
   const sequenceMatch = /(\d+)(?!.*\d)/.exec(prerelease);
   const sequence = sequenceMatch ? Number(sequenceMatch[1]) : 1;
-  if (sequence > 999) {
-    fail(`suffixe de prerelease "${prerelease}" : le numero doit rester <= 999.`);
+  if (sequence > PRERELEASE_SLOTS) {
+    fail(
+      `suffixe de prerelease "${prerelease}" : le numero doit rester <= ${PRERELEASE_SLOTS}, ` +
+        'une version finale ne reserve que ce nombre de codes a ses prereleases.'
+    );
   }
-  const code = base - sequence;
+  const code = base - (PRERELEASE_SLOTS + 1 - sequence);
   if (code <= 0) {
     fail(
       `versionCode negatif (${code}) pour "${prerelease}". ` +
