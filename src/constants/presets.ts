@@ -231,6 +231,7 @@ export const INITIAL_TYPOGRAPHY: TypographyConfig = {
   showKicker: true,
   showSubtitle: true,
   showSlideNumber: true,
+  slideNumberSize: 1.0,
   scrimOpacity: 0.7,
 };
 

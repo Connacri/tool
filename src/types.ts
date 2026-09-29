@@ -51,9 +51,10 @@ export interface TypographyConfig {
   align: TextAlign;
   kickerAlign?: TextAlign | 'inherit';
   phraseAlign?: TextAlign | 'inherit';
-  fontSize: number; // relative multiplier 0.5 to 2.5
-  kickerSize?: number; // relative multiplier 0.5 to 2.5 (default 1.0)
-  subtitleSize?: number; // relative multiplier 0.5 to 2.5 (default 1.0)
+  fontSize: number; // relative multiplier 0.1 to 10.0 (10% to 1000%)
+  kickerSize?: number; // relative multiplier 0.1 to 10.0 (default 1.0)
+  subtitleSize?: number; // relative multiplier 0.1 to 10.0 (default 1.0)
+  slideNumberSize?: number; // relative multiplier 0.1 to 10.0 (default 1.0, 10% to 1000%)
   textWidth?: number; // max-width 40% - 100% (default 85%)
   textColor: string;
   accentColor: string; // Title / Kicker color
@@ -218,6 +219,7 @@ export interface SlideItem {
   customTextScale?: number; // scale multiplier
   customKickerScale?: number;
   customSubtitleScale?: number;
+  customNumberScale?: number; // slide number scale multiplier (10% to 1000%)
   customBlur?: GradientBlurConfig;
   customFilter?: ColorFilterConfig;
   customOverlayImage?: OverlayImageConfig;

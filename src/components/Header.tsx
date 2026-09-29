@@ -1,5 +1,22 @@
-import React from 'react';
-import { Sparkles, Download, Check, RotateCcw, PenTool, Eye, Smartphone } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Sparkles,
+  Download,
+  Check,
+  RotateCcw,
+  PenTool,
+  Eye,
+  Smartphone,
+  Menu,
+  X,
+  Layers,
+  Sliders,
+  Type,
+  Maximize2,
+  Stamp,
+  SlidersHorizontal,
+  ChevronDown,
+} from 'lucide-react';
 import { AspectRatioType } from '../types';
 
 interface HeaderProps {
@@ -10,6 +27,7 @@ interface HeaderProps {
   onOpenExportModal: () => void;
   onOpenAndroidModal: () => void;
   onQuickAiGenerate: () => void;
+  onOpenAiModal?: () => void;
   isAiGenerating: boolean;
   totalSlides: number;
   lastSaved: number | null;
@@ -24,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExportModal,
   onOpenAndroidModal,
   onQuickAiGenerate,
+  onOpenAiModal,
   isAiGenerating,
   totalSlides,
   lastSaved,
@@ -31,148 +50,225 @@ export const Header: React.FC<HeaderProps> = ({
   mobileView,
   setMobileView,
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navTabs = [
-    { id: 'slides', label: 'Diapos & Textes' },
-    { id: 'media', label: 'Visuels' },
-    { id: 'overlay', label: 'Superposition' },
-    { id: 'filters', label: 'Filtres & Dégradés' },
-    { id: 'ratios', label: 'Formats & Ratios' },
-    { id: 'typography', label: 'Typographie & Arabe' },
-    { id: 'branding', label: 'Logo & Filigrane' },
-    { id: 'automation', label: 'Automatisation' },
+    { id: 'slides', label: 'Diapos & Textes', icon: Layers },
+    { id: 'media', label: 'Visuels', icon: Eye },
+    { id: 'typography', label: 'Typo & Tailles', icon: Type },
+    { id: 'overlay', label: 'Superposition', icon: Sliders },
+    { id: 'filters', label: 'Filtres', icon: SlidersHorizontal },
+    { id: 'ratios', label: 'Formats', icon: Maximize2 },
+    { id: 'branding', label: 'Logo', icon: Stamp },
+    { id: 'automation', label: 'Auto', icon: Sparkles },
   ];
 
-  // Format last saved time
   const formattedTime = lastSaved
     ? new Date(lastSaved).toLocaleTimeString('fr-FR', {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
       })
     : null;
 
-  return (
-    <header className="h-16 px-3 sm:px-6 border-b border-neutral-800 bg-neutral-950/90 backdrop-blur-md flex items-center justify-between sticky top-0 z-30 shrink-0">
-      {/* Zone 1: Single text element wordmark + Autosave indicator */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <a href="/" className="flex items-center gap-2 group shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm tracking-wider shadow-sm group-hover:bg-indigo-500 transition-colors">
-            AP
-          </div>
-          <span className="text-sm sm:text-base font-bold tracking-tight text-white font-['Syne'] truncate">
-            AutoPost Studio
-          </span>
-        </a>
+  const currentTabObj = navTabs.find((t) => t.id === activeTab) || navTabs[0];
 
-        {/* Auto-save Status Badge (Clean unboxed text) */}
-        <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-400 pl-3 border-l border-neutral-800">
-          <span className="flex items-center gap-1 text-emerald-400">
-            <Check className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Sauvegarde auto</span>
-          </span>
-          {formattedTime && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="font-mono text-neutral-400 tabular-nums text-[11px]">
+  return (
+    <header className="border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-md sticky top-0 z-40 shrink-0">
+      {/* Main Top Bar */}
+      <div className="h-14 sm:h-16 px-2.5 sm:px-4 lg:px-6 flex items-center justify-between gap-2 max-w-full">
+        {/* Left Section: Logo + Autosave */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <a href="/" className="flex items-center gap-2 group shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm tracking-wider shadow-sm group-hover:scale-105 transition-transform">
+              AP
+            </div>
+            <span className="text-sm sm:text-base font-bold tracking-tight text-white font-['Syne']">
+              <span className="hidden sm:inline">AutoPost Studio</span>
+              <span className="sm:hidden font-extrabold">AutoPost</span>
+            </span>
+          </a>
+
+          {/* Autosave status badge */}
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-neutral-400 pl-2.5 border-l border-neutral-800/80">
+            <span className="flex items-center gap-1 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[11px]">Enregistré</span>
+            </span>
+            {formattedTime && (
+              <span className="font-mono text-neutral-400 tabular-nums text-[10px]">
                 {formattedTime}
               </span>
-            </>
-          )}
-          <span aria-hidden="true">·</span>
+            )}
+          </div>
+        </div>
+
+        {/* Center Section: Desktop Tabs (Visible on large screens) */}
+        <nav className="hidden xl:flex items-center gap-0.5 bg-neutral-900/70 p-1 rounded-lg border border-neutral-800/80">
+          {navTabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setMobileView('editor');
+                }}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-neutral-800 text-white shadow-sm font-semibold'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Tablet Dropdown Button for Active Tab */}
+        <div className="hidden md:flex xl:hidden items-center">
           <button
-            onClick={onResetToDefaults}
-            className="text-neutral-400 hover:text-rose-400 transition-colors flex items-center gap-1"
-            title="Réinitialiser toutes les données"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-neutral-900 border border-neutral-800 text-xs text-neutral-200 rounded-lg font-medium hover:bg-neutral-800 transition-colors"
           >
-            <RotateCcw className="w-3 h-3" />
-            <span className="text-[11px]">Réinitialiser</span>
+            <currentTabObj.icon className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{currentTabObj.label}</span>
+            <ChevronDown className="w-3 h-3 text-neutral-400" />
+          </button>
+        </div>
+
+        {/* View Switcher: Mobile & Tablet (when screen is not large desktop) */}
+        <div className="flex xl:hidden items-center bg-neutral-900/90 p-0.5 rounded-lg border border-neutral-800 shrink-0">
+          <button
+            onClick={() => setMobileView('editor')}
+            className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+              mobileView === 'editor'
+                ? 'bg-neutral-800 text-white shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+            title="Passer en mode éditeur"
+          >
+            <PenTool className="w-3 h-3 text-indigo-400" />
+            <span className="hidden xs:inline">Édition</span>
+          </button>
+          <button
+            onClick={() => setMobileView('preview')}
+            className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+              mobileView === 'preview'
+                ? 'bg-neutral-800 text-white shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+            title="Passer en mode aperçu"
+          >
+            <Eye className="w-3 h-3 text-emerald-400" />
+            <span className="hidden xs:inline">Aperçu</span>
+          </button>
+        </div>
+
+        {/* Right Section: Primary Actions */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* AI Generator Button - opens full AI Modal */}
+          <button
+            onClick={onOpenAiModal || onQuickAiGenerate}
+            disabled={isAiGenerating}
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg shadow-sm transition-all whitespace-nowrap disabled:opacity-50"
+            title="Générer des phrases et social pack par IA"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isAiGenerating ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">
+              {isAiGenerating ? 'Génération...' : 'Générer (IA)'}
+            </span>
+            <span className="sm:hidden">IA</span>
+          </button>
+
+          {/* Android App Button */}
+          <button
+            onClick={onOpenAndroidModal}
+            className="hidden sm:flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 rounded-lg transition-colors whitespace-nowrap"
+            title="Application Mobile Android (APK & Play Store)"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline">App Android</span>
+          </button>
+
+          {/* Export Button */}
+          <button
+            onClick={onOpenExportModal}
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-neutral-100 bg-neutral-900 hover:bg-neutral-800 hover:text-white border border-neutral-700/80 rounded-lg transition-colors whitespace-nowrap"
+            title="Exporter tous les visuels en PNG ou ZIP"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Exporter</span>
+            <span className="sm:hidden font-medium">Export</span>
+          </button>
+
+          {/* Mobile hamburger menu trigger */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="xl:hidden p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-900 rounded-lg transition-colors"
+            title="Menu des onglets"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Zone 2: Desktop Navigation Links */}
-      <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 bg-neutral-900/60 p-1 rounded-lg border border-neutral-800 overflow-x-auto max-w-full custom-scrollbar">
-        {navTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
+      {/* Mobile & Tablet Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="xl:hidden border-t border-neutral-800/80 bg-neutral-950/98 p-3 space-y-3 animate-in slide-in-from-top-2 duration-150 shadow-xl">
+          <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider px-1">
+            Navigation dans les réglages
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {navTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setMobileView('editor');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                      : 'bg-neutral-900/70 text-neutral-300 hover:text-white hover:bg-neutral-800 border border-neutral-800/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs">
             <button
-              key={tab.id}
               onClick={() => {
-                setActiveTab(tab.id);
-                setMobileView('editor');
+                onOpenAndroidModal();
+                setIsMobileMenuOpen(false);
               }}
-              className={`px-2 xl:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                isActive
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
+              className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors"
             >
-              {tab.label}
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Télécharger l'App Android</span>
             </button>
-          );
-        })}
-      </nav>
 
-      {/* Mobile / Tablet View Switcher Toggle */}
-      <div className="flex md:hidden items-center bg-neutral-900 p-0.5 rounded-lg border border-neutral-800">
-        <button
-          onClick={() => setMobileView('editor')}
-          className={`px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-            mobileView === 'editor'
-              ? 'bg-neutral-800 text-white shadow-sm'
-              : 'text-neutral-400 hover:text-white'
-          }`}
-        >
-          <PenTool className="w-3 h-3" />
-          <span>Édition</span>
-        </button>
-        <button
-          onClick={() => setMobileView('preview')}
-          className={`px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-            mobileView === 'preview'
-              ? 'bg-neutral-800 text-white shadow-sm'
-              : 'text-neutral-400 hover:text-white'
-          }`}
-        >
-          <Eye className="w-3 h-3" />
-          <span>Aperçu</span>
-        </button>
-      </div>
-
-      {/* Zone 3: Primary Actions */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        <button
-          onClick={onOpenAndroidModal}
-          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 rounded-lg transition-all shadow-sm whitespace-nowrap"
-          title="Installer l'application sur smartphone Android"
-        >
-          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="hidden sm:inline">App Android</span>
-          <span className="sm:hidden">App</span>
-        </button>
-
-        <button
-          onClick={onQuickAiGenerate}
-          disabled={isAiGenerating}
-          className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-neutral-300 bg-neutral-900 hover:bg-neutral-800 hover:text-white border border-neutral-800 rounded-lg transition-colors whitespace-nowrap disabled:opacity-50"
-          title="Générer 6 nouvelles phrases percutantes par IA"
-        >
-          <Sparkles className={`w-3.5 h-3.5 text-indigo-400 ${isAiGenerating ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">
-            {isAiGenerating ? 'Génération IA...' : 'Inspirer (IA)'}
-          </span>
-          <span className="sm:hidden">IA</span>
-        </button>
-
-        <button
-          onClick={onOpenExportModal}
-          className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors whitespace-nowrap"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Exporter le lot</span>
-          <span className="sm:hidden">Export</span>
-        </button>
-      </div>
+            <button
+              onClick={() => {
+                onResetToDefaults();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-1.5 text-neutral-400 hover:text-rose-400 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Réinitialiser</span>
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

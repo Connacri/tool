@@ -84,6 +84,7 @@ interface EditorSidebarProps {
   onOpenExportModal: () => void;
   onOpenSocialCopyModal: () => void;
   onQuickAiGenerate: () => void;
+  onOpenAiModal?: () => void;
   isAiGenerating: boolean;
   mobileView?: 'editor' | 'preview';
   gradientBlur: GradientBlurConfig;
@@ -113,6 +114,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   onOpenExportModal,
   onOpenSocialCopyModal,
   onQuickAiGenerate,
+  onOpenAiModal,
   isAiGenerating,
   mobileView = 'editor',
   gradientBlur,
@@ -307,10 +309,11 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     setTimeout(() => setAppliedAllNotice(null), 3500);
   };
 
-  const handleApplySizesToAll = (textScale?: number, kickerScale?: number, subtitleScale?: number) => {
+  const handleApplySizesToAll = (textScale?: number, kickerScale?: number, subtitleScale?: number, numberScale?: number) => {
     const targetScale = textScale ?? activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
     const targetKScale = kickerScale ?? activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
     const targetSubScale = subtitleScale ?? activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+    const targetNumScale = numberScale ?? activeSlide.customNumberScale ?? typography.slideNumberSize ?? 1.0;
 
     setSlides((prev) =>
       prev.map((s) => ({
@@ -318,6 +321,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         customTextScale: targetScale,
         customKickerScale: targetKScale,
         customSubtitleScale: targetSubScale,
+        customNumberScale: targetNumScale,
       }))
     );
 
@@ -326,10 +330,11 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
       fontSize: targetScale,
       kickerSize: targetKScale,
       subtitleSize: targetSubScale,
+      slideNumberSize: targetNumScale,
     }));
 
     setAppliedAllNotice(
-      `Tailles des textes (Phrase: ${Math.round(targetScale * 100)}%, Titre: ${Math.round(targetKScale * 100)}%) appliquées à toutes les ${slides.length} images !`
+      `Tailles des textes (Phrase: ${Math.round(targetScale * 100)}%, Titre: ${Math.round(targetKScale * 100)}%, Numéros: ${Math.round(targetNumScale * 100)}%) appliquées à toutes les ${slides.length} images !`
     );
     setTimeout(() => setAppliedAllNotice(null), 3500);
   };
@@ -1440,15 +1445,26 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   {/* Phrase scale slider */}
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-neutral-400">Taille de la Phrase</span>
-                      <span className="font-mono text-indigo-300 font-medium">
-                        {Math.round((activeSlide.customTextScale ?? typography.fontSize ?? 1.1) * 100)}%
-                      </span>
+                      <span className="text-neutral-400">Taille de la Phrase (jusqu'à 1000%)</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="10"
+                          max="1000"
+                          value={Math.round((activeSlide.customTextScale ?? typography.fontSize ?? 1.1) * 100)}
+                          onChange={(e) => {
+                            const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                            updateActiveSlide({ customTextScale: val });
+                          }}
+                          className="w-14 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] text-right font-mono text-indigo-300 font-bold"
+                        />
+                        <span className="text-[10px] text-neutral-400">%</span>
+                      </div>
                     </div>
                     <input
                       type="range"
-                      min="0.6"
-                      max="2.2"
+                      min="0.1"
+                      max="10.0"
                       step="0.05"
                       value={activeSlide.customTextScale ?? typography.fontSize ?? 1.1}
                       onChange={(e) => updateActiveSlide({ customTextScale: parseFloat(e.target.value) })}
@@ -1460,14 +1476,25 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1">
                       <span className="text-neutral-400">Taille du Titre (Kicker)</span>
-                      <span className="font-mono text-neutral-200">
-                        {Math.round((activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0) * 100)}%
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="10"
+                          max="1000"
+                          value={Math.round((activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0) * 100)}
+                          onChange={(e) => {
+                            const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                            updateActiveSlide({ customKickerScale: val });
+                          }}
+                          className="w-14 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] text-right font-mono text-neutral-200"
+                        />
+                        <span className="text-[10px] text-neutral-400">%</span>
+                      </div>
                     </div>
                     <input
                       type="range"
-                      min="0.5"
-                      max="2.0"
+                      min="0.1"
+                      max="10.0"
                       step="0.05"
                       value={activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0}
                       onChange={(e) => updateActiveSlide({ customKickerScale: parseFloat(e.target.value) })}
@@ -1478,18 +1505,59 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   {/* Subtitle scale slider */}
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-neutral-400">Taille du Sous-titre / Signature</span>
-                      <span className="font-mono text-neutral-200">
-                        {Math.round((activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0) * 100)}%
-                      </span>
+                      <span className="text-neutral-400">Taille du Sous-titre</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="10"
+                          max="1000"
+                          value={Math.round((activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0) * 100)}
+                          onChange={(e) => {
+                            const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                            updateActiveSlide({ customSubtitleScale: val });
+                          }}
+                          className="w-14 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] text-right font-mono text-neutral-200"
+                        />
+                        <span className="text-[10px] text-neutral-400">%</span>
+                      </div>
                     </div>
                     <input
                       type="range"
-                      min="0.5"
-                      max="2.0"
+                      min="0.1"
+                      max="10.0"
                       step="0.05"
                       value={activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0}
                       onChange={(e) => updateActiveSlide({ customSubtitleScale: parseFloat(e.target.value) })}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {/* Slide number scale slider */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-neutral-400">Taille du Numéro d'Image</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="10"
+                          max="1000"
+                          value={Math.round((activeSlide.customNumberScale ?? typography.slideNumberSize ?? 1.0) * 100)}
+                          onChange={(e) => {
+                            const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                            updateActiveSlide({ customNumberScale: val });
+                          }}
+                          className="w-14 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] text-right font-mono text-emerald-300 font-bold"
+                        />
+                        <span className="text-[10px] text-neutral-400">%</span>
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="10.0"
+                      step="0.05"
+                      value={activeSlide.customNumberScale ?? typography.slideNumberSize ?? 1.0}
+                      onChange={(e) => updateActiveSlide({ customNumberScale: parseFloat(e.target.value) })}
                       className="w-full accent-indigo-500"
                     />
                   </div>
@@ -1563,18 +1631,18 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
             <div className="p-4 rounded-xl bg-gradient-to-b from-indigo-950/40 to-neutral-900 border border-indigo-900/50 space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
-                <h4 className="text-xs font-semibold text-white">Générer 6 phrases par IA</h4>
+                <h4 className="text-xs font-semibold text-white">Générateur IA & Social Pack</h4>
               </div>
               <p className="text-[11px] text-neutral-300 leading-normal">
-                Créer instantanément un carrousel cohérent avec des accroches percutantes adaptées aux réseaux.
+                Générez sur mesure votre description, le nombre de phrases souhaité et obtenez le pack complet de légendes et hashtags pour chaque réseau.
               </p>
               <button
-                onClick={onQuickAiGenerate}
+                onClick={onOpenAiModal || onQuickAiGenerate}
                 disabled={isAiGenerating}
-                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isAiGenerating ? 'animate-spin' : ''}`} />
-                <span>{isAiGenerating ? 'Génération en cours...' : 'Générer 6 nouvelles phrases'}</span>
+                <span>{isAiGenerating ? 'Génération en cours...' : 'Générer Phrases & Social Pack (IA)'}</span>
               </button>
             </div>
           </div>
@@ -3240,25 +3308,36 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </div>
             </div>
 
-            {/* SECTION 3: TEXT DIMENSIONS & SCALING (Phrase, Kicker, Subtitle, Line Height) */}
+            {/* SECTION 3: TEXT DIMENSIONS & SCALING (Phrase, Kicker, Subtitle, Number, Line Height) */}
             <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
               <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Dimensions & Proportions des Textes</span>
+                <span>Dimensions des Textes (jusqu'à 1000%)</span>
               </span>
 
               {/* 1. Main Phrase Size Slider & Quick Presets */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-neutral-300 font-medium">Dimension Phrase Principale</span>
-                  <span className="font-mono text-indigo-300 font-bold">
-                    {Math.round(typography.fontSize * 100)}%
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={Math.round(typography.fontSize * 100)}
+                      onChange={(e) => {
+                        const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                        setTypography({ ...typography, fontSize: val });
+                      }}
+                      className="w-16 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-indigo-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">%</span>
+                  </div>
                 </div>
                 <input
                   type="range"
-                  min="0.5"
-                  max="2.5"
+                  min="0.1"
+                  max="10.0"
                   step="0.05"
                   value={typography.fontSize}
                   onChange={(e) =>
@@ -3267,18 +3346,20 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   className="w-full accent-indigo-500"
                 />
                 {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 mt-1 text-[10px]">
+                <div className="flex items-center gap-1 mt-1 text-[10px] overflow-x-auto pb-0.5">
                   {[
-                    { label: 'Compact (75%)', val: 0.75 },
-                    { label: 'Équilibré (100%)', val: 1.0 },
-                    { label: 'Grand (130%)', val: 1.3 },
-                    { label: 'Impact Affiche (160%)', val: 1.6 },
+                    { label: '75%', val: 0.75 },
+                    { label: '100%', val: 1.0 },
+                    { label: '150%', val: 1.5 },
+                    { label: '250%', val: 2.5 },
+                    { label: '500%', val: 5.0 },
+                    { label: '1000%', val: 10.0 },
                   ].map((p, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => setTypography({ ...typography, fontSize: p.val })}
-                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                      className="flex-1 py-1 rounded bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white transition-colors whitespace-nowrap"
                     >
                       {p.label}
                     </button>
@@ -3289,15 +3370,26 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               {/* 2. Kicker Title Size */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-neutral-300">Dimension Titre Kicker</span>
-                  <span className="font-mono text-neutral-200">
-                    {Math.round((typography.kickerSize ?? 1.0) * 100)}%
-                  </span>
+                  <span className="text-neutral-300">Dimension Titre (Kicker)</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={Math.round((typography.kickerSize ?? 1.0) * 100)}
+                      onChange={(e) => {
+                        const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                        setTypography({ ...typography, kickerSize: val });
+                      }}
+                      className="w-16 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-neutral-200"
+                    />
+                    <span className="text-xs text-neutral-400">%</span>
+                  </div>
                 </div>
                 <input
                   type="range"
-                  min="0.5"
-                  max="2.0"
+                  min="0.1"
+                  max="10.0"
                   step="0.05"
                   value={typography.kickerSize ?? 1.0}
                   onChange={(e) =>
@@ -3311,14 +3403,25 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-neutral-300">Dimension Sous-titre / Signature</span>
-                  <span className="font-mono text-neutral-200">
-                    {Math.round((typography.subtitleSize ?? 1.0) * 100)}%
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={Math.round((typography.subtitleSize ?? 1.0) * 100)}
+                      onChange={(e) => {
+                        const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                        setTypography({ ...typography, subtitleSize: val });
+                      }}
+                      className="w-16 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-right font-mono text-neutral-200"
+                    />
+                    <span className="text-xs text-neutral-400">%</span>
+                  </div>
                 </div>
                 <input
                   type="range"
-                  min="0.5"
-                  max="2.0"
+                  min="0.1"
+                  max="10.0"
                   step="0.05"
                   value={typography.subtitleSize ?? 1.0}
                   onChange={(e) =>
@@ -3328,7 +3431,70 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 />
               </div>
 
-              {/* 4. Line Height / Interligne */}
+              {/* 4. Slide Number Size (Badge Compteur 01 / 06) */}
+              <div className="p-3 rounded-lg bg-neutral-950/70 border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={typography.showSlideNumber}
+                      onChange={(e) =>
+                        setTypography({ ...typography, showSlideNumber: e.target.checked })
+                      }
+                      className="rounded bg-neutral-900 border-neutral-700 text-indigo-600 focus:ring-0"
+                    />
+                    <span className="text-neutral-200 font-medium">Numéros d'Images (Badge 01 / 06)</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={Math.round((typography.slideNumberSize ?? 1.0) * 100)}
+                      onChange={(e) => {
+                        const val = Math.max(10, Math.min(1000, parseInt(e.target.value) || 100)) / 100;
+                        setTypography({ ...typography, slideNumberSize: val });
+                      }}
+                      className="w-14 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 text-xs text-right font-mono text-emerald-300 font-bold"
+                    />
+                    <span className="text-xs text-neutral-400">%</span>
+                  </div>
+                </div>
+
+                <input
+                  type="range"
+                  min="0.1"
+                  max="10.0"
+                  step="0.05"
+                  value={typography.slideNumberSize ?? 1.0}
+                  onChange={(e) =>
+                    setTypography({ ...typography, slideNumberSize: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-emerald-500"
+                />
+
+                <div className="flex items-center gap-1 text-[10px]">
+                  {[
+                    { label: '50%', val: 0.5 },
+                    { label: '100%', val: 1.0 },
+                    { label: '150%', val: 1.5 },
+                    { label: '250%', val: 2.5 },
+                    { label: '500%', val: 5.0 },
+                    { label: '1000%', val: 10.0 },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setTypography({ ...typography, slideNumberSize: p.val })}
+                      className="flex-1 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Line Height / Interligne */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-neutral-300">Interligne (Hauteur de ligne)</span>
@@ -3349,7 +3515,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 />
               </div>
 
-              {/* 5. Text Block Max Width */}
+              {/* 6. Text Block Max Width */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-neutral-300">Largeur Maximale du Bloc Texte</span>
@@ -3368,6 +3534,25 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   }
                   className="w-full accent-indigo-500"
                 />
+              </div>
+
+              {/* Quick apply all button */}
+              <div className="pt-2 border-t border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleApplySizesToAll(
+                      typography.fontSize,
+                      typography.kickerSize,
+                      typography.subtitleSize,
+                      typography.slideNumberSize
+                    )
+                  }
+                  className="w-full py-2 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-indigo-300 hover:text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Appliquer ces dimensions à toutes les ({slides.length}) images</span>
+                </button>
               </div>
             </div>
 

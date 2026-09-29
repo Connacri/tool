@@ -6,6 +6,7 @@ import { AutomatedExportModal } from './components/AutomatedExportModal';
 import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
+import { AiPhraseGeneratorModal } from './components/AiPhraseGeneratorModal';
 import { AdInterstitialModal } from './components/AdInterstitialModal';
 import { getApiUrl } from './utils/apiConfig';
 import {
@@ -64,6 +65,7 @@ export default function App() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isSocialCopyModalOpen, setIsSocialCopyModalOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // Ref to prevent initial double-save
@@ -203,6 +205,7 @@ export default function App() {
         onOpenExportModal={() => setIsExportModalOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         onQuickAiGenerate={handleQuickAiGenerate}
+        onOpenAiModal={() => setIsAiModalOpen(true)}
         isAiGenerating={isAiGenerating}
         totalSlides={slides.length}
         lastSaved={lastSaved}
@@ -230,6 +233,7 @@ export default function App() {
           onOpenExportModal={() => setIsExportModalOpen(true)}
           onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
           onQuickAiGenerate={handleQuickAiGenerate}
+          onOpenAiModal={() => setIsAiModalOpen(true)}
           isAiGenerating={isAiGenerating}
           mobileView={mobileView}
           gradientBlur={gradientBlur}
@@ -304,6 +308,15 @@ export default function App() {
       <AndroidAppModal
         isOpen={isAndroidModalOpen}
         onClose={() => setIsAndroidModalOpen(false)}
+      />
+
+      <AiPhraseGeneratorModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        slides={slides}
+        setSlides={setSlides}
+        setCurrentSlideIndex={setCurrentSlideIndex}
+        currentSlideIndex={currentSlideIndex}
       />
 
       {/* Interstitiel Publicitaire (AdMob Mobile & Web) avant export / téléchargement HD */}

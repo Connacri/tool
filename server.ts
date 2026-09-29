@@ -115,6 +115,115 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
     }
   });
 
+  // Endpoint to generate phrases AND complete social pack in one unified call
+  app.post('/api/generate-phrases-with-social', async (req, res) => {
+    const { topic = 'Motivation & Entrepreneuriat', count = 6, tone = 'Inspirant & Professionnel', language = 'fr' } = req.body;
+    const isArabic = language === 'ar' || /[\u0600-\u06FF]/.test(topic);
+
+    try {
+      if (!ai) {
+        // Return structured curated fallback if AI SDK not initialized with key
+        const fallbackPhrases = isArabic
+          ? [
+              { id: 1, text: "الوضوح يسبق النجاح دائماً: حدد وجهتك أولاً ثم انطلق بثبات.", kicker: "الوضوح الاستراتيجي", subtitle: "حكمة اليوم 01" },
+              { id: 2, text: "الاستمرارية الهادئة تتفوق دائماً على الحماس المؤقت والمتقطع.", kicker: "قوة العادة", subtitle: "تطوير الذات 02" },
+              { id: 3, text: "لا تنتظر الفرصة المثالية، بل اصنعها بخطوة صغيرة تخطوها الآن.", kicker: "المبادرة", subtitle: "ريادة الأعمال 03" },
+              { id: 4, text: "الإبداع ليس موهبة نادرة، بل نظرة شجاعة ومختلفة إلى العالم.", kicker: "الابتكار", subtitle: "عقلية متجددة 04" },
+              { id: 5, text: "استثمر في عقلك ومعرفتك، فالقيمة الحقيقية تبدأ من داخلك.", kicker: "النمو المستمر", subtitle: "استثمار مستدام 05" },
+              { id: 6, text: "ابنِ أفكارك لتدوم وتلهم الآخرين، وليس لمجرد لفت الانتباه المؤقت.", kicker: "أثر مستمر", subtitle: "احفظ هذا المنشور 📌 06" },
+            ].slice(0, count)
+          : [
+              { id: 1, text: "La clarté précède toujours l'efficacité : définissez votre cap avant d'accélérer.", kicker: "STRATÉGIE", subtitle: "Règle #1 du succès" },
+              { id: 2, text: "La constance bat l'intensité : 1% d'amélioration quotidienne crée un avantage cumulé.", kicker: "MINDSET", subtitle: "Discipline quotidienne" },
+              { id: 3, text: "N'attendez pas le moment parfait : le courage commence par une première action concrète.", kicker: "PASSAGE À L'ACTION", subtitle: "Entrepreneuriat" },
+              { id: 4, text: "Votre valeur réside dans ce que vous construisez sur le long terme, pas dans le buzz éphémère.", kicker: "VISION LONG TERME", subtitle: "Impact durable" },
+              { id: 5, text: "L'apprentissage continu est le meilleur levier pour transformer vos ambitions en réalités.", kicker: "ÉVOLUTION", subtitle: "Croissance personnelle" },
+              { id: 6, text: "Enregistrez ce rappel pour vos moments de doute et partagez-le à votre équipe.", kicker: "ENGAGEMENT", subtitle: "AutoPost Studio 📌" },
+            ].slice(0, count);
+
+        return res.json({
+          success: true,
+          phrases: fallbackPhrases,
+          socialCopy: {},
+          notice: 'Mode autonome actif'
+        });
+      }
+
+      const prompt = `Tu es un expert mondial en Content Marketing et Réseaux Sociaux.
+Génère pour cette demande :
+1) Exactement ${count} phrases captivantes pour un carrousel visuel.
+2) Le Social Pack complet (légendes, hashtags, titres et conseils) optimisé pour chaque réseau social.
+Thématique: "${topic}"
+Ton: "${tone}"
+Langue: "${language}".
+
+Réponds STRICTEMENT avec un JSON valide respectant cette structure sans markdown:
+{
+  "phrases": [
+    {
+      "id": 1,
+      "text": "Phrase principale percutante",
+      "kicker": "TITRE EN MAJUSCULES (1 à 3 mots)",
+      "subtitle": "Sous-titre ou signature",
+      "imagePrompt": "Description visuelle suggérée en anglais"
+    }
+  ],
+  "socialCopy": {
+    "instagram": { "title": "Instagram (Carrousel & Post)", "caption": "...", "hashtags": "#...", "tips": "Astuce algo..." },
+    "tiktok": { "title": "TikTok (Carrousel & Vidéo)", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "youtube": { "title": "YouTube (Shorts & Post)", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "facebook": { "title": "Facebook (Post)", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "linkedin": { "title": "LinkedIn (Post Pro)", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "twitter": { "title": "X / Twitter", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "pinterest": { "title": "Pinterest", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "snapchat": { "title": "Snapchat", "caption": "...", "hashtags": "#...", "tips": "..." },
+    "discord": { "title": "Discord", "caption": "...", "hashtags": "", "tips": "..." },
+    "masterPrompt": "Prompt universel prêt à copier pour ChatGPT / Claude..."
+  }
+}`;
+
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: { responseMimeType: 'application/json' },
+        });
+      } catch (firstErr: any) {
+        console.warn('Fallback in generate-phrases-with-social:', firstErr?.message);
+        response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: prompt,
+          config: { responseMimeType: 'application/json' },
+        });
+      }
+
+      const text = response?.text || '{}';
+      const parsed = JSON.parse(text);
+      res.json({
+        success: true,
+        phrases: parsed.phrases || [],
+        socialCopy: parsed.socialCopy || {},
+      });
+    } catch (err: any) {
+      console.warn('Error in generate-phrases-with-social, returning fallback:', err?.message);
+      // Clean fallback so user never gets blocked
+      const isArabic = language === 'ar' || /[\u0600-\u06FF]/.test(topic || '');
+      const fallbackPhrases = isArabic
+        ? [
+            { id: 1, text: "الوضوح يسبق النجاح دائماً: حدد وجهتك أولاً ثم انطلق بثبات.", kicker: "الوضوح الاستراتيجي", subtitle: "حكمة اليوم 01" },
+            { id: 2, text: "الاستمرارية الهادئة تتفوق دائماً على الحماس المؤقت والمتقطع.", kicker: "قوة العادة", subtitle: "تطوير الذات 02" },
+            { id: 3, text: "لا تنتظر الفرصة المثالية، بل اصنعها بخطوة صغيرة تخطوها الآن.", kicker: "المبادرة", subtitle: "ريادة الأعمال 03" },
+          ]
+        : [
+            { id: 1, text: "La clarté précède toujours l'efficacité : définissez votre cap avant d'accélérer.", kicker: "STRATÉGIE", subtitle: "Règle #1 du succès" },
+            { id: 2, text: "La constance bat l'intensité : 1% d'amélioration quotidienne crée un avantage cumulé.", kicker: "MINDSET", subtitle: "Discipline quotidienne" },
+            { id: 3, text: "N'attendez pas le moment parfait : le courage commence par une première action concrète.", kicker: "PASSAGE À L'ACTION", subtitle: "Entrepreneuriat" },
+          ];
+      res.json({ success: true, phrases: fallbackPhrases, socialCopy: {} });
+    }
+  });
+
   // Endpoint to generate social copy & hashtags
   app.post('/api/generate-social-copy', async (req, res) => {
     try {

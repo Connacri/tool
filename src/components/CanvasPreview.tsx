@@ -34,6 +34,15 @@ import {
   AlignCenter,
   AlignRight,
   PenTool,
+  ThumbsUp,
+  ThumbsDown,
+  Repeat,
+  Disc,
+  Music,
+  Globe,
+  UserPlus,
+  MoreHorizontal,
+  Search,
 } from 'lucide-react';
 import {
   AspectRatioOption,
@@ -109,6 +118,10 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'single' | 'mockup'>('grid');
   const [gridDensity, setGridDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [mockupPlatform, setMockupPlatform] = useState<
+    'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'linkedin' | 'twitter' | 'pinterest' | 'snapchat'
+  >('instagram');
+  const [mockupLang, setMockupLang] = useState<'auto' | 'fr' | 'ar'>('auto');
   const [isExportingSingle, setIsExportingSingle] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
@@ -1595,92 +1608,746 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
           </div>
         )}
 
-        {/* VIEW 3: SOCIAL MEDIA FEED MOCKUP */}
-        {viewMode === 'mockup' && (
-          <div className="w-full max-w-sm mx-auto my-auto bg-neutral-900 rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl">
-            {/* Mock phone status bar */}
-            <div className="px-6 pt-3 pb-2 flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-              <span>09:41</span>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>5G</span>
-              </div>
-            </div>
+        {/* VIEW 3: MULTI-PLATFORM SOCIAL MEDIA FEED MOCKUP */}
+        {viewMode === 'mockup' && (() => {
+          const isArabic =
+            mockupLang === 'ar' ||
+            (mockupLang === 'auto' &&
+              (isArabicText(activeSlide.text) ||
+                isArabicText(activeSlide.kicker) ||
+                typography.direction === 'rtl'));
 
-            {/* Mock App Header */}
-            <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between">
-              <span className="font-['Syne'] font-bold text-sm tracking-tight text-white">
-                Instagram Feed
-              </span>
-              <Send className="w-4 h-4 text-neutral-300" />
-            </div>
+          const platformNames: Record<string, { name: string; icon: string }> = {
+            instagram: { name: 'Instagram', icon: '📸' },
+            tiktok: { name: 'TikTok', icon: '🎵' },
+            youtube: { name: 'YouTube', icon: '▶️' },
+            facebook: { name: 'Facebook', icon: '👥' },
+            linkedin: { name: 'LinkedIn', icon: '💼' },
+            twitter: { name: 'X / Twitter', icon: '𝕏' },
+            pinterest: { name: 'Pinterest', icon: '📌' },
+            snapchat: { name: 'Snapchat', icon: '👻' },
+          };
 
-            {/* Post Header */}
-            <div className="px-4 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 p-0.5">
-                  <div className="w-full h-full rounded-full bg-neutral-900 flex items-center justify-center font-bold text-xs text-white">
-                    {logo.brandText.slice(0, 2) || 'AP'}
+          return (
+            <div className="w-full max-w-lg mx-auto my-auto flex flex-col items-center gap-3">
+              {/* Simulation Controls Toolbar */}
+              <div className="w-full bg-neutral-900/90 border border-neutral-800 rounded-2xl p-2.5 space-y-2 shadow-lg backdrop-blur-md">
+                {/* Platform Selector Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar">
+                  {Object.entries(platformNames).map(([key, info]) => {
+                    const isSelected = mockupPlatform === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setMockupPlatform(key as any)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-neutral-950 text-neutral-400 hover:text-white border border-neutral-800/80'
+                        }`}
+                      >
+                        <span>{info.icon}</span>
+                        <span>{info.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Subtoolbar: Language Toggle + Slide Carousel Navigator */}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-800/70">
+                  {/* Language & Orientation Switcher */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-neutral-400 mr-1 hidden sm:inline">Langue :</span>
+                    <button
+                      onClick={() => setMockupLang('fr')}
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                        mockupLang === 'fr'
+                          ? 'bg-neutral-800 text-white font-bold border border-neutral-700'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      🇫🇷 FR (LTR)
+                    </button>
+                    <button
+                      onClick={() => setMockupLang('ar')}
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                        mockupLang === 'ar'
+                          ? 'bg-neutral-800 text-white font-bold border border-neutral-700'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      🇸🇦 AR (RTL)
+                    </button>
+                    <button
+                      onClick={() => setMockupLang('auto')}
+                      className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                        mockupLang === 'auto'
+                          ? 'bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/40'
+                          : 'text-neutral-500 hover:text-neutral-300'
+                      }`}
+                      title="Détection automatique selon le texte"
+                    >
+                      Auto ({isArabic ? 'RTL' : 'LTR'})
+                    </button>
+                  </div>
+
+                  {/* Slide Carousel Navigator */}
+                  <div className="flex items-center gap-1 bg-neutral-950 px-2 py-0.5 rounded-lg border border-neutral-800 font-mono text-[11px]">
+                    <button
+                      onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
+                      disabled={currentSlideIndex === 0}
+                      className="text-neutral-400 hover:text-white disabled:opacity-30 p-0.5"
+                      title="Diapo précédente"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-neutral-200 px-1">
+                      {String(activeSlide.number).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+                    </span>
+                    <button
+                      onClick={() => setCurrentSlideIndex(Math.min(slides.length - 1, currentSlideIndex + 1))}
+                      disabled={currentSlideIndex === slides.length - 1}
+                      className="text-neutral-400 hover:text-white disabled:opacity-30 p-0.5"
+                      title="Diapo suivante"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-white leading-tight">
-                    {logo.brandHandle || '@autopost.studio'}
-                  </p>
-                  <p className="text-[10px] text-neutral-400">Sponsorisé · Carrousel</p>
+              </div>
+
+              {/* Mockup Phone Container with dynamic dir */}
+              <div
+                dir={isArabic ? 'rtl' : 'ltr'}
+                className="w-full max-w-sm mx-auto bg-neutral-950 rounded-[32px] border-2 border-neutral-800 overflow-hidden shadow-2xl transition-all"
+              >
+                {/* Mock phone status bar */}
+                <div className="px-6 pt-3 pb-1.5 flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                  <span>09:41</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>5G</span>
+                  </div>
                 </div>
+
+                {/* PLATFORM 1: INSTAGRAM FEED */}
+                {mockupPlatform === 'instagram' && (
+                  <div>
+                    {/* Header */}
+                    <div className="px-4 py-2 border-b border-neutral-800/80 flex items-center justify-between">
+                      <span className="font-['Syne'] font-bold text-sm tracking-tight text-white">
+                        {isArabic ? 'إنستغرام' : 'Instagram'}
+                      </span>
+                      <div className="flex items-center gap-3 text-neutral-300">
+                        <Heart className="w-4 h-4" />
+                        <Send className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* Author row */}
+                    <div className="px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 p-0.5 shrink-0">
+                          <div className="w-full h-full rounded-full bg-neutral-900 flex items-center justify-center font-bold text-xs text-white">
+                            {logo.brandText.slice(0, 2) || 'AP'}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-white leading-tight">
+                            {logo.brandHandle || '@autopost.studio'}
+                          </p>
+                          <p className="text-[10px] text-neutral-400">
+                            {isArabic ? 'مُموّل · كاروسيل' : 'Sponsorisé · Carrousel'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-neutral-400 text-lg cursor-pointer">···</span>
+                    </div>
+
+                    {/* Visual Media Container */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-neutral-200">
+                        <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                        <MessageCircle className="w-5 h-5" />
+                        <Send className="w-5 h-5" />
+                      </div>
+                      <Bookmark className="w-5 h-5 text-neutral-200" />
+                    </div>
+
+                    {/* Post Caption */}
+                    <div className="px-4 pb-4 text-xs space-y-1">
+                      <p className="text-neutral-400 text-[11px] font-medium">
+                        {isArabic ? 'أعجب به ٤٬٨٢٠ شخصاً' : 'Aimé par 4 820 personnes'}
+                      </p>
+                      <p className="text-neutral-200 leading-snug">
+                        <span className="font-semibold text-white mr-1.5 ml-1.5">
+                          {logo.brandHandle || '@autopost.studio'}
+                        </span>
+                        {activeSlide.text}
+                      </p>
+                      <p className="text-indigo-400 text-[11px]">
+                        #{activeSlide.kicker?.toLowerCase().replace(/\s+/g, '') || 'conseil'} #autopost #mindset
+                      </p>
+                      <p className="text-[10px] text-neutral-500 pt-0.5">
+                        {isArabic ? 'منذ ساعتين' : 'Il y a 2 heures'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 2: TIKTOK */}
+                {mockupPlatform === 'tiktok' && (
+                  <div className="relative bg-black text-white">
+                    {/* Top Feed Tabs */}
+                    <div className="px-4 py-2 flex items-center justify-center gap-4 text-xs font-semibold z-20">
+                      <span className="text-neutral-400">{isArabic ? 'متابعة' : 'Abonnements'}</span>
+                      <span className="text-white border-b-2 border-white pb-0.5">
+                        {isArabic ? 'لك' : 'Pour toi'}
+                      </span>
+                    </div>
+
+                    {/* Media Container with overlay buttons */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+
+                      {/* Floating TikTok action bar on trailing edge (right for LTR, left for RTL) */}
+                      <div
+                        className={`absolute bottom-3 ${isArabic ? 'left-2.5' : 'right-2.5'} z-30 flex flex-col items-center gap-3 text-center`}
+                      >
+                        {/* Avatar with Plus */}
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full border border-white bg-neutral-800 flex items-center justify-center text-xs font-bold">
+                            {logo.brandText.slice(0, 2) || 'AP'}
+                          </div>
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold">
+                            +
+                          </div>
+                        </div>
+
+                        {/* Likes */}
+                        <div className="flex flex-col items-center">
+                          <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                          </div>
+                          <span className="text-[10px] font-semibold mt-0.5">24.5k</span>
+                        </div>
+
+                        {/* Comments */}
+                        <div className="flex flex-col items-center">
+                          <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <MessageCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <span className="text-[10px] font-semibold mt-0.5">1 420</span>
+                        </div>
+
+                        {/* Bookmark */}
+                        <div className="flex flex-col items-center">
+                          <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <Bookmark className="w-5 h-5 text-amber-400 fill-amber-400" />
+                          </div>
+                          <span className="text-[10px] font-semibold mt-0.5">8.9k</span>
+                        </div>
+
+                        {/* Share */}
+                        <div className="flex flex-col items-center">
+                          <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <Share2 className="w-5 h-5 text-white" />
+                          </div>
+                          <span className="text-[10px] font-semibold mt-0.5">3.1k</span>
+                        </div>
+
+                        {/* Spinning Music Disc */}
+                        <div className="w-9 h-9 rounded-full bg-neutral-900 border-2 border-neutral-700 flex items-center justify-center animate-spin">
+                          <Disc className="w-5 h-5 text-neutral-300" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Info Bar */}
+                    <div className="px-4 py-3 bg-neutral-950 text-xs space-y-1">
+                      <p className="font-bold text-white text-xs">
+                        {logo.brandHandle || '@autopost.studio'}
+                      </p>
+                      <p className="text-neutral-200 text-xs line-clamp-2">
+                        {activeSlide.text}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-neutral-400 text-[10px] pt-1">
+                        <Music className="w-3 h-3 text-indigo-400" />
+                        <span className="truncate">
+                          {isArabic ? 'الصوت الأصلي - AutoPost Studio' : 'Son original - AutoPost Studio'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 3: YOUTUBE */}
+                {mockupPlatform === 'youtube' && (
+                  <div>
+                    {/* Header */}
+                    <div className="px-4 py-2 border-b border-neutral-800/80 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-3.5 bg-red-600 rounded-sm flex items-center justify-center text-white text-[8px] font-bold">
+                          ▶
+                        </div>
+                        <span className="font-bold text-xs text-white">YouTube</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-neutral-400 text-xs">
+                        <Search className="w-3.5 h-3.5" />
+                        <MoreHorizontal className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+
+                    {/* Media Container */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Channel & Actions */}
+                    <div className="p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-[10px]">
+                            {logo.brandText.slice(0, 2) || 'YT'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white leading-tight">
+                              {logo.brandText || 'AutoPost Studio'}
+                            </p>
+                            <p className="text-[10px] text-neutral-400">
+                              {isArabic ? '١٢٠ ألف مشترك' : '120k abonnés'}
+                            </p>
+                          </div>
+                        </div>
+                        <button className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full hover:bg-red-500 transition-colors">
+                          {isArabic ? 'اشتراك' : "S'abonner"}
+                        </button>
+                      </div>
+
+                      <p className="text-xs font-semibold text-neutral-200">
+                        {activeSlide.kicker} : {activeSlide.text}
+                      </p>
+
+                      {/* Action Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pt-1">
+                        <div className="flex items-center bg-neutral-900 rounded-full border border-neutral-800 px-2.5 py-1 text-neutral-300 gap-1.5">
+                          <ThumbsUp className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>42k</span>
+                          <span className="text-neutral-600">|</span>
+                          <ThumbsDown className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex items-center bg-neutral-900 rounded-full border border-neutral-800 px-2.5 py-1 text-neutral-300 gap-1">
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>840</span>
+                        </div>
+                        <div className="flex items-center bg-neutral-900 rounded-full border border-neutral-800 px-2.5 py-1 text-neutral-300 gap-1">
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>{isArabic ? 'مشاركة' : 'Partager'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 4: FACEBOOK */}
+                {mockupPlatform === 'facebook' && (
+                  <div>
+                    {/* Header */}
+                    <div className="px-4 py-2 border-b border-neutral-800/80 flex items-center justify-between">
+                      <span className="font-bold text-sm text-blue-500">facebook</span>
+                      <Search className="w-4 h-4 text-neutral-400" />
+                    </div>
+
+                    {/* Author row */}
+                    <div className="px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs">
+                          {logo.brandText.slice(0, 2) || 'FB'}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{logo.brandText || 'AutoPost Studio'}</p>
+                          <div className="flex items-center gap-1 text-[10px] text-neutral-400">
+                            <span>{isArabic ? 'منذ ٣ ساعات' : 'Il y a 3 h'}</span>
+                            <span>·</span>
+                            <Globe className="w-2.5 h-2.5" />
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-neutral-400 text-sm">···</span>
+                    </div>
+
+                    {/* Caption */}
+                    <div className="px-4 pb-2 text-xs text-neutral-200">
+                      {activeSlide.text}
+                    </div>
+
+                    {/* Media Container */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Reaction stats */}
+                    <div className="px-4 py-2 flex items-center justify-between text-[11px] text-neutral-400 border-b border-neutral-800/80">
+                      <span className="flex items-center gap-1">
+                        <span className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-[9px] text-white">👍</span>
+                        <span>1.8k</span>
+                      </span>
+                      <span>{isArabic ? '٩٢ تعليقاً · ٤٥ مشاركة' : '92 commentaires · 45 partages'}</span>
+                    </div>
+
+                    {/* Reactions Bar */}
+                    <div className="px-4 py-1.5 flex items-center justify-between text-xs text-neutral-400 font-medium">
+                      <button className="flex-1 py-1 flex items-center justify-center gap-1 hover:text-blue-400">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'إعجاب' : "J'aime"}</span>
+                      </button>
+                      <button className="flex-1 py-1 flex items-center justify-center gap-1 hover:text-white">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'تعليق' : 'Commenter'}</span>
+                      </button>
+                      <button className="flex-1 py-1 flex items-center justify-center gap-1 hover:text-white">
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'مشاركة' : 'Partager'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 5: LINKEDIN */}
+                {mockupPlatform === 'linkedin' && (
+                  <div>
+                    {/* Header */}
+                    <div className="px-4 py-2 border-b border-neutral-800/80 flex items-center justify-between">
+                      <div className="w-6 h-6 rounded bg-sky-600 text-white font-extrabold flex items-center justify-center text-xs">
+                        in
+                      </div>
+                      <Search className="w-4 h-4 text-neutral-400" />
+                    </div>
+
+                    {/* Author row */}
+                    <div className="px-4 py-2.5 flex items-start justify-between">
+                      <div className="flex items-start gap-2">
+                        <div className="w-9 h-9 rounded-full bg-sky-700 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                          {logo.brandText.slice(0, 2) || 'IN'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-white">{logo.brandText || 'AutoPost Studio'}</p>
+                            <span className="text-[10px] text-sky-400 font-semibold">• 1er</span>
+                          </div>
+                          <p className="text-[10px] text-neutral-400 line-clamp-1">
+                            {isArabic ? 'صانع محتوى واستراتيجي نمو الأعمال' : 'Créateur de contenu & Stratégie de croissance'}
+                          </p>
+                          <p className="text-[9px] text-neutral-500">
+                            {isArabic ? 'منذ ٣ ساعات · معدل' : 'Il y a 3 h · Modifié'}
+                          </p>
+                        </div>
+                      </div>
+                      <button className="text-xs text-sky-400 font-semibold flex items-center gap-0.5 hover:text-sky-300">
+                        <UserPlus className="w-3 h-3" />
+                        <span>{isArabic ? 'متابعة' : 'Suivre'}</span>
+                      </button>
+                    </div>
+
+                    {/* Post text */}
+                    <div className="px-4 pb-2 text-xs text-neutral-200 leading-snug">
+                      <p className="font-semibold text-white">{activeSlide.kicker}</p>
+                      <p className="pt-0.5">{activeSlide.text}</p>
+                    </div>
+
+                    {/* Visual Media Container */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* LinkedIn Interaction Bar */}
+                    <div className="px-3 py-2 flex items-center justify-between text-[11px] text-neutral-400 border-t border-neutral-800/80">
+                      <button className="flex items-center gap-1 hover:text-sky-400">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'إعجاب' : "J'aime"}</span>
+                      </button>
+                      <button className="flex items-center gap-1 hover:text-white">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'تعليق' : 'Commenter'}</span>
+                      </button>
+                      <button className="flex items-center gap-1 hover:text-white">
+                        <Repeat className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'إعادة نشر' : 'Republier'}</span>
+                      </button>
+                      <button className="flex items-center gap-1 hover:text-white">
+                        <Send className="w-3.5 h-3.5" />
+                        <span>{isArabic ? 'إرسال' : 'Envoyer'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 6: X / TWITTER */}
+                {mockupPlatform === 'twitter' && (
+                  <div className="p-3.5 space-y-2.5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center text-xs">
+                          {logo.brandText.slice(0, 2) || '𝕏'}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{logo.brandText || 'AutoPost Studio'}</p>
+                          <p className="text-[10px] text-neutral-400 font-mono">
+                            {logo.brandHandle || '@autopost'} · {isArabic ? '٢ س' : '2h'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-extrabold text-sm text-neutral-300">𝕏</span>
+                    </div>
+
+                    {/* Tweet text */}
+                    <p className="text-xs text-neutral-200 leading-snug">
+                      {activeSlide.text}
+                    </p>
+
+                    {/* Visual Media Container with rounded borders */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full rounded-2xl overflow-hidden @container border border-neutral-800 bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Stats & Actions Bar */}
+                    <div className="flex items-center justify-between text-neutral-400 text-[11px] pt-1 px-1">
+                      <span className="flex items-center gap-1 hover:text-sky-400">
+                        <MessageCircle className="w-3.5 h-3.5" /> 84
+                      </span>
+                      <span className="flex items-center gap-1 hover:text-emerald-400">
+                        <Repeat className="w-3.5 h-3.5" /> 312
+                      </span>
+                      <span className="flex items-center gap-1 hover:text-rose-400">
+                        <Heart className="w-3.5 h-3.5" /> 1.9k
+                      </span>
+                      <span className="flex items-center gap-1 hover:text-indigo-400">
+                        <Bookmark className="w-3.5 h-3.5" /> 420
+                      </span>
+                      <Share2 className="w-3.5 h-3.5 hover:text-white" />
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 7: PINTEREST */}
+                {mockupPlatform === 'pinterest' && (
+                  <div className="p-3.5 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-rose-500 text-sm">Pinterest</span>
+                      <button className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full text-xs font-bold shadow-md transition-colors">
+                        {isArabic ? 'حفظ' : 'Enregistrer'}
+                      </button>
+                    </div>
+
+                    {/* Media Container with rounded look */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full rounded-2xl overflow-hidden @container border border-neutral-800 bg-black shadow-lg"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Author & Description */}
+                    <div className="space-y-1 pt-1">
+                      <p className="text-xs font-bold text-white">{activeSlide.kicker}</p>
+                      <p className="text-xs text-neutral-300 leading-snug">{activeSlide.text}</p>
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-rose-600 text-white font-bold flex items-center justify-center text-[10px]">
+                            P
+                          </div>
+                          <span className="text-xs font-semibold text-neutral-300">
+                            {logo.brandText || 'AutoPost Studio'}
+                          </span>
+                        </div>
+                        <Share2 className="w-4 h-4 text-neutral-400" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM 8: SNAPCHAT */}
+                {mockupPlatform === 'snapchat' && (
+                  <div className="relative bg-black text-white">
+                    {/* Segmented Top Bar */}
+                    <div className="px-3 pt-2 pb-1 flex gap-1">
+                      {slides.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-1 flex-1 rounded-full ${
+                            idx <= currentSlideIndex ? 'bg-white' : 'bg-white/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Creator Row */}
+                    <div className="px-4 py-2 flex items-center justify-between z-20">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-yellow-400 text-black font-bold flex items-center justify-center text-[10px]">
+                          👻
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{logo.brandText || 'AutoPost Studio'}</p>
+                          <p className="text-[10px] text-neutral-400">{isArabic ? 'منذ ساعتين' : 'Il y a 2h'}</p>
+                        </div>
+                      </div>
+                      <span className="text-neutral-400 text-sm">···</span>
+                    </div>
+
+                    {/* Media Container */}
+                    <div
+                      ref={mockupContainerRef}
+                      className="relative w-full overflow-hidden @container bg-black"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
+                    >
+                      <SlideVisualContent
+                        slide={activeSlide}
+                        aspectRatio={aspectRatio}
+                        typography={typography}
+                        logo={logo}
+                        totalSlides={slides.length}
+                        scale="normal"
+                        containerWidth={mockupContainerWidth}
+                        blur={gradientBlur}
+                        filter={colorFilter}
+                        overlay={overlayImage}
+                        watermark={watermark}
+                      />
+                    </div>
+
+                    {/* Bottom Snapchat Bar */}
+                    <div className="p-3 bg-neutral-950 flex items-center justify-between text-xs">
+                      <div className="flex-1 py-1.5 px-3 rounded-full bg-neutral-900 text-neutral-400 text-xs border border-neutral-800">
+                        {isArabic ? 'إرسال محادثة...' : 'Envoyer un chat...'}
+                      </div>
+                      <div className="flex items-center gap-2.5 px-2 text-neutral-300">
+                        <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                        <Send className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <span className="text-neutral-500 text-lg">···</span>
             </div>
-
-            {/* Post Media Container */}
-            <div
-              ref={mockupContainerRef}
-              className="relative w-full overflow-hidden @container"
-              style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
-            >
-              <SlideVisualContent
-                slide={activeSlide}
-                aspectRatio={aspectRatio}
-                typography={typography}
-                logo={logo}
-                totalSlides={slides.length}
-                scale="normal"
-                containerWidth={mockupContainerWidth}
-                blur={gradientBlur}
-                filter={colorFilter}
-                overlay={overlayImage}
-                watermark={watermark}
-              />
-            </div>
-
-            {/* Post Action Icons */}
-            <div className="px-4 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                <MessageCircle className="w-5 h-5 text-neutral-300" />
-                <Send className="w-5 h-5 text-neutral-300" />
-              </div>
-              <Bookmark className="w-5 h-5 text-neutral-300" />
-            </div>
-
-            {/* Post Caption */}
-            <div className="px-4 pb-4 text-xs space-y-1">
-              <p className="text-neutral-200">
-                <span className="font-semibold text-white mr-1.5">
-                  {logo.brandHandle || '@autopost.studio'}
-                </span>
-                {activeSlide.text}
-              </p>
-              <p className="text-indigo-400 text-[11px]">
-                #{activeSlide.kicker?.toLowerCase().replace(/\s+/g, '') || 'conseil'} #autopost #mindset
-              </p>
-              <p className="text-[10px] text-neutral-500 uppercase tracking-wider pt-1">
-                Il y a 2 heures
-              </p>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Mobile Floating Bottom Bar for Ergonomic Navigation & Export */}
@@ -2341,13 +3008,15 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         >
           <span
             style={{
-              fontSize: '1.35cqw',
-              padding: '0.25cqw 0.75cqw',
-              borderRadius: '0.35cqw',
+              fontSize: `${1.35 * (slide.customNumberScale ?? typography.slideNumberSize ?? 1.0)}cqw`,
+              padding: `${0.25 * (slide.customNumberScale ?? typography.slideNumberSize ?? 1.0)}cqw ${0.75 * (slide.customNumberScale ?? typography.slideNumberSize ?? 1.0)}cqw`,
+              borderRadius: `${0.35 * (slide.customNumberScale ?? typography.slideNumberSize ?? 1.0)}cqw`,
             }}
             className="font-mono font-medium text-white/70 bg-black/40 backdrop-blur inline-block"
           >
-            {String(slide.number).padStart(2, '0')} / {String(totalSlides).padStart(2, '0')}
+            {typography.easternNumerals
+              ? `${formatArabicDigits(String(slide.number).padStart(2, '0'), true)} / ${formatArabicDigits(String(totalSlides).padStart(2, '0'), true)}`
+              : `${String(slide.number).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`}
           </span>
         </div>
       )}

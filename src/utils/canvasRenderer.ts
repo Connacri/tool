@@ -652,11 +652,14 @@ export async function renderSlideToCanvas(
 
   // 7. Slide Index Indicator (strictly LTR for digits)
   if (typography.showSlideNumber) {
-    const numText = `${String(slide.number).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+    const numScale = (slide.customNumberScale ?? typography.slideNumberSize ?? 1.0);
+    const numText = typography.easternNumerals
+      ? `${formatArabicDigits(String(slide.number).padStart(2, '0'), true)} / ${formatArabicDigits(String(totalSlides).padStart(2, '0'), true)}`
+      : `${String(slide.number).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
     ctx.save();
     ctx.direction = 'ltr'; // STRICTLY LTR for digits & counter badge
-    ctx.font = `600 ${Math.round(width * 0.024)}px 'JetBrains Mono', monospace`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = `600 ${Math.round(width * 0.024 * numScale)}px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText(numText, width - paddingX, height - Math.round(paddingY * 0.7));
