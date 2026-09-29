@@ -21,6 +21,7 @@ import {
 import { SlideItem } from '../types';
 import { postJson } from '../utils/apiClient';
 import { isArabicText } from '../utils/canvasRenderer';
+import { traceAsync } from '../services/performanceService';
 
 interface SocialCopyModalProps {
   isOpen: boolean;
@@ -342,10 +343,12 @@ export const SocialCopyModal: React.FC<SocialCopyModalProps> = ({
 
     setIsLoading(true);
     try {
-      const data = await postJson('/api/generate-social-copy', {
-        phrase: slide.text,
-        kicker: slide.kicker,
-      });
+      const data = await traceAsync('generate_social_copy', () =>
+        postJson('/api/generate-social-copy', {
+          phrase: slide.text,
+          kicker: slide.kicker,
+        }),
+      );
 
       if (data?.copy) {
         setCopyCache((prev) => ({ ...prev, [slideIndex]: data.copy }));

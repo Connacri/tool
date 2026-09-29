@@ -44,6 +44,17 @@ export function isAnalyticsEnabledByEnv(): boolean {
 }
 
 /**
+ * Performance Monitoring se coupe de la même façon, indépendamment d'Analytics :
+ *   VITE_FIREBASE_PERFORMANCE_ENABLED=false
+ *
+ * Raise la main sur les Core Web Vitals, donc utile en production, mais
+ * bruyant en développement local où les timings neinterested personne.
+ */
+export function isPerformanceEnabledByEnv(): boolean {
+  return (import.meta.env.VITE_FIREBASE_PERFORMANCE_ENABLED || '').trim().toLowerCase() !== 'false';
+}
+
+/**
  * Les 3 champs indispensables pour initialiser un projet Firebase valide.
  * Sans eux, mieux vaut ne rien initialiser que lever une erreur au démarrage.
  */
