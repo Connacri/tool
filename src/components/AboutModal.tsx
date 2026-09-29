@@ -66,7 +66,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
           <div className="space-y-2.5 pt-1">
             <a
-              href="https://github.com/Connacri/tool/blob/main/PRIVACY_POLICY_DRAFT.md"
+              href={`${import.meta.env.BASE_URL}privacy.html`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2.5 p-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-950/60 transition-colors"

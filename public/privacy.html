@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Politique de confidentialité — AutoPost Studio</title>
+    <meta name="description" content="Comment AutoPost Studio traite vos données : stockage local, génération par IA, mesure d'audience et publicités Google AdMob et AdSense." />
+    <meta name="theme-color" content="#0a0a0c" />
+    <link rel="canonical" href="https://tool-ee60c.web.app/privacy.html" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a0a0c;
+        --panel: #131316;
+        --border: #26262b;
+        --text: #e7e7ea;
+        --muted: #a1a1aa;
+        --brand: #818cf8;
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.7;
+        font-size: 16px;
+        overflow-x: hidden;
+      }
+      .wrap { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+      header.brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 2rem; }
+      .logo {
+        width: 2.5rem; height: 2.5rem; border-radius: .6rem; flex: none;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: .9rem; letter-spacing: .02em;
+      }
+      h1 { font-size: 1.5rem; line-height: 1.3; margin: 0; }
+      .sub { color: var(--muted); font-size: .8rem; }
+      h2 { font-size: 1.05rem; margin: 2.25rem 0 .5rem; color: #fff; }
+      h3 { font-size: .95rem; margin: 1.25rem 0 .35rem; color: var(--text); }
+      p, li { color: #d4d4d8; font-size: .92rem; }
+      ul { padding-left: 1.15rem; margin: .5rem 0; }
+      li { margin-bottom: .3rem; }
+      a { color: var(--brand); }
+      strong { color: #fff; }
+      .card {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: .9rem; padding: 1rem 1.1rem; margin: 1.25rem 0;
+      }
+      .warn { border-color: #7c5c1e; background: #1d1810; }
+      .warn p, .warn li { color: #e8d9b8; }
+      .toc { columns: 1; }
+      .toc a { display: block; padding: .2rem 0; font-size: .87rem; }
+      hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+      .back {
+        display: inline-flex; align-items: center; gap: .4rem; margin-bottom: 1.5rem;
+        padding: .45rem .85rem; border-radius: .6rem; text-decoration: none;
+        background: #1c1c20; border: 1px solid var(--border); color: var(--text);
+        font-size: .82rem;
+      }
+      footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .78rem; }
+      code { background: #1c1c20; padding: .1rem .35rem; border-radius: .3rem; font-size: .82em; }
+      @media (min-width: 640px) { .wrap { padding: 2.5rem 1.5rem 5rem; } h1 { font-size: 1.85rem; } .toc { columns: 2; column-gap: 2rem; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="back" href="./">&larr; Retour à l'application</a>
+
+      <header class="brand">
+        <div class="logo" aria-hidden="true">AP</div>
+        <div>
+          <h1>Politique de confidentialité</h1>
+          <div class="sub">AutoPost Studio</div>
+        </div>
+      </header>
+
+      <p><strong>Dernière mise à jour :</strong> <span class="todo">[date de publication à compléter]</span></p>
+
+      <p>
+        Ce document explique comment AutoPost Studio (« l'Application »), éditée par
+        Cabalink, traite les informations lorsque vous utilisez l'Application. Il s'applique
+        à la version web et à l'application Android.
+      </p>
+
+      <div class="card warn">
+        <p><strong>Document à faire valider avant publication.</strong> Cette page décrit le fonctionnement réel du code, mais elle ne constitue pas un avis juridique. Deux éléments doivent être complétés avant de la soumettre à Google Play ou à AdSense :</p>
+        <ul>
+          <li>la <strong>date de mise à jour</strong> ci-dessus ;</li>
+          <li>l'<strong>adresse e-mail de contact</strong> en fin de page.</li>
+        </ul>
+        <p>Si vous diffusez l'Application dans l'Union européenne, le Royaume-Uni ou la Suisse, faites-la relire par un professionnel : le RGPD impose des mentions supplémentaires (base légale, droits, transferts hors UE).</p>
+      </div>
+
+      <div class="card toc">
+        <strong>Sommaire</strong>
+        <a href="#donnees">1. Données stockées sur votre appareil</a>
+        <a href="#ia">2. Génération de contenu par intelligence artificielle</a>
+        <a href="#webhook">3. Export vers un webhook (optionnel)</a>
+        <a href="#ressources">4. Polices et ressources externes</a>
+        <a href="#audience">5. Mesure d'audience (Firebase Analytics)</a>
+        <a href="#publicites">6. Publicités (AdMob et AdSense)</a>
+        <a href="#permissions">7. Permissions demandées</a>
+        <a href="#non">8. Ce que nous ne faisons pas</a>
+        <a href="#enfants">9. Enfants</a>
+        <a href="#droits">10. Vos droits</a>
+        <a href="#modifications">11. Modifications</a>
+        <a href="#contact">12. Contact</a>
+      </div>
+
+      <h2 id="donnees">1. Données stockées sur votre appareil</h2>
+      <p>
+        L'Application enregistre votre travail (textes, réglages visuels, images importées)
+        <strong>uniquement dans le stockage local de votre navigateur ou de votre appareil</strong>.
+        Ces données ne sont jamais transmises à un serveur pour y être stockées, restent sur
+        votre appareil tant que vous ne désinstallez pas l'Application ou n'effacez pas ses
+        données, et restent sous votre contrôle exclusif.
+      </p>
+      <p>
+        Vous pouvez les effacer à tout moment via la fonction de réinitialisation intégrée à
+        l'Application, ou en désinstallant celle-ci. Aucun compte utilisateur, aucune
+        inscription et aucun identifiant personnel (nom, e-mail, numéro de téléphone) n'est
+        requis pour utiliser l'Application.
+      </p>
+
+      <h2 id="ia">2. Génération de contenu par intelligence artificielle</h2>
+      <p>
+        Lorsque vous utilisez la génération automatique de phrases ou de légendes, le texte
+        que vous fournissez (thème, ton souhaité, texte du visuel) est envoyé à notre
+        serveur, qui le transmet à l'API Gemini de Google pour produire une réponse.
+      </p>
+      <ul>
+        <li>Ce texte est traité par Google selon la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">politique de confidentialité de Google</a> ;</li>
+        <li>nous ne conservons pas ce texte au-delà du temps nécessaire pour traiter votre demande et vous renvoyer la réponse ;</li>
+        <li>la fonctionnalité est <strong>optionnelle</strong> : l'Application reste utilisable sans elle, en saisissant votre texte manuellement.</li>
+      </ul>
+      <p>
+        Cette fonction dépend de la disponibilité de notre serveur de génération. Si celui-ci
+        n'est pas accessible, l'Application affiche un texte de repli et reste pleinement
+        fonctionnelle pour la partie création et export.
+      </p>
+
+      <h2 id="webhook">3. Export vers un webhook (optionnel)</h2>
+      <p>
+        Si vous configurez vous-même une URL de webhook (par exemple vers Zapier, Make ou
+        n8n), l'Application transmet à cette URL, à votre demande explicite, le contenu du
+        visuel concerné (texte, catégorie, date programmée et une référence à l'image).
+      </p>
+      <p>
+        Ce transfert n'a lieu que si vous renseignez vous-même une URL. Il s'effectue vers le
+        service tiers que <strong>vous</strong> avez choisi : nous n'avons aucun contrôle sur la
+        façon dont ce service traite ensuite ces données, et nous vous invitons à consulter sa
+        propre politique de confidentialité.
+      </p>
+
+      <h2 id="ressources">4. Polices et ressources externes</h2>
+      <p>
+        L'Application charge certaines polices de caractères depuis Google Fonts
+        (<code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code>) afin d'afficher
+        correctement les styles typographiques proposés. Cela entraîne une requête réseau
+        standard vers les serveurs de Google. Voir la
+        <a href="https://developers.google.com/fonts/faq/privacy" target="_blank" rel="noopener noreferrer">politique de confidentialité de Google Fonts</a>.
+      </p>
+
+      <h2 id="audience">5. Mesure d'audience (Firebase Analytics)</h2>
+      <p>
+        Sur la <strong>version web</strong>, nous utilisons
+        <a href="https://firebase.google.com/docs/analytics" target="_blank" rel="noopener noreferrer">Firebase Analytics</a>
+        pour mesurer l'usage de façon agrégée. Sur la version Android, ce module est
+        volontairement inactif.
+      </p>
+      <p>Cette mesure peut collecter :</p>
+      <ul>
+        <li>le fait d'ouvrir l'Application et d'y naviguer ;</li>
+        <li>les pages et fonctionnalités visitées ;</li>
+        <li>des informations techniques sur l'appareil et le navigateur (modèle, système d'exploitation, langue, résolution, pays) ;</li>
+        <li>des données de performance (temps de chargement, erreurs techniques).</li>
+      </ul>
+      <p>Elle ne collecte pas :</p>
+      <ul>
+        <li>le <strong>contenu</strong> que vous créez ou exportez (textes, images, visuels) ;</li>
+        <li>vos identifiants de compte ou de réseau social ;</li>
+        <li> votre géolocalisation précise, vos contacts, vos fichiers.</li>
+      </ul>
+      <p>
+        Ces données sont agrégées et ne permettent pas de vous identifier individuellement. Vous
+        pouvez désactiver cette mesure à tout moment : le refus des cookies tiers dans votre
+        navigateur l'empêche déjà de fonctionner, et le paramètre
+        <code>VITE_FIREBASE_ANALYTICS_ENABLED=false</code> permet de la couper sans modifier le code.
+      </p>
+
+      <h2 id="publicites">6. Publicités (AdMob et AdSense)</h2>
+      <p>
+        L'Application contient des publicités. Elles financent le développement ; le service
+        reste entièrement gratuit et les annonces ne modifient pas son prix.
+      </p>
+
+      <h3>Application Android — Google AdMob</h3>
+      <p>
+        L'application Android utilise le SDK <a href="https://developers.google.com/admob" target="_blank" rel="noopener noreferrer">Google AdMob</a>. Une annonce interstitielle peut s'afficher au démarrage, et une annonce récompensée peut précéder un export : regarder l'annonce vous permet d'accéder immédiatement à votre export, mais l'export reste possible même si l'annonce ne s'affiche pas.
+      </p>
+      <p>
+        Google et ses annonceurs utilisent l'identifiant publicitaire Android
+        (<code>com.google.android.gms.permission.AD_ID</code>), votre adresse IP et des
+        informations techniques sur votre appareil pour servir les annonces et mesurer leurs
+        performances. Si vous y avez consenti, des annonces peuvent être adaptées à vos centres
+        d'intérêt. En l'absence de consentement, l'Application demande des annonces
+        <strong>non personnalisées</strong>, qui n'utilisent pas votre identifiant publicitaire
+        pour établir un profil.
+      </p>
+
+      <h3>Version web — Google AdSense</h3>
+      <p>
+        La version web utilise <a href="https://www.google.com/adsense/start/" target="_blank" rel="noopener noreferrer">Google AdSense</a>, qui dépose des cookies et identifiants similaires.
+      </p>
+
+      <h3>Gérer vos préférences</h3>
+      <ul>
+        <li><a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer">Paramètres des annonces Google</a> pour désactiver les annonces personnalisées ;</li>
+        <li><a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer">aboutads.info</a> pour un contrôle par annonceur ;</li>
+        <li><a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">Google Privacy &amp; Terms</a> pour le détail des usages ;</li>
+        <li>un bloqueur de publicité ou le refus des cookies tiers empêche également l'affichage des annonces.</li>
+      </ul>
+      <p>
+        Dans l'espace économique européen, au Royaume-Uni et en Suisse, la diffusion
+        d'annonces dépend d'un consentement préalable. Tant qu'aucun bandeau de consentement
+        n'est en place, l'Application demande des annonces non personnalisées.
+      </p>
+
+      <h2 id="permissions">7. Permissions demandées</h2>
+      <ul>
+        <li><strong>Accès à Internet</strong> : nécessaire pour la génération par IA, le chargement des polices, la diffusion des annonces et l'envoi vers un webhook si vous en configurez un.</li>
+        <li><strong>Accès aux photos / à la galerie</strong> : utilisé uniquement pour insérer l'image choisie dans votre visuel. Les images restent sur votre appareil, sauf lorsqu'elles font partie d'un contenu que vous exportez ou transmettez vous-même via la fonction de webhook.</li>
+        <li><strong>Identifiant publicitaire</strong> (<code>AD_ID</code>) : requis par le SDK publicitaire Google sur Android 13 et versions ultérieures. L'Application fonctionne sans cette permission si vous la refusez ; les annonces ne sont alors plus servies.</li>
+      </ul>
+
+      <h2 id="non">8. Ce que nous ne faisons pas</h2>
+      <ul>
+        <li>Nous ne vendons pas vos données personnelles et ne les partageons pas à des tiers à des fins publicitaires.</li>
+        <li>Nous n'affichons pas de publicités en dehors des services Google décrits en section 6 ; nous ne choisissons pas les annonceurs et n'en tirons aucun revenu direct.</li>
+        <li>Nous ne suivons pas votre activité en dehors de l'Application.</li>
+        <li>Nous ne collectons pas de géolocalisation précise ni de données de contacts.</li>
+        <li>La mesure d'audience de la section 5 reste anonyme et agrégée.</li>
+      </ul>
+
+      <h2 id="enfants">9. Enfants</h2>
+      <p>
+        L'Application n'est pas spécifiquement conçue pour les enfants de moins de 13 ans et
+        ne collecte sciemment aucune donnée personnelle les concernant.
+      </p>
+
+      <h2 id="droits">10. Vos droits</h2>
+      <p>
+        Vos données étant stockées localement sur votre appareil et non sur nos serveurs, vous
+        en gardez la maîtrise complète : vous pouvez les consulter, les modifier ou les
+        supprimer à tout moment directement dans l'Application ou via les réglages de votre
+        appareil.
+      </p>
+      <p>
+        Pour les données traitées par nos prestataires (Gemini, AdMob, AdSense, Firebase), vous
+        pouvez exercer vos droits d'accès, de rectification, d'effacement, de limitation et
+        d'opposition auprès de Google via les
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">paramètres de confidentialité Google</a>.
+      </p>
+
+      <h2 id="modifications">11. Modifications</h2>
+      <p>
+        Nous pouvons mettre à jour cette politique si les fonctionnalités de l'Application
+        évoluent. La date de dernière mise à jour figure en haut de cette page.
+      </p>
+
+      <h2 id="contact">12. Contact</h2>
+      <p>
+        Pour toute question sur cette politique : <strong class="todo">[adresse e-mail de contact à compléter]</strong>
+      </p>
+
+      <footer>
+        AutoPost Studio — application de création de visuels pour réseaux sociaux.
+        Les traitements décrits ici sont effectués par Cabalink.
+      </footer>
+    </div>
+  </body>
+</html>
