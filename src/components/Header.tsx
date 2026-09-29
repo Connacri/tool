@@ -78,14 +78,16 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-md sticky top-0 z-40 shrink-0">
       {/* Main Top Bar */}
-      <div className="h-14 sm:h-16 px-2.5 sm:px-4 lg:px-6 flex items-center justify-between gap-2 max-w-full">
+      <div className="h-14 sm:h-16 px-2.5 sm:px-4 lg:px-6 flex items-center justify-between gap-2 max-w-full overflow-hidden">
         {/* Left Section: Logo + Autosave */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <a href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm tracking-wider shadow-sm group-hover:scale-105 transition-transform">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <a href="/" className="flex items-center gap-2 group min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm tracking-wider shadow-sm group-hover:scale-105 transition-transform shrink-0">
               AP
             </div>
-            <span className="text-sm sm:text-base font-bold tracking-tight text-white font-['Syne']">
+            {/* min-w-0 + truncate : le titre cede la place aux boutons plutot
+                que de pousser le menu hors de l'ecran. */}
+            <span className="text-sm sm:text-base font-bold tracking-tight text-white font-['Syne'] truncate">
               <span className="hidden sm:inline">AutoPost Studio</span>
               <span className="sm:hidden font-extrabold">AutoPost</span>
             </span>
@@ -152,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Passer en mode éditeur"
           >
             <PenTool className="w-3 h-3 text-indigo-400" />
-            <span className="hidden xs:inline">Édition</span>
+            <span className="hidden sm:inline">Édition</span>
           </button>
           <button
             onClick={() => setMobileView('preview')}
@@ -164,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Passer en mode aperçu"
           >
             <Eye className="w-3 h-3 text-emerald-400" />
-            <span className="hidden xs:inline">Aperçu</span>
+            <span className="hidden sm:inline">Aperçu</span>
           </button>
         </div>
 

@@ -197,7 +197,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-['Plus_Jakarta_Sans'] antialiased">
+      <div className="min-h-screen w-full overflow-x-hidden bg-neutral-950 text-neutral-100 flex flex-col font-['Plus_Jakarta_Sans'] antialiased">
       {/* 3-Zone Header Contract with Autosave indicator and responsive mode toggle */}
       <Header
         activeTab={activeTab}

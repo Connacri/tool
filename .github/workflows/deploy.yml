@@ -183,10 +183,10 @@ jobs:
             RAW_VERSION="${BASE_VERSION}-build.${GITHUB_RUN_NUMBER}"
           fi
           echo "raw=$RAW_VERSION" >> "$GITHUB_OUTPUT"
-          node scripts/version.mjs "$RAW_VERSION" | tee -a "$GITHUB_OUTPUT_ENV"
+          node scripts/version.mjs "$RAW_VERSION" | tee -a "$GITHUB_ENV"
           echo "Version resolue : $RAW_VERSION"
           # L'ecran "A propos de" lit VITE_APP_VERSION.
-          echo "VITE_APP_VERSION=$RAW_VERSION" >> "$GITHUB_OUTPUT_ENV"
+          echo "VITE_APP_VERSION=$RAW_VERSION" >> "$GITHUB_ENV"
 
       - name: Compiler l'APK Debug (installable immédiatement)
         run: |
