@@ -2,15 +2,181 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import dns from 'node:dns/promises';
+import net from 'node:net';
+import type { NextFunction, Request, Response } from 'express';
 
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
 const port = process.env.PORT || 3000;
 
+/**
+ * Origines autorisees a appeler l'API depuis un navigateur.
+ *
+ * Rien n'est ouvert par defaut : cet serveur relays des appels Gemini payants,
+ * il ne doit pas devenir une ressource publique. Une requete sans en-tete Origin
+ * (curl, application native, script) passe quand meme — le controle navigateur
+ * sert a empecher un site tiers de faire Establishing des appels depuis la
+ * session d'un visiteur, pas a interdire l'API aux clients non-navigateur.
+ */
+const ALLOWED_ORIGINS = new Set(
+  [
+    'capacitor://localhost',
+    'https://localhost',
+    'http://localhost',
+    'https://connacri.github.io',
+    'https://tool-ee60c.web.app',
+    'https://tool-ee60c.firebaseapp.com',
+    // Ajout d'un domaine (site perso, autre app Firebase) sans redemarrer le
+    // code : API_ALLOWED_ORIGINS=https://mon-domaine.fr,https://autre.fr
+    ...(process.env.API_ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ].map((origin) => origin.toLowerCase()),
+);
+
+function cors(req: Request, res: Response, next: NextFunction): void {
+  const origin = (req.headers.origin || '').toLowerCase();
+
+  if (origin) {
+    if (!ALLOWED_ORIGINS.has(origin)) {
+      res.status(403).json({ error: 'Origine non autorisee' });
+      return;
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.status(204).end();
+    return;
+  }
+
+  next();
+}
+
+/** Limite par IP sur les routes /api, fenetre glissante. */
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 20;
+const rateBuckets = new Map<string, number[]>();
+
+function rateLimit(req: Request, res: Response, next: NextFunction): void {
+  const key = req.ip || req.socket.remoteAddress || 'inconnu';
+  const now = Date.now();
+  const hits = (rateBuckets.get(key) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+
+  if (hits.length >= RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - hits[0])) / 1000);
+    res.setHeader('Retry-After', String(Math.max(retryAfter, 1)));
+    rateBuckets.set(key, hits);
+    res.status(429).json({ error: 'Trop de requetes, reessayez dans un instant.' });
+    return;
+  }
+
+  hits.push(now);
+  rateBuckets.set(key, hits);
+
+  // Purge paresseuse : la Map ne doit pas grossir indefiniment avec les IP
+  // vues une seule fois. Un passage sur douze suffit largement, la fenetre est
+  // d'une minute.
+  if (rateBuckets.size > 5000) {
+    for (const [bucketKey, timestamps] of rateBuckets) {
+      if (timestamps.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) {
+        rateBuckets.delete(bucketKey);
+      }
+    }
+  }
+
+  next();
+}
+
+/**
+ * Une adresse IP est-elle interne, loopback, lien-local ou multicast ?
+ *
+ * C'est le coeur de la protection SSRF de /api/export-webhook : sans ce filtre,
+ * n'importe qui sur Internet peut faire joindre par le serveur une adresse du
+ * reseau prive de l'hebergeur, dont le port de liaison interne de Render.
+ */
+function isPrivateAddress(ip: string): boolean {
+  const type = net.isIP(ip);
+  if (type === 0) return true; // ni IPv4 ni IPv6 : ne peut pas etre une IP resolue
+
+  if (type === 4) {
+    const [a, b] = ip.split('.').map(Number);
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; //dont 169.254.169.254, metadata cloud
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; //CGNAT
+    if (a === 192 && b === 0) return true;
+    if (a === 198 && (b === 18 || b === 19)) return true;
+    if (a >= 224) return true; //multicast et reserves
+    return false;
+  }
+
+  // IPv6 : le ::ffff:0:0/96 encapsule une IPv4, un attaquant peut donc cacher
+  // 127.0.0.1 ou 169.254.169.254 derriere cette forme. Il faut decomposer.
+  const lower = ip.toLowerCase();
+  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (mapped) return isPrivateAddress(mapped[1]);
+
+  if (lower === '::' || lower === '::1') return true;
+  const head = parseInt(lower.split(':')[0] || '0', 16);
+  if ((head & 0xfe00) === 0xfc00) return true; //fc00::/7, adresses locales uniques
+  if ((head & 0xffc0) === 0xfe80) return true; //fe80::/10, lien-local
+  if ((head & 0xff00) === 0xff00) return true; //ff00::/8, multicast
+  return false;
+}
+
+/** Erreur de validation d'URL : distinguee des pannes pour repondre en 400. */
+class InvalidWebhookUrl extends Error {}
+
+async function assertPublicWebhookUrl(rawUrl: string): Promise<void> {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new InvalidWebhookUrl('URL de webhook invalide.');
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new InvalidWebhookUrl('Le webhook doit utiliser HTTPS.');
+  }
+
+  // Les enregistrements DNS peuvent pointer vers une adresse interne : on
+  // resout donc avant de laisser fetch partir.
+  let addresses: Array<{ address: string }>;
+  try {
+    addresses = await dns.lookup(url.hostname, { all: true });
+  } catch {
+    throw new InvalidWebhookUrl(`Impossible de resoudre l'hote "${url.hostname}".`);
+  }
+
+  if (addresses.length === 0) {
+    throw new InvalidWebhookUrl(`Aucun adresse pour l'hote "${url.hostname}".`);
+  }
+
+  if (addresses.some((entry) => isPrivateAddress(entry.address))) {
+    throw new InvalidWebhookUrl('Le webhook pointe vers une adresse reseau interne.');
+  }
+}
+
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '50mb' }));
+
+  // Render termine le trafic par un proxy : sans cela req.ip vaut l'adresse
+  // interne de Render pour toutes les requetes, et le rate limit bloquerait
+  // tout le monde d'un bloc. « 1 » fait confiance au premier saut, le proxy.
+  app.set('trust proxy', 1);
+
+  app.use('/api', cors);
+  app.use('/api', rateLimit);
+  app.use(express.json({ limit: '1mb' }));
 
   // Initialize Gemini AI SDK if GEMINI_API_KEY is present
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -398,10 +564,19 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
         return res.status(400).json({ error: 'URL de Webhook manquante' });
       }
 
+      // Sans cette validation, la route etait une SSRF ouverte : n'importe qui
+      // pouvait faire joindre par le serveur le reseau prive de l'hebergeur, et
+      // faire relayer du trafic a sa place.
+      await assertPublicWebhookUrl(webhookUrl);
+
       const fetchRes = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        // Une redirection renverrait le serveur vers une cible interne meme si
+        // l'URL de depart est propre : elle est refusee plutot que suivie.
+        redirect: 'manual',
+        signal: AbortSignal.timeout(10_000),
       });
 
       const text = await fetchRes.text();
@@ -413,8 +588,46 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
           : `Erreur du serveur webhook (${fetchRes.status}): ${text.slice(0, 300)}`
       });
     } catch (err: any) {
-      res.status(500).json({ error: `Impossible de contacter le Webhook: ${err.message}` });
+      // Une URL rejetee par la validation SSRF est une erreur du client, pas une
+      // panne : la repondre en 500 ferait croire a un incident et la masquerait
+      // dans les journaux d'erreur.
+      if (err instanceof InvalidWebhookUrl) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      res.status(502).json({ error: `Impossible de contacter le Webhook: ${err.message}` });
     }
+  });
+
+  // Toute erreur survenue dans /api repond en JSON, jamais en HTML. Le
+  // client appelle response.json() sans repeter : une page HTML le ferait
+  // echouer sur « Unexpected token '<' ». C'est exactement ce que visiteur le
+  // fallback SPA renvoyait, pour une route d'API mal orthographiee ou un corps
+  // JSON invalide.
+  app.use('/api', (err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = Number(err?.status || err?.statusCode) >= 400 ? Number(err.status || err.statusCode) : 500;
+
+    if (status >= 500) {
+      console.error('[api] Erreur non geree :', err);
+      res.status(500).json({ error: 'Erreur interne du serveur.' });
+      return;
+    }
+
+    // 413 = corps au-dela de la limite, 400 = JSON illisible : ce sont des
+    // erreurs du client, on lui dit ce qui ne va pas sans divulguer d'internes.
+    const message =
+      status === 413
+        ? 'Requete trop volumineuse.'
+        : status === 400
+          ? 'Corps de requete JSON invalide.'
+          : 'Requete invalide.';
+    res.status(status).json({ error: message });
+  });
+
+  // Idem pour une route /api inexistante : sans ce garde-fou, elle traversait
+  // jusqu'au fallback SPA et renvoyait index.html.
+  app.use('/api', (_req: Request, res: Response) => {
+    res.status(404).json({ error: 'Route API inconnue.' });
   });
 
   // Mount Vite or serve static
