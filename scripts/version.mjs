@@ -4,11 +4,13 @@
  * Usage :
  *   node scripts/version.mjs            # deduit la version du tag git courant
  *   node scripts/version.mjs 1.2.3      # version explicite
+ *   node scripts/version.mjs --ci 1.2.3 69   # build de CI, hors release
  *
  * Sortie (une ligne KEY=VALUE par sortie) :
  *   VERSION_NAME=1.2.3
  *   VERSION_CODE=1002003
  *   IS_PRERELEASE=false
+ *   IS_RELEASE=true
  *
  * Regle de versionCode (norme Android / Google Play)
  * ------------------------------------------------
@@ -47,6 +49,19 @@
  * transition se fait sans saut de versionCode. Seuls les anciens tags
  * recalculeraient une valeur differente, ce qui est sans effet puisqu'ils ne
  * sont pas rebuildes.
+ *
+ * Builds de CI (--ci)
+ * -------------------
+ * Un build hors tag n'est pas une release et ne doit surtout pas consommer un
+ * slot de prerelease : GITHUB_RUN_NUMBER est non borne (on en est deja a 69)
+ * alors que chaque version finale n'en reserve que neuf, donc la CI cassait
+ * des que le compteur depassait 9.
+ *
+ * Un build de CI reprend donc le versionCode de la version de base, et ne
+ * change que le nom, suffixe -ci.<run>. Deux proprietes en decoulent :
+ * l'artefact est identifiable (nom affiche « 1.0.4-ci.69 ») et il ne peut pas
+ * etre publie par accident a la place d'une release, puisque son versionCode
+ * est deja pris par elle.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -163,11 +178,38 @@ export function parseVersion(raw) {
     versionName: trimmed,
     versionCode,
     isPrerelease: Boolean(parsed.prerelease),
+    isRelease: true,
+  };
+}
+
+/**
+ * Version d'un build de CI : meme versionCode que la version de base, nom
+ * suffixe -ci.<run> pour qu'il ne soit pas confondu avec une release. Voir la
+ * note « Builds de CI » en tete de fichier.
+ */
+export function buildCiVersion(baseVersion, runNumber) {
+  const run = Number(runNumber);
+  if (!Number.isInteger(run) || run < 1) {
+    fail(`numero de run de CI invalide : "${runNumber}" (entier positif attendu).`);
+  }
+  const base = parseVersion(baseVersion);
+  const parts = /^(\d+)\.(\d+)\.(\d+)/.exec(base.versionName);
+  return {
+    versionName: `${parts[1]}.${parts[2]}.${parts[3]}-ci.${run}`,
+    versionCode: base.versionCode,
+    isPrerelease: true,
+    isRelease: false,
   };
 }
 
 function main() {
   const arg = process.argv[2];
+  if (arg === '--ci') {
+    const baseVersion = process.argv[3] ?? readGitTag();
+    const runNumber = process.argv[4];
+    emit(buildCiVersion(baseVersion, runNumber));
+    return;
+  }
   const source = arg ?? readGitTag() ?? '';
   if (!source && readPackageVersion()) {
     // Aucune version en argument ni tag : on retombe sur package.json.
@@ -178,10 +220,11 @@ function main() {
   emit(parseVersion(source || readPackageVersion()));
 }
 
-function emit({ versionName, versionCode, isPrerelease }) {
+function emit({ versionName, versionCode, isPrerelease, isRelease }) {
   console.log(`VERSION_NAME=${versionName}`);
   console.log(`VERSION_CODE=${versionCode}`);
   console.log(`IS_PRERELEASE=${isPrerelease}`);
+  console.log(`IS_RELEASE=${isRelease}`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
