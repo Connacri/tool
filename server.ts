@@ -29,8 +29,11 @@ async function startServer() {
    * payant dispose de modeles plus recents qu'il vaut mieux pouvoir viser
    * sans toucher au code.
    */
-  const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash';
-  const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-flash-lite';
+// Alias stables plutot que des noms de version figes : Google retire
+// gemini-2.5-flash pour les nouveaux comptes, et un nom fige casse des
+// mois apres la sortie du modele. « -latest » suit la derniere version stable.
+const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-flash-latest';
+const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-flash-lite-latest';
 
   try {
     if (apiKey) {
@@ -62,7 +65,7 @@ async function startServer() {
     res.json({
       status: 'ok',
       aiConfigured: Boolean(process.env.GEMINI_API_KEY),
-      model: process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash',
+      model: MODEL_PRIMARY,
     });
   });
 
