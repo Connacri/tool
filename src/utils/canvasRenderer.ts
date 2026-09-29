@@ -10,6 +10,7 @@ import {
   WatermarkConfig,
 } from '../types';
 import { formatArabicDigits, formatBidiHandlesAndNumbers, loadGoogleFont } from './googleFonts';
+import { exportCanvasImage, exportZipArchive } from './fileDownloader';
 
 /**
  * Checks if a string contains Arabic characters
@@ -1242,13 +1243,20 @@ function roundRect(
 }
 
 /**
- * Downloads a canvas element as a PNG image file
+ * Downloads or shares a canvas element as a PNG image file.
+ * Handles desktop, mobile browsers, and Android APK / Capacitor WebViews.
  */
-export function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string) {
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = canvas.toDataURL('image/png');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string): Promise<boolean> {
+  const result = await exportCanvasImage(canvas, filename);
+  return result.success;
 }
+
+/**
+ * Downloads or shares a ZIP archive blob.
+ * Supports Android APK (Capacitor), mobile browsers, and desktop.
+ */
+export async function saveOrShareZip(zipBlob: Blob, filename: string): Promise<boolean> {
+  const result = await exportZipArchive(zipBlob, filename);
+  return result.success;
+}
+

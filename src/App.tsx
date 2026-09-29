@@ -265,6 +265,7 @@ export default function App() {
             setActiveTab('slides');
           }}
           onOpenExportModal={() => setIsExportModalOpen(true)}
+          onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
           mobileView={mobileView}
           setMobileView={setMobileView}
         />
@@ -282,6 +283,7 @@ export default function App() {
         colorFilter={colorFilter}
         overlayImage={overlayImage}
         watermark={watermark}
+        onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
       />
 
       <BatchInputModal

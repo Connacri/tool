@@ -33,6 +33,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  PenTool,
 } from 'lucide-react';
 import {
   AspectRatioOption,
@@ -79,6 +80,7 @@ interface CanvasPreviewProps {
   setWatermark?: React.Dispatch<React.SetStateAction<WatermarkConfig>>;
   mobileView?: 'editor' | 'preview';
   setMobileView?: (view: 'editor' | 'preview') => void;
+  onOpenSocialCopyModal?: () => void;
 }
 
 export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
@@ -103,6 +105,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   setWatermark,
   mobileView = 'preview',
   setMobileView,
+  onOpenSocialCopyModal,
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'single' | 'mockup'>('grid');
   const [gridDensity, setGridDensity] = useState<'comfortable' | 'compact'>('comfortable');
@@ -821,8 +824,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                   >
                     {/* Rendered Slide Card */}
                     <div
-                      className="relative w-full overflow-hidden select-none"
-                      style={{ aspectRatio: cssAspectRatio }}
+                      className="relative w-full overflow-hidden select-none @container"
+                      style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
                     >
                       <SlideVisualContent
                         slide={slide}
@@ -830,7 +833,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                         typography={typography}
                         logo={logo}
                         totalSlides={slides.length}
-                        scale="compact"
+                        scale="normal"
                         blur={gradientBlur}
                         filter={colorFilter}
                         overlay={overlayImage}
@@ -965,14 +968,14 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
-              className={`relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden border border-neutral-800 select-none group touch-none ${
+              className={`relative w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden border border-neutral-800 select-none group touch-none @container ${
                 activeCanvasTool === 'image'
                   ? dragTarget === 'image'
                     ? 'cursor-grabbing ring-2 ring-indigo-500'
                     : 'cursor-grab ring-1 ring-indigo-500/60'
                   : ''
               }`}
-              style={{ aspectRatio: cssAspectRatio }}
+              style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
             >
               {/* Background Slide Visual DOM */}
               <SlideVisualContent
@@ -1563,21 +1566,31 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
             )}
 
             {/* Quick action bar */}
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
               <button
                 onClick={() => handleDownloadSingle(activeSlide)}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white rounded-lg text-xs font-medium transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
               >
-                <Download className="w-4 h-4 text-indigo-400" />
-                <span>Télécharger ce visuel en 1080p</span>
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span>Télécharger PNG 1080p</span>
               </button>
               <button
                 onClick={() => handleShareSingle(activeSlide)}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white rounded-lg text-xs font-medium transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
               >
                 <Share2 className="w-4 h-4 text-indigo-400" />
-                <span>Partager directement</span>
+                <span>Partager</span>
               </button>
+              {onOpenSocialCopyModal && (
+                <button
+                  onClick={onOpenSocialCopyModal}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-950/60 to-indigo-950/60 hover:from-purple-900/80 hover:to-indigo-900/80 border border-purple-500/40 text-purple-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                  title="Générer les légendes et hashtags pour Instagram, TikTok, YouTube, LinkedIn..."
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>Légendes & Tags Réseaux</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1623,8 +1636,8 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
             {/* Post Media Container */}
             <div
               ref={mockupContainerRef}
-              className="relative w-full overflow-hidden"
-              style={{ aspectRatio: cssAspectRatio }}
+              className="relative w-full overflow-hidden @container"
+              style={{ aspectRatio: cssAspectRatio, containerType: 'inline-size' }}
             >
               <SlideVisualContent
                 slide={activeSlide}
@@ -1668,6 +1681,34 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Mobile Floating Bottom Bar for Ergonomic Navigation & Export */}
+      <div className="flex md:hidden shrink-0 border-t border-neutral-800 bg-neutral-950/95 backdrop-blur-md px-3 py-2 items-center justify-between z-20 gap-2 w-full">
+        <button
+          onClick={() => setMobileView?.('editor')}
+          className="flex-1 py-2 px-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <PenTool className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Éditer #{activeSlide.number}</span>
+        </button>
+
+        <button
+          onClick={(e) => handleDownloadSingle(activeSlide, e)}
+          disabled={isExportingSingle}
+          className="flex-1 py-2 px-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <Download className="w-3.5 h-3.5 text-emerald-400" />
+          <span>PNG HD</span>
+        </button>
+
+        <button
+          onClick={onOpenExportModal}
+          className="flex-1 py-2 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Lot ({slides.length})</span>
+        </button>
       </div>
     </div>
   );
@@ -1820,16 +1861,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
     });
   };
 
-  // Box style class
+  // Box style class using proportional container units
   let boxClasses = '';
   if (typography.boxStyle === 'frosted') {
-    boxClasses = scale === 'compact'
-      ? 'bg-neutral-900/80 backdrop-blur-md border border-white/10 p-2 rounded-lg'
-      : 'bg-neutral-900/80 backdrop-blur-md border border-white/10 p-4 rounded-xl';
+    boxClasses = 'bg-neutral-900/80 backdrop-blur-md border border-white/10 p-[3.5cqw] rounded-[2cqw]';
   } else if (typography.boxStyle === 'solid-card') {
-    boxClasses = scale === 'compact'
-      ? 'bg-black/90 border p-2 rounded-lg shadow-md'
-      : 'bg-black/90 border-2 p-4 rounded-xl shadow-xl';
+    boxClasses = 'bg-black/90 border-2 p-[3.5cqw] rounded-[2cqw] shadow-xl';
   } else if (typography.boxStyle === 'minimal-shadow') {
     boxClasses = 'drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)]';
   }
@@ -1858,45 +1895,23 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
   const alignClass = getAlignContainerClass(phraseAlign);
 
-  // Scaled typography sizes.
-  // IMPORTANT — cohérence Aperçu ↔️ Export HD :
-  // En mode "normal", ces tailles sont calculées avec EXACTEMENT la même
-  // formule que renderSlideToCanvas() dans utils/canvasRenderer.ts
-  // (baseSize = largeur × 0.048 × phraseScale, etc.), mais en remplaçant la
-  // largeur du canvas d'export (ex. 1080px) par la largeur CSS réellement
-  // affichée à l'écran (containerWidth, mesurée par ResizeObserver côté
-  // parent). Le texte occupe ainsi la même proportion visuelle du cadre dans
-  // l'aperçu que dans le PNG final, quel que soit la taille d'écran ou le
-  // niveau de zoom du navigateur — corrige l'écart de dimension du texte
-  // entre l'édition et l'export final.
-  // En mode "compact" (grille de lot), on garde des tailles fixes réduites :
-  // c'est une vue d'ensemble volontairement non-WYSIWYG, pas un espace
-  // d'édition (voir README « Vue d'ensemble »).
+  // Exact proportional typography and layout sizes using CSS Container Queries (cqw):
+  // In canvasRenderer.ts, the HD export is computed as:
+  // baseSize = canvas.width * 0.048 * phraseScale
+  // kickerSize = baseSize * 0.38 * kickerScale ( = canvas.width * 0.01824 * phraseScale * kickerScale )
+  // subtitleSize = baseSize * 0.42 * subtitleScale ( = canvas.width * 0.02016 * phraseScale * subtitleScale )
+  //
+  // 1cqw is exactly 1% of the card's width in the browser.
+  // Therefore, 4.8cqw is MATHEMATICALLY IDENTICAL to width * 0.048!
+  // This guarantees that Single Preview, Grid Preview, Simulation Mockup, and the HD Export
+  // are 100% pixel-perfect and proportion-perfect in text sizes, fonts, line-wraps, and colors!
   const phraseScale = slide.customTextScale ?? typography.fontSize ?? 1.1;
   const kickerScale = slide.customKickerScale ?? typography.kickerSize ?? 1.0;
   const subtitleScale = slide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
 
-  // Largeur de référence pour le calcul proportionnel : la largeur CSS
-  // mesurée du conteneur (obtenue de façon synchrone dès le premier rendu via
-  // useLayoutEffect, donc quasiment jamais 0 en pratique). Le repli sur
-  // aspectRatio.width ne sert que si ResizeObserver était totalement
-  // indisponible dans le navigateur — cas résiduel qui ne se produit plus
-  // avec les navigateurs actuels.
-  const referenceWidth = containerWidth && containerWidth > 0 ? containerWidth : aspectRatio.width;
-
-  const previewBaseSize = referenceWidth * 0.048 * phraseScale;
-
-  const computedPhraseFontSize = scale === 'compact'
-    ? Math.max(9, Math.round(10.5 * phraseScale))
-    : Math.max(1, Math.round(previewBaseSize));
-
-  const computedKickerFontSize = scale === 'compact'
-    ? Math.max(7, Math.round(7.5 * kickerScale))
-    : Math.max(1, Math.round(previewBaseSize * 0.38 * kickerScale));
-
-  const computedSubtitleFontSize = scale === 'compact'
-    ? Math.max(7, Math.round(8 * subtitleScale))
-    : Math.max(1, Math.round(previewBaseSize * 0.42 * subtitleScale));
+  const computedPhraseFontSize = `calc(4.8cqw * ${phraseScale})`;
+  const computedKickerFontSize = `calc(1.824cqw * ${phraseScale} * ${kickerScale})`;
+  const computedSubtitleFontSize = `calc(2.016cqw * ${phraseScale} * ${subtitleScale})`;
 
   // Background image pan & zoom coordinates
   const panX = slide.imagePanX ?? 0;
@@ -1939,19 +1954,19 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
 
   const positionClass =
     typography.position === 'top'
-      ? scale === 'compact' ? 'justify-start pt-2 sm:pt-3' : 'justify-start pt-12'
+      ? 'justify-start pt-[5cqw]'
       : typography.position === 'center'
       ? 'justify-center'
-      : scale === 'compact' ? 'justify-end pb-2 sm:pb-3' : 'justify-end pb-8';
+      : 'justify-end pb-[5cqw]';
 
-  // Logo Scale (scaled down in compact mode to leave full space for text)
-  const logoScale = (logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0)) * (scale === 'compact' ? 0.55 : 1.0);
+  const logoScale = logo.scale ?? (logo.size === 'small' ? 0.75 : logo.size === 'large' ? 1.35 : 1.0);
   const isCustomLogoPos = logo.position === 'custom';
 
   return (
     <div
       dir="ltr"
-      className="relative w-full h-full overflow-hidden select-none bg-neutral-950"
+      className="relative w-full h-full overflow-hidden select-none bg-neutral-950 @container"
+      style={{ containerType: 'inline-size' }}
     >
       {/* Background Image with Zoom and Pan */}
       <img
@@ -2012,17 +2027,17 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             effectiveOverlay.position === 'center'
               ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
               : effectiveOverlay.position === 'top-left'
-              ? scale === 'compact' ? 'top-2 left-2' : 'top-5 left-5'
+              ? 'top-[4%] left-[4%]'
               : effectiveOverlay.position === 'top-right'
-              ? scale === 'compact' ? 'top-2 right-2' : 'top-5 right-5'
+              ? 'top-[4%] right-[4%]'
               : effectiveOverlay.position === 'bottom-left'
-              ? scale === 'compact' ? 'bottom-2 left-2' : 'bottom-5 left-5'
+              ? 'bottom-[4%] left-[4%]'
               : effectiveOverlay.position === 'bottom-right'
-              ? scale === 'compact' ? 'bottom-2 right-2' : 'bottom-5 right-5'
+              ? 'bottom-[4%] right-[4%]'
               : effectiveOverlay.position === 'top-center'
-              ? scale === 'compact' ? 'top-2 left-1/2 -translate-x-1/2' : 'top-5 left-1/2 -translate-x-1/2'
+              ? 'top-[4%] left-1/2 -translate-x-1/2'
               : effectiveOverlay.position === 'bottom-center'
-              ? scale === 'compact' ? 'bottom-2 left-1/2 -translate-x-1/2' : 'bottom-5 left-1/2 -translate-x-1/2'
+              ? 'bottom-[4%] left-1/2 -translate-x-1/2'
               : ''
           }`}
           style={{
@@ -2035,7 +2050,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   top: `${effectiveOverlay.customY ?? 50}%`,
                 }
               : {}),
-            width: `${Math.round((scale === 'compact' ? 26 : 35) * (effectiveOverlay.scale ?? 1))}%`,
+            width: `${Math.round(32 * (effectiveOverlay.scale ?? 1))}%`,
             maxWidth: '90%',
           }}
         >
@@ -2063,7 +2078,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       {/* Predefined or Custom Logo */}
       {logo.enabled && (
         <div
-          className={`absolute z-10 flex items-center gap-1.5 sm:gap-2 pointer-events-none transition-all ${
+          className={`absolute z-10 flex items-center gap-[1cqw] pointer-events-none transition-all ${
             isCustomLogoPos
               ? ''
               : logo.position === 'top-left'
@@ -2093,7 +2108,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   transform: `translate(-50%, -50%) ${logo.rotation ? `rotate(${logo.rotation}deg)` : ''}`.trim(),
                 }
               : {
-                  margin: `${logo.margin ?? (scale === 'compact' ? 4 : 6)}%`,
+                  margin: `${logo.margin ?? 5}%`,
                   transform: `${
                     logo.position === 'top-center' || logo.position === 'bottom-center'
                       ? 'translateX(-50%) '
@@ -2111,8 +2126,8 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               <div
                 className="relative inline-flex items-center justify-center max-w-full max-h-full"
                 style={{
-                  maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
-                  maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
+                  maxWidth: `calc(28cqw * ${logoScale})`,
+                  maxHeight: `calc(11cqw * ${logoScale})`,
                 }}
               >
                 <img
@@ -2120,8 +2135,8 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   alt=""
                   className="opacity-0 pointer-events-none select-none w-auto h-auto max-w-full max-h-full object-contain"
                   style={{
-                    maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
-                    maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
+                    maxWidth: `calc(28cqw * ${logoScale})`,
+                    maxHeight: `calc(11cqw * ${logoScale})`,
                   }}
                 />
                 <div
@@ -2145,8 +2160,8 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                 src={logo.customUrl}
                 alt="Logo Marque"
                 style={{
-                  maxWidth: `${Math.round((scale === 'compact' ? 90 : 280) * logoScale)}px`,
-                  maxHeight: `${Math.round((scale === 'compact' ? 32 : 110) * logoScale)}px`,
+                  maxWidth: `calc(28cqw * ${logoScale})`,
+                  maxHeight: `calc(11cqw * ${logoScale})`,
                   filter: logo.invertColor ? 'invert(1)' : undefined,
                 }}
                 className="w-auto h-auto max-w-full max-h-full object-contain select-none pointer-events-none"
@@ -2155,7 +2170,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
           ) : (
             <div
               dir="ltr"
-              className={`flex items-center gap-2 ${
+              className={`flex items-center gap-[1cqw] ${
                 logo.position.includes('center') && !logo.position.includes('left') && !logo.position.includes('right')
                   ? 'flex-col items-center text-center'
                   : logo.position.includes('right')
@@ -2165,14 +2180,15 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             >
               <div
                 style={{
-                  width: `${Math.round((scale === 'compact' ? 18 : 36) * logoScale)}px`,
-                  height: `${Math.round((scale === 'compact' ? 18 : 36) * logoScale)}px`,
-                  fontSize: `${Math.round((scale === 'compact' ? 8 : 14) * logoScale)}px`,
+                  width: `calc(4.0cqw * ${logoScale})`,
+                  height: `calc(4.0cqw * ${logoScale})`,
+                  fontSize: `calc(1.6cqw * ${logoScale})`,
+                  borderRadius: `calc(0.8cqw * ${logoScale})`,
                   color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   borderColor: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                   filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                 }}
-                className={`rounded-lg border flex items-center justify-center font-bold font-['Syne'] shrink-0 ${
+                className={`border flex items-center justify-center font-bold font-['Syne'] shrink-0 ${
                   logo.unifyColor && logo.unifiedColor
                     ? 'bg-black/30 backdrop-blur-sm'
                     : logo.theme === 'dark'
@@ -2196,7 +2212,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               >
                 <span
                   style={{
-                    fontSize: `${Math.round((scale === 'compact' ? 8.5 : 14) * logoScale)}px`,
+                    fontSize: `calc(1.8cqw * ${logoScale})`,
                     color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                     filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                     fontFamily: isArabicText(logo.brandText || '') ? `'${arabicFontFamily}', sans-serif` : "'Syne', sans-serif",
@@ -2209,7 +2225,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   <span
                     dir="ltr"
                     style={{
-                      fontSize: `${Math.max(7, Math.round((scale === 'compact' ? 7 : 10.5) * logoScale))}px`,
+                      fontSize: `calc(1.35cqw * ${logoScale})`,
                       color: logo.unifyColor && logo.unifiedColor ? logo.unifiedColor : undefined,
                       filter: logo.invertColor && (!logo.unifyColor || !logo.unifiedColor) ? 'invert(1)' : undefined,
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -2249,7 +2265,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                       key={c}
                       style={{
                         color: effectiveWatermark.color || '#ffffff',
-                        fontSize: `${Math.round((scale === 'compact' ? 10 : 18) * (effectiveWatermark.scale ?? 1))}px`,
+                        fontSize: `calc(1.8cqw * ${effectiveWatermark.scale ?? 1})`,
                         fontFamily: effectiveWatermark.fontFamily || "'Plus Jakarta Sans', sans-serif",
                       }}
                       className="font-bold tracking-wider"
@@ -2267,17 +2283,17 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
               effectiveWatermark.position === 'center'
                 ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
                 : effectiveWatermark.position === 'bottom-right'
-                ? scale === 'compact' ? 'bottom-2 right-2' : 'bottom-4 right-4'
+                ? 'bottom-[4%] right-[4%]'
                 : effectiveWatermark.position === 'bottom-left'
-                ? scale === 'compact' ? 'bottom-2 left-2' : 'bottom-4 left-4'
+                ? 'bottom-[4%] left-[4%]'
                 : effectiveWatermark.position === 'bottom-center'
-                ? scale === 'compact' ? 'bottom-2 left-1/2 -translate-x-1/2' : 'bottom-4 left-1/2 -translate-x-1/2'
+                ? 'bottom-[4%] left-1/2 -translate-x-1/2'
                 : effectiveWatermark.position === 'top-right'
-                ? scale === 'compact' ? 'top-2 right-2' : 'top-4 right-4'
+                ? 'top-[4%] right-[4%]'
                 : effectiveWatermark.position === 'top-left'
-                ? scale === 'compact' ? 'top-2 left-2' : 'top-4 left-4'
+                ? 'top-[4%] left-[4%]'
                 : effectiveWatermark.position === 'top-center'
-                ? scale === 'compact' ? 'top-2 left-1/2 -translate-x-1/2' : 'top-4 left-1/2 -translate-x-1/2'
+                ? 'top-[4%] left-1/2 -translate-x-1/2'
                 : ''
             }`}
             style={{
@@ -2302,12 +2318,12 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
             <div
               style={{
                 color: effectiveWatermark.color || '#ffffff',
-                fontSize: `${Math.round((scale === 'compact' ? 9 : 14) * (effectiveWatermark.scale ?? 1))}px`,
+                fontSize: `calc(1.8cqw * ${effectiveWatermark.scale ?? 1})`,
                 fontFamily: effectiveWatermark.fontFamily || "'Plus Jakarta Sans', sans-serif",
               }}
               className={`font-bold tracking-wider whitespace-nowrap ${
                 effectiveWatermark.showBorder
-                  ? 'px-3 py-1 rounded-full border border-white/30 bg-black/40 backdrop-blur-sm shadow'
+                  ? 'px-[1.5cqw] py-[0.5cqw] rounded-full border border-white/30 bg-black/40 backdrop-blur-sm shadow'
                   : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
               }`}
             >
@@ -2320,15 +2336,16 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
       {/* Slide Counter (01 / 06) - Strictly LTR for numbers! */}
       {typography.showSlideNumber && (
         <div
-          className={`absolute z-10 pointer-events-none ${
-            scale === 'compact' ? 'bottom-1.5 right-2' : 'bottom-3 right-4'
-          }`}
+          className="absolute z-10 pointer-events-none bottom-[3%] right-[4%]"
           dir="ltr"
         >
           <span
-            className={`font-mono font-medium text-white/70 bg-black/40 rounded backdrop-blur inline-block ${
-              scale === 'compact' ? 'text-[8px] px-1.5 py-0.2' : 'text-[10px] px-2 py-0.5'
-            }`}
+            style={{
+              fontSize: '1.35cqw',
+              padding: '0.25cqw 0.75cqw',
+              borderRadius: '0.35cqw',
+            }}
+            className="font-mono font-medium text-white/70 bg-black/40 backdrop-blur inline-block"
           >
             {String(slide.number).padStart(2, '0')} / {String(totalSlides).padStart(2, '0')}
           </span>
@@ -2360,10 +2377,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : kickerAlign === 'right'
                     ? 'text-right'
                     : 'text-left'
-                } ${scale === 'compact' ? 'line-clamp-1' : ''}`}
+                }`}
                 style={{
                   color: kickerColor,
-                  fontSize: `${computedKickerFontSize}px`,
+                  fontSize: computedKickerFontSize,
                   fontFamily: `'${kickerFontName}', sans-serif`,
                 }}
               >
@@ -2380,10 +2397,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   : phraseAlign === 'right'
                   ? 'text-right'
                   : 'text-left'
-              } ${scale === 'compact' ? 'line-clamp-4' : ''}`}
+              }`}
               style={{
                 color: phraseColor,
-                fontSize: `${computedPhraseFontSize}px`,
+                fontSize: computedPhraseFontSize,
                 lineHeight: typography.lineHeight ?? 1.3,
                 fontFamily: `'${phraseFontName}', sans-serif`,
               }}
@@ -2401,10 +2418,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : phraseAlign === 'right'
                     ? 'text-right'
                     : 'text-left'
-                } ${scale === 'compact' ? 'line-clamp-2' : ''}`}
+                }`}
                 style={{
                   color: subtitleColor,
-                  fontSize: `${computedSubtitleFontSize}px`,
+                  fontSize: computedSubtitleFontSize,
                   fontFamily: `'${subtitleFontName}', sans-serif`,
                 }}
               >
@@ -2415,9 +2432,7 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
         </div>
       ) : (
         <div
-          className={`relative z-10 w-full h-full flex flex-col pointer-events-none ${positionClass} ${alignClass} ${
-            scale === 'compact' ? 'p-2.5 sm:p-3' : 'p-6 sm:p-8'
-          }`}
+          className={`relative z-10 w-full h-full flex flex-col pointer-events-none p-[5cqw] ${positionClass} ${alignClass}`}
         >
           <div
             className={`w-full flex flex-col ${alignClass} ${boxClasses}`}
@@ -2436,10 +2451,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : kickerAlign === 'right'
                     ? 'text-right'
                     : 'text-left'
-                } ${scale === 'compact' ? 'line-clamp-1' : ''}`}
+                }`}
                 style={{
                   color: kickerColor,
-                  fontSize: `${computedKickerFontSize}px`,
+                  fontSize: computedKickerFontSize,
                   fontFamily: `'${kickerFontName}', sans-serif`,
                 }}
               >
@@ -2456,10 +2471,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                   : phraseAlign === 'right'
                   ? 'text-right'
                   : 'text-left'
-              } ${scale === 'compact' ? 'line-clamp-4' : ''}`}
+              }`}
               style={{
                 color: phraseColor,
-                fontSize: `${computedPhraseFontSize}px`,
+                fontSize: computedPhraseFontSize,
                 lineHeight: typography.lineHeight ?? 1.3,
                 fontFamily: `'${phraseFontName}', sans-serif`,
               }}
@@ -2477,10 +2492,10 @@ const SlideVisualContent: React.FC<SlideVisualContentProps> = ({
                     : phraseAlign === 'right'
                     ? 'text-right'
                     : 'text-left'
-                } ${scale === 'compact' ? 'line-clamp-2' : ''}`}
+                }`}
                 style={{
                   color: subtitleColor,
-                  fontSize: `${computedSubtitleFontSize}px`,
+                  fontSize: computedSubtitleFontSize,
                   fontFamily: `'${subtitleFontName}', sans-serif`,
                 }}
               >

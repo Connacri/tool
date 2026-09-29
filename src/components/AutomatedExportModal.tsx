@@ -11,6 +11,8 @@ import {
   FileArchive,
   Copy,
   ExternalLink,
+  Share2,
+  Image,
 } from 'lucide-react';
 import JSZip from 'jszip';
 import {
@@ -24,7 +26,7 @@ import {
   WatermarkConfig,
   WebhookConfig,
 } from '../types';
-import { renderSlideToCanvas } from '../utils/canvasRenderer';
+import { renderSlideToCanvas, downloadCanvasAsPng, saveOrShareZip } from '../utils/canvasRenderer';
 import { getApiUrl } from '../utils/apiConfig';
 import { adManager } from '../services/adService';
 
@@ -39,6 +41,7 @@ interface AutomatedExportModalProps {
   colorFilter?: ColorFilterConfig;
   overlayImage?: OverlayImageConfig;
   watermark?: WatermarkConfig;
+  onOpenSocialCopyModal?: () => void;
 }
 
 export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
@@ -52,6 +55,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   colorFilter,
   overlayImage,
   watermark,
+  onOpenSocialCopyModal,
 }) => {
   const [activeTab, setActiveTab] = useState<'zip' | 'webhook' | 'calendar'>('zip');
   
@@ -59,6 +63,10 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   const [zipProgress, setZipProgress] = useState<number | null>(null);
   const [zipStatusText, setZipStatusText] = useState<string>('');
   const [zipComplete, setZipComplete] = useState<boolean>(false);
+  const [generatedZipBlob, setGeneratedZipBlob] = useState<Blob | null>(null);
+  const [generatedZipUrl, setGeneratedZipUrl] = useState<string | null>(null);
+  const [generatedZipFilename, setGeneratedZipFilename] = useState<string>('');
+  const [downloadingSlideIdx, setDownloadingSlideIdx] = useState<number | null>(null);
 
   // Webhook states
   const [webhookUrl, setWebhookUrl] = useState<string>('');
@@ -71,12 +79,41 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Handle single slide download from modal
+  const handleDownloadSingleSlide = async (slide: SlideItem, idx: number) => {
+    setDownloadingSlideIdx(idx);
+    try {
+      const canvas = await renderSlideToCanvas(
+        slide,
+        aspectRatio,
+        typography,
+        logo,
+        slides.length,
+        gradientBlur,
+        colorFilter,
+        overlayImage,
+        watermark
+      );
+      const filename = `autopost_slide_${slide.number}_${aspectRatio.id.replace(':', 'x')}.png`;
+      await downloadCanvasAsPng(canvas, filename);
+    } catch (e: any) {
+      console.error('Erreur téléchargement diapo:', e);
+    } finally {
+      setDownloadingSlideIdx(null);
+    }
+  };
+
   // Handle batch ZIP generation and download
   const executeGenerateZip = async () => {
     try {
       setZipProgress(5);
       setZipStatusText('Initialisation de l archive ZIP...');
       setZipComplete(false);
+      setGeneratedZipBlob(null);
+      if (generatedZipUrl) {
+        URL.revokeObjectURL(generatedZipUrl);
+        setGeneratedZipUrl(null);
+      }
 
       const zip = new JSZip();
       const folderName = `AutoPost_${aspectRatio.id.replace(':', 'x')}_${Date.now()}`;
@@ -135,17 +172,18 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
       setZipProgress(95);
 
       const content = await zip.generateAsync({ type: 'blob' });
-      
-      // Trigger download
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(content);
-      downloadLink.download = `${folderName}.zip`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
+      const filename = `${folderName}.zip`;
+      const url = URL.createObjectURL(content);
+
+      setGeneratedZipBlob(content);
+      setGeneratedZipUrl(url);
+      setGeneratedZipFilename(filename);
+
+      // Trigger download / share
+      await saveOrShareZip(content, filename);
 
       setZipProgress(100);
-      setZipStatusText('Archive ZIP téléchargée avec succès !');
+      setZipStatusText('Archive ZIP générée avec succès !');
       setZipComplete(true);
     } catch (err: any) {
       console.error('Erreur export ZIP:', err);
@@ -268,10 +306,10 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-md">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-neutral-950/80 backdrop-blur-md">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
               <Download className="w-4 h-4" />
@@ -350,6 +388,59 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
                 </div>
               )}
 
+              {/* Success Panel with Direct Save, Share & Individual Downloads */}
+              {zipComplete && generatedZipUrl && (
+                <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Prêt à être sauvegardé sur votre appareil (Web & Android)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <a
+                      href={generatedZipUrl}
+                      download={generatedZipFilename}
+                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md text-center"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>
+                        Enregistrer le ZIP{' '}
+                        {generatedZipBlob
+                          ? `(${(generatedZipBlob.size / (1024 * 1024)).toFixed(1)} Mo)`
+                          : ''}
+                      </span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (generatedZipBlob) {
+                          saveOrShareZip(generatedZipBlob, generatedZipFilename);
+                        }
+                      }}
+                      className="py-2.5 px-3 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors border border-neutral-700"
+                    >
+                      <Share2 className="w-4 h-4 text-emerald-400" />
+                      <span>Partager / Enregistrer</span>
+                    </button>
+                  </div>
+
+                  {onOpenSocialCopyModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenSocialCopyModal();
+                      }}
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md border border-purple-400/30"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>Générer Légendes, Tags & Hashtags (Instagram, TikTok, YouTube...)</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={handleGenerateZip}
                 disabled={zipProgress !== null && zipProgress < 100}
@@ -358,10 +449,33 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
                 <Download className="w-4 h-4" />
                 <span>
                   {zipComplete
-                    ? 'Télécharger à nouveau le lot ZIP'
-                    : `Générer et Télécharger les ${slides.length} visuels`}
+                    ? 'Regénérer l\'archive ZIP'
+                    : `Générer et Télécharger les ${slides.length} visuels (ZIP)`}
                 </span>
               </button>
+
+              {/* Individual Slide Download Fallback (crucial for mobile APK users) */}
+              <div className="pt-3 border-t border-neutral-800/80 space-y-2">
+                <span className="text-xs font-semibold text-neutral-300 block">
+                  Ou enregistrer chaque image individuellement (HD PNG) :
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {slides.map((s, idx) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleDownloadSingleSlide(s, idx)}
+                      disabled={downloadingSlideIdx === idx}
+                      className="p-2 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 hover:text-white text-xs flex items-center justify-between transition-colors disabled:opacity-50"
+                    >
+                      <span className="truncate max-w-[100px] text-[11px] font-medium">
+                        Diapo {s.number}
+                      </span>
+                      <Download className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -372,7 +486,7 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
                   Plateforme d'Automatisation
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { id: 'make', name: 'Make.com' },
                     { id: 'zapier', name: 'Zapier' },

@@ -235,6 +235,9 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     const targetScale = textScale ?? activeSlide.customTextScale ?? typography.fontSize ?? 1.1;
     const targetKScale = kickerScale ?? activeSlide.customKickerScale ?? typography.kickerSize ?? 1.0;
     const targetSubScale = subtitleScale ?? activeSlide.customSubtitleScale ?? typography.subtitleSize ?? 1.0;
+    const targetTextColor = activeSlide.customTextColor ?? typography.textColor ?? '#ffffff';
+    const targetKickerColor = activeSlide.customKickerColor ?? typography.accentColor ?? '#6366f1';
+    const targetSubtitleColor = activeSlide.customSubtitleColor ?? typography.subtitleColor ?? '#a3a3a3';
 
     setSlides((prev) =>
       prev.map((s) => ({
@@ -247,6 +250,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         customTextScale: targetScale,
         customKickerScale: targetKScale,
         customSubtitleScale: targetSubScale,
+        customTextColor: targetTextColor,
+        customKickerColor: targetKickerColor,
+        customSubtitleColor: targetSubtitleColor,
+        customBlur: activeSlide.customBlur,
+        customFilter: activeSlide.customFilter,
+        customOverlayImage: activeSlide.customOverlayImage,
       }))
     );
 
@@ -262,12 +271,15 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
       fontSize: targetScale,
       kickerSize: targetKScale,
       subtitleSize: targetSubScale,
+      textColor: targetTextColor,
+      accentColor: targetKickerColor,
+      subtitleColor: targetSubtitleColor,
     }));
 
     const alignLabel = targetAlign === 'left' ? 'Gauche' : targetAlign === 'center' ? 'Centré' : 'Droite';
     const dirLabel = targetDir === 'rtl' ? 'RTL (Arabe)' : targetDir === 'ltr' ? 'LTR (Français)' : 'Auto';
     setAppliedAllNotice(
-      `✨ Orientation RTL/LTR (${dirLabel}), alignement (${alignLabel}), position (${targetX}%, ${targetY}%) & tailles appliqués à l'ensemble des ${slides.length} images !`
+      `✨ Réglages complets appliqués aux ${slides.length} images : Sens (${dirLabel}), Alignement (${alignLabel}), Position (${targetX}%, ${targetY}%), Tailles & Couleurs !`
     );
     setTimeout(() => setAppliedAllNotice(null), 4500);
   };
@@ -511,23 +523,130 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
         mobileView === 'preview' ? 'hidden md:flex md:w-80 lg:w-96' : 'w-full md:w-80 lg:w-96'
       }`}
     >
-      {/* Sub Tabs header for small screens / mobile */}
-      <div className="flex lg:hidden overflow-x-auto p-2 border-b border-neutral-800 bg-neutral-900/40 gap-1 custom-scrollbar">
+      {/* ============================================================== */}
+      {/* BANDEAU SUPÉRIEUR MAÎTRE : APPLIQUER À TOUT & CONTRÔLE RAPIDE */}
+      {/* ============================================================== */}
+      <div className="p-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md space-y-2.5 shrink-0 shadow-md">
+        {/* Main "Appliquer à TOUT" Master Button */}
+        <button
+          type="button"
+          onClick={() => handleApplyAllFormattingToAllSlides()}
+          className="w-full py-2.5 px-3.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-950/60 flex items-center justify-center gap-2 border border-indigo-400/40 transition-all hover:scale-[1.01] active:scale-[0.99] group"
+          title="Appliquer l'orientation RTL/LTR, l'alignement, la position et les styles de cette diapo à TOUTES les diapos"
+        >
+          <Sparkles className="w-4 h-4 text-amber-300 shrink-0 group-hover:rotate-12 transition-transform" />
+          <span>⚡ Appliquer à TOUT (RTL/LTR, Alignement, Tailles)</span>
+        </button>
+
+        {/* Quick Orientation & Alignment Toggles */}
+        <div className="grid grid-cols-2 gap-1.5 text-xs">
+          {/* Direction RTL / LTR / Auto */}
+          <div className="flex items-center bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+            <span className="text-[10px] text-neutral-400 px-1 font-semibold">Sens:</span>
+            <div className="grid grid-cols-3 gap-0.5 flex-1">
+              {(['auto', 'ltr', 'rtl'] as const).map((dir) => {
+                const isSelected = (activeSlide.customDirection ?? typography.direction ?? 'auto') === dir;
+                return (
+                  <button
+                    key={dir}
+                    type="button"
+                    onClick={() => handleApplyDirectionToAll(dir)}
+                    className={`py-1 text-[10px] font-semibold rounded transition-colors text-center ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                    }`}
+                    title={`Orientation : ${dir === 'rtl' ? 'RTL (Arabe)' : dir === 'ltr' ? 'LTR (Français)' : 'Auto'} appliquée à tout`}
+                  >
+                    {dir === 'rtl' ? 'عربي' : dir === 'ltr' ? 'LTR' : 'Auto'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Alignment Left / Center / Right */}
+          <div className="flex items-center bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+            <span className="text-[10px] text-neutral-400 px-1 font-semibold">Align:</span>
+            <div className="grid grid-cols-3 gap-0.5 flex-1">
+              {(['left', 'center', 'right'] as const).map((align) => {
+                const isSelected = (activeSlide.customAlign ?? typography.align ?? 'left') === align;
+                return (
+                  <button
+                    key={align}
+                    type="button"
+                    onClick={() => handleApplyAlignToAll(align)}
+                    className={`py-1 text-[10px] font-semibold rounded transition-colors flex items-center justify-center ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                    }`}
+                    title={`Alignement : ${align === 'left' ? 'Gauche' : align === 'center' ? 'Centré' : 'Droite'} appliqué à tout`}
+                  >
+                    {align === 'left' ? '◀' : align === 'center' ? '◆' : '▶'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Micro Actions Row: Position, Sizes, and Reset */}
+        <div className="grid grid-cols-3 gap-1 text-[10px]">
+          <button
+            type="button"
+            onClick={() => handleApplyPositionToAll()}
+            className="py-1 px-1.5 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-colors truncate text-center"
+            title="Appliquer la position exacte X & Y de cette diapo à toutes les autres"
+          >
+            📍 Position à tout
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplySizesToAll()}
+            className="py-1 px-1.5 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-colors truncate text-center"
+            title="Appliquer le zoom et les échelles de polices à toutes les diapos"
+          >
+            🔠 Tailles à tout
+          </button>
+          <button
+            type="button"
+            onClick={() => handleResetAllSlidesFormatting()}
+            className="py-1 px-1.5 rounded-lg bg-neutral-950 hover:bg-red-950/40 border border-neutral-800 hover:border-red-800/60 text-neutral-400 hover:text-red-300 transition-colors truncate text-center"
+            title="Réinitialiser l'alignement, le sens et la position par défaut sur toutes les diapos"
+          >
+            🔄 Réinitialiser
+          </button>
+        </div>
+
+        {/* Global Notification Toast */}
+        {appliedAllNotice && (
+          <div className="p-2 rounded-lg bg-emerald-950/90 border border-emerald-700/80 flex items-center gap-2 text-xs text-emerald-300 shadow-md animate-fadeIn">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+            <span className="font-medium text-[11px] leading-tight">{appliedAllNotice}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs navigation header (visible on all screens to easily navigate tabs) */}
+      <div className="flex overflow-x-auto p-1.5 border-b border-neutral-800 bg-neutral-950/90 gap-1 custom-scrollbar shrink-0">
         {[
           { id: 'slides', label: 'Diapos' },
           { id: 'media', label: 'Médias' },
-          { id: 'overlay', label: 'Superposition' },
-          { id: 'filters', label: 'Filtres' },
-          { id: 'ratios', label: 'Ratios' },
           { id: 'typography', label: 'Typo & Arabe' },
+          { id: 'filters', label: 'Filtres & Flou' },
+          { id: 'overlay', label: 'Superposition' },
+          { id: 'ratios', label: 'Ratios' },
           { id: 'branding', label: 'Logo & Filigrane' },
           { id: 'automation', label: 'Export' },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`px-3 py-1 text-xs rounded-md whitespace-nowrap ${
-              activeTab === t.id ? 'bg-neutral-800 text-white' : 'text-neutral-400'
+            className={`px-2.5 py-1 text-xs rounded-lg whitespace-nowrap transition-all font-medium ${
+              activeTab === t.id
+                ? 'bg-neutral-800 text-white shadow-sm font-semibold border border-neutral-700'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
             }`}
           >
             {t.label}
