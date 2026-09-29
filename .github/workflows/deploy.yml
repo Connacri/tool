@@ -92,6 +92,17 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Vérifier la présence du lockfile
+        run: |
+          # Le lockfile a déjà disparu deux fois par erreur (f4a0c8f, puis
+          # d278012). Sans lui, `cache: 'npm'` échoue avec un message peu
+          # explicite et l'install n'est plus reproductible. On le dit donc
+          # clairement avant que setup-node ne lève son erreur.
+          if [ ! -f package-lock.json ]; then
+            echo "::error::package-lock.json est absent du dépôt. Le générer avec 'npm install --package-lock-only' puis le committer."
+            exit 1
+          fi
+
       - name: Configurer Node.js
         uses: actions/setup-node@v4
         with:
