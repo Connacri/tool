@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Icone adaptative (Android 8.0 / API 26 et superieurs).
+
+    Le canevas d'une icone adaptative fait 108dp, pas 48dp : c'est le systeme
+    qui decoupe ensuite la zone visible. Les calques font donc 432px en
+    xxxhdpi, et le logo doit occuper la zone centrale sure (~66dp).
+
+    Les anciens <inset android:inset="16.7%"> reduisaient encore le logo a
+    l'interieur du canevas et laissaient un anneau vide sur le fond : c'est
+    pour cela que l'icone paraissait mal dimensionnee sur le lanceur.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background>
-        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.7%" />
-    </background>
-    <foreground>
-        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
-    </foreground>
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
 </adaptive-icon>

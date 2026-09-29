@@ -16,7 +16,6 @@ import {
   Maximize2,
   Stamp,
   SlidersHorizontal,
-  ChevronDown,
 } from 'lucide-react';
 import { AspectRatioType } from '../types';
 
@@ -73,7 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
       })
     : null;
 
-  const currentTabObj = navTabs.find((t) => t.id === activeTab) || navTabs[0];
+  // Le menu deroulant tablette a ete remplace par la seconde ligne d'onglets,
+  // qui reste accessible sur tous les ecrans sous 1280 px.
 
   return (
     <header className="border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-md sticky top-0 z-40 shrink-0">
@@ -85,11 +85,11 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm tracking-wider shadow-sm group-hover:scale-105 transition-transform shrink-0">
               AP
             </div>
-            {/* min-w-0 + truncate : le titre cede la place aux boutons plutot
-                que de pousser le menu hors de l'ecran. */}
+            {/* Le titre est affiche en entier : le logo occupe sa propre
+                ligne sur mobile, il n'y a plus de raison de l'abreger,
+                ce qui tronquait le nom de l'application. */}
             <span className="text-sm sm:text-base font-bold tracking-tight text-white font-['Syne'] truncate">
-              <span className="hidden sm:inline">AutoPost Studio</span>
-              <span className="sm:hidden font-extrabold">AutoPost</span>
+              AutoPost Studio
             </span>
           </a>
 
@@ -130,47 +130,11 @@ export const Header: React.FC<HeaderProps> = ({
           })}
         </nav>
 
-        {/* Tablet Dropdown Button for Active Tab */}
-        <div className="hidden md:flex xl:hidden items-center">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-neutral-900 border border-neutral-800 text-xs text-neutral-200 rounded-lg font-medium hover:bg-neutral-800 transition-colors"
-          >
-            <currentTabObj.icon className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{currentTabObj.label}</span>
-            <ChevronDown className="w-3 h-3 text-neutral-400" />
-          </button>
-        </div>
-
-        {/* View Switcher: Mobile & Tablet (when screen is not large desktop) */}
-        <div className="flex xl:hidden items-center bg-neutral-900/90 p-0.5 rounded-lg border border-neutral-800 shrink-0">
-          <button
-            onClick={() => setMobileView('editor')}
-            className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-              mobileView === 'editor'
-                ? 'bg-neutral-800 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white'
-            }`}
-            title="Passer en mode éditeur"
-          >
-            <PenTool className="w-3 h-3 text-indigo-400" />
-            <span className="hidden sm:inline">Édition</span>
-          </button>
-          <button
-            onClick={() => setMobileView('preview')}
-            className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-              mobileView === 'preview'
-                ? 'bg-neutral-800 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white'
-            }`}
-            title="Passer en mode aperçu"
-          >
-            <Eye className="w-3 h-3 text-emerald-400" />
-            <span className="hidden sm:inline">Aperçu</span>
-          </button>
-        </div>
-
-        {/* Right Section: Primary Actions */}
+        {/* Right Section: Primary Actions
+            Le selecteur de vue (Edition / Apercu) et les onglets ne sont plus
+            ici : ils passent sur la seconde ligne, sous le logo. Sur mobile, six
+            elements sur une seule ligne ecrataient le titre et poussaient le
+            menu hors de l'ecran. */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* AI Generator Button - opens full AI Modal */}
           <button
@@ -225,6 +189,77 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
+        </div>
+      </div>
+
+      {/* ============================================================
+          SECONDE LIGNE — mobile et tablette uniquement (xl:hidden)
+
+          Sur grand ecran, les onglets restent au centre de la premiere
+          ligne. En dessous de 1280 px, ils passent ici : le logo et le
+          titre disposent alors de toute la largeur de la ligne 1, et le
+          menu principal est sur sa propre ligne, complet, sans
+          debordement horizontal ni element tronque.
+
+          La bande defile horizontalement si les onglets debordent, ce
+          qui est preferable a les rendre inaccessibles.
+          ============================================================ */}
+      <div className="xl:hidden border-t border-neutral-800/80 bg-neutral-950/98">
+        <div className="flex items-center gap-2 px-2.5 sm:px-4 py-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Selecteur de vue : Edition / Apercu */}
+          <div className="flex items-center bg-neutral-900/90 p-0.5 rounded-lg border border-neutral-800 shrink-0">
+            <button
+              onClick={() => setMobileView('editor')}
+              className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+                mobileView === 'editor'
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+              title="Passer en mode éditeur"
+            >
+              <PenTool className="w-3 h-3 text-indigo-400" />
+              <span className="hidden sm:inline">Édition</span>
+            </button>
+            <button
+              onClick={() => setMobileView('preview')}
+              className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+                mobileView === 'preview'
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+              title="Passer en mode aperçu"
+            >
+              <Eye className="w-3 h-3 text-emerald-400" />
+              <span className="hidden sm:inline">Aperçu</span>
+            </button>
+          </div>
+
+          {/* Separateur */}
+          <span className="w-px h-5 bg-neutral-800 shrink-0" aria-hidden="true" />
+
+          {/* Menu principal */}
+          <nav className="flex items-center gap-0.5 shrink-0">
+            {navTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setMobileView('editor');
+                  }}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-neutral-800 text-white shadow-sm font-semibold'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
+                  }`}
+                >
+                  <tab.icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : ''}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
 

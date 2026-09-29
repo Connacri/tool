@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Ecran de demarrage pour Android 12 (API 31) et superieurs.
+
+    A partir d'Android 12, le systeme impose son propre ecran de demarrage et
+    IGNORE l'item android:background. Sans ce fichier, l'application affiche un
+    ecran blanc avec l'icone par defaut au lieu de la marque : c'est la raison
+    pour laquelle le nouveau splash n'apparait pas sur les appareils recents.
+
+    windowSplashScreenBackground  : couleur de fond de la marque
+    windowSplashScreenAnimatedIcon : logo, centre et a la bonne taille
+    postSplashScreenTheme         : theme reel repris une fois le splash passe
+-->
+<resources>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+
+</resources>

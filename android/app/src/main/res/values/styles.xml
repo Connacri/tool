@@ -16,7 +16,13 @@
     </style>
 
 
+    <!-- Theme de lancement pour Android 11 et inferieurs.
+         Sur ces versions le systeme n'impose pas son propre ecran : c'est
+         l'image de marque @drawable/splash qui est affichee.
+         Pour Android 12 et superieurs, valeurs-v31/styles.xml reprend ce theme
+         et ajoute les attributs systeme (windowSplashScreenBackground...). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

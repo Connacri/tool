@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Couleurs de marque AutoPost Studio.
+         Le fond #0a0a0c est celui declare dans capacitor.config.json ; il doit
+         rester identique a celui de l'ecran d'accueil pour eviter tout
+         clignotement blanc au lancement. -->
+
+    <color name="splashBackground">#0A0A0C</color>
+    <color name="splashBackgroundNight">#000000</color>
+
+</resources>
