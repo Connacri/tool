@@ -16,16 +16,19 @@ services:
     rootDir: .
     # dist/ est necessaire parce que server.ts sert les fichiers statiques en
     # production (NODE_ENV=production), en plus des routes /api.
-    buildCommand: npm ci && npm run build
+    #
+    # --include=dev est indispensable : Render expose les variables d'env du
+    # service au build, donc un NODE_ENV=production ici ferait omettre les
+    # devDependencies par npm et le build echouerait sur vite-plugin-pwa.
+    # NODE_ENV est donc pose dans la commande de demarrage, pas en variable.
+    buildCommand: npm ci --include=dev && npm run build
     # Node ne lit nativement les .ts qu'a partir de 22.18 ; tsx evite de
     # dependre de cette version. tsx est une devDependency, donc presente
     # apres le npm ci du build.
-    startCommand: npx tsx server.ts
+    startCommand: NODE_ENV=production npx tsx server.ts
     healthCheckPath: /api/health
     autoDeploy: false
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL_PRIMARY
