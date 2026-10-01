@@ -220,26 +220,22 @@ jobs:
             # tag, et c'est precisement ce qui avait produit les tags build-*
             # parasites. GITHUB_RUN_NUMBER n'est pas utilise non plus, il est
             # sans borne et deborderait la plage de neuf codes.
-            # gh release list ne renvoie que tagName, or nos releases d'archive
-            # portent un nom de tag « build-<run> » sans le suffixe -ci.N.
-            # C'est donc le nom de la release qui doit etre lu, pas son tag.
+            # Les slots deja occupes sont relus dans les NOMS des releases, pas
+            # dans les tags : un build de main ne cree aucun tag, et c'est
+            # precisement ce qui avait produit les tags build-* parasites.
+            #
+            # --json name, et non tagName : le tag d'une release d'archive vaut
+            # « build-<run> » et ne porte donc pas le suffixe -ci.N. C'est le nom
+            # affiche (« AutoPost Studio 1.0.5-ci.2 (build 123) ») qui le porte.
+            #
+            # Le parsing est dans scripts/ci-slots.mjs plutot qu'un node -e
+            # inline : ici, le quoting YAML/bash imbriques rendait le bloc
+            # fragile, et il a echoue en CI (exit 4) alors qu'il passait en
+            # local. Un script se teste, se lint et se lit.
             BASE_TRIMMED="${BASE_VERSION#v}"
             USED_SLOTS="$(
               gh release list --limit 200 --json name \
-                | BASE="$BASE_TRIMMED" node -e '
-                    const base = process.env.BASE;
-                    let raw = "";
-                    process.stdin.on("data", (c) => (raw += c));
-                    process.stdin.on("end", () => {
-                      const slots = [];
-                      for (const { name } of JSON.parse(raw || "[]")) {
-                        // Format : « AutoPost Studio 1.0.5-ci.2 (build 123) ».
-                        const m = /AutoPost Studio (\d+\.\d+\.\d+)-ci\.(\d+)/.exec(name ?? "");
-                        if (m && m[1] === base) slots.push(Number(m[2]));
-                      }
-                      process.stdout.write([...new Set(slots)].sort((a, b) => a - b).join(","));
-                    });
-                  '
+                | node scripts/ci-slots.mjs "$BASE_TRIMMED"
             )"
             echo "Slots de CI deja occupes pour $BASE_TRIMMED : ${USED_SLOTS:-aucun}"
             RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$USED_SLOTS")"
