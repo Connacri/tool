@@ -101,7 +101,13 @@ export default function App() {
 
   // Reset all data back to original default templates
   const handleResetToDefaults = () => {
-    if (window.confirm('Voulez-vous réinitialiser toutes les diapos et paramètres aux valeurs d\'origine ?')) {
+    let confirmed = false;
+    try {
+      confirmed = window.confirm('Voulez-vous réinitialiser toutes les diapos et paramètres aux valeurs d\'origine ?');
+    } catch {
+      confirmed = true;
+    }
+    if (confirmed) {
       resetSavedData();
       setSlides(INITIAL_SLIDES);
       setCurrentSlideIndex(0);

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Type,
   Image as ImageIcon,
@@ -135,6 +135,43 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   const [customFontInput, setCustomFontInput] = useState('');
   const [isLoadingFont, setIsLoadingFont] = useState(false);
   const [fontLoadSuccess, setFontLoadSuccess] = useState<string | null>(null);
+
+  // Active font family names (derives custom Google Font or default style mapping)
+  const activeLatinFontName = typography.customFontFamily || (() => {
+    switch (typography.fontStyle) {
+      case 'editorial': return 'Fraunces';
+      case 'avant-garde': return 'Syne';
+      case 'playfair': return 'Playfair Display';
+      case 'outfit': return 'Outfit';
+      case 'cinzel': return 'Cinzel';
+      case 'mono': return 'JetBrains Mono';
+      case 'minimal': return 'Plus Jakarta Sans';
+      case 'modern':
+      default: return 'Plus Jakarta Sans';
+    }
+  })();
+
+  const activeArabicFontName = typography.customArabicFontFamily || (() => {
+    switch (typography.arabicFont) {
+      case 'noto-arabic': return 'Noto Sans Arabic';
+      case 'tajawal': return 'Tajawal';
+      case 'amiri': return 'Amiri';
+      case 'alexandria': return 'Alexandria';
+      case 'almarai': return 'Almarai';
+      case 'readex': return 'Readex Pro';
+      case 'el-messiri': return 'El Messiri';
+      case 'cairo':
+      default: return 'Cairo';
+    }
+  })();
+
+  const currentDisplayFontName = fontLanguageTab === 'arabic' ? activeArabicFontName : activeLatinFontName;
+
+  // Preload currently active Google Fonts into document
+  useEffect(() => {
+    loadGoogleFont(activeLatinFontName);
+    loadGoogleFont(activeArabicFontName);
+  }, [activeLatinFontName, activeArabicFontName]);
 
   const [overlayCategoryTab, setOverlayCategoryTab] = useState<'all' | 'trust' | 'promo' | 'arabic' | 'social'>('all');
   const [overlayUrlInput, setOverlayUrlInput] = useState('');
@@ -2981,13 +3018,29 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
             {/* SECTION 1: GOOGLE FONTS INSTANT LOADING & SELECTION */}
             <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Polices Google Fonts</span>
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Polices Google Fonts</span>
+                  </span>
+                  {/* Small Font-Family Label visible immediately without scrolling */}
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-neutral-950 border border-neutral-800 text-[11px]"
+                    title={`Police active : ${currentDisplayFontName}`}
+                  >
+                    <span className="text-neutral-500 font-medium">Active :</span>
+                    <span
+                      className="font-bold text-white truncate max-w-[130px]"
+                      style={{ fontFamily: `'${currentDisplayFontName}', sans-serif` }}
+                    >
+                      {currentDisplayFontName}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Language Switcher: Français vs Arabe */}
-                <div className="flex items-center gap-1 p-0.5 bg-neutral-950 rounded-lg border border-neutral-800 text-xs">
+                <div className="flex items-center gap-1 p-0.5 bg-neutral-950 rounded-lg border border-neutral-800 text-xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setFontLanguageTab('french')}
@@ -3010,6 +3063,95 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   >
                     العربية / Arabe
                   </button>
+                </div>
+              </div>
+
+              {/* VISUAL PREVIEW CARD OF CURRENTLY SELECTED FONT */}
+              <div
+                className={`p-3.5 rounded-xl border transition-all ${
+                  fontLanguageTab === 'arabic'
+                    ? 'bg-gradient-to-br from-emerald-950/40 via-neutral-900/80 to-neutral-950 border-emerald-800/60 shadow-sm'
+                    : 'bg-gradient-to-br from-indigo-950/40 via-neutral-900/80 to-neutral-950 border-indigo-800/60 shadow-sm'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400"></span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                      Police sélectionnée
+                    </span>
+                    <span className="text-neutral-600">·</span>
+                    <span
+                      className={`text-xs font-bold truncate ${
+                        fontLanguageTab === 'arabic' ? 'text-emerald-300' : 'text-indigo-300'
+                      }`}
+                    >
+                      {currentDisplayFontName}
+                    </span>
+                  </div>
+
+                  {/* Dual quick toggle chips showing both Latin and Arabic active fonts */}
+                  <div className="flex items-center gap-1 shrink-0 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setFontLanguageTab('french')}
+                      className={`px-2 py-0.5 rounded transition-all ${
+                        fontLanguageTab === 'french'
+                          ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                          : 'bg-neutral-950/80 text-neutral-400 hover:text-white border border-neutral-800'
+                      }`}
+                      title={`Police Latine active : ${activeLatinFontName}`}
+                    >
+                      Latin: <span className="font-semibold">{activeLatinFontName}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFontLanguageTab('arabic')}
+                      className={`px-2 py-0.5 rounded transition-all ${
+                        fontLanguageTab === 'arabic'
+                          ? 'bg-emerald-600 text-white font-semibold shadow-sm'
+                          : 'bg-neutral-950/80 text-neutral-400 hover:text-white border border-neutral-800'
+                      }`}
+                      title={`Police Arabe active : ${activeArabicFontName}`}
+                    >
+                      Arabe: <span className="font-semibold">{activeArabicFontName}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live visual preview box rendered in the selected font */}
+                <div
+                  className="p-3 rounded-lg bg-neutral-950/90 border border-neutral-800/80 space-y-1.5 shadow-inner"
+                  dir={fontLanguageTab === 'arabic' ? 'rtl' : 'ltr'}
+                >
+                  <p
+                    className="text-sm font-semibold text-white leading-snug tracking-wide"
+                    style={{ fontFamily: `'${currentDisplayFontName}', sans-serif` }}
+                  >
+                    {fontLanguageTab === 'arabic'
+                      ? (activeSlide?.kicker || 'الوضوح والتركيز يصنعان الفارق دائماً')
+                      : (activeSlide?.kicker || 'L\'inspiration transforme la vision en réalité.')}
+                  </p>
+                  <p
+                    className="text-xs text-neutral-300 line-clamp-2 leading-relaxed"
+                    style={{ fontFamily: `'${currentDisplayFontName}', sans-serif` }}
+                  >
+                    {fontLanguageTab === 'arabic'
+                      ? (activeSlide?.text || 'العلم في الصغر كالنقش على الحجر، والعمل المستمر سر النجاح والتفوق.')
+                      : (activeSlide?.text || 'La constance bat l\'intensité : un travail soigné crée un impact durable.')}
+                  </p>
+                  <div className="pt-1.5 border-t border-neutral-800/60 flex items-center justify-between text-[10px] text-neutral-500 font-mono">
+                    <span style={{ fontFamily: `'${currentDisplayFontName}', sans-serif` }}>
+                      {fontLanguageTab === 'arabic'
+                        ? 'أ ب ت ث ج ح خ · ٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩'
+                        : 'Aa Bb Cc Dd Ee Ff Gg · 0 1 2 3 4 5 6 7 8 9'}
+                    </span>
+                    <span className="text-[10px] text-neutral-500">
+                      {fontLanguageTab === 'arabic'
+                        ? (typography.customArabicFontFamily ? 'Google Fonts (Perso)' : 'Catalogue Standard')
+                        : (typography.customFontFamily ? 'Google Fonts (Perso)' : 'Catalogue Standard')}
+                    </span>
+                  </div>
                 </div>
               </div>
 

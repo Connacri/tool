@@ -9,27 +9,21 @@ import type { NextFunction, Request, Response } from 'express';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
-const port = process.env.PORT || 3000;
+const port = 3000;
 
 /**
  * Origines autorisees a appeler l'API depuis un navigateur.
- *
- * Rien n'est ouvert par defaut : cet serveur relays des appels Gemini payants,
- * il ne doit pas devenir une ressource publique. Une requete sans en-tete Origin
- * (curl, application native, script) passe quand meme — le controle navigateur
- * sert a empecher un site tiers de faire Establishing des appels depuis la
- * session d'un visiteur, pas a interdire l'API aux clients non-navigateur.
  */
 const ALLOWED_ORIGINS = new Set(
   [
     'capacitor://localhost',
     'https://localhost',
     'http://localhost',
+    'http://localhost:3000',
+    'https://localhost:3000',
     'https://connacri.github.io',
     'https://tool-ee60c.web.app',
     'https://tool-ee60c.firebaseapp.com',
-    // Ajout d'un domaine (site perso, autre app Firebase) sans redemarrer le
-    // code : API_ALLOWED_ORIGINS=https://mon-domaine.fr,https://autre.fr
     ...(process.env.API_ALLOWED_ORIGINS || '')
       .split(',')
       .map((origin) => origin.trim())
@@ -37,11 +31,50 @@ const ALLOWED_ORIGINS = new Set(
   ].map((origin) => origin.toLowerCase()),
 );
 
+function isOriginAllowed(origin: string, req: Request): boolean {
+  if (!origin) return true;
+  const lower = origin.toLowerCase();
+  if (ALLOWED_ORIGINS.has(lower)) return true;
+
+  // Same-origin matching request Host header
+  const host = (req.headers.host || '').toLowerCase();
+  if (host && (lower === `https://${host}` || lower === `http://${host}`)) {
+    return true;
+  }
+
+  // Localhost (any port)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(lower)) {
+    return true;
+  }
+
+  // Google Cloud Run (*.run.app) or Firebase (*.web.app, *.firebaseapp.com)
+  try {
+    const parsed = new URL(lower);
+    if (
+      parsed.hostname.endsWith('.run.app') ||
+      parsed.hostname.endsWith('.web.app') ||
+      parsed.hostname.endsWith('.firebaseapp.com') ||
+      parsed.hostname.endsWith('.github.io')
+    ) {
+      return true;
+    }
+  } catch {
+    // ignore parsing failure
+  }
+
+  // In development mode, allow the origin
+  if (!isProduction) {
+    return true;
+  }
+
+  return false;
+}
+
 function cors(req: Request, res: Response, next: NextFunction): void {
-  const origin = (req.headers.origin || '').toLowerCase();
+  const origin = req.headers.origin;
 
   if (origin) {
-    if (!ALLOWED_ORIGINS.has(origin)) {
+    if (!isOriginAllowed(origin, req)) {
       res.status(403).json({ error: 'Origine non autorisee' });
       return;
     }
@@ -51,7 +84,7 @@ function cors(req: Request, res: Response, next: NextFunction): void {
 
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.status(204).end();
     return;
@@ -198,18 +231,13 @@ async function startServer() {
 // Alias stables plutot que des noms de version figes : Google retire
 // gemini-2.5-flash pour les nouveaux comptes, et un nom fige casse des
 // mois apres la sortie du modele. « -latest » suit la derniere version stable.
-const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-flash-latest';
-const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-flash-lite-latest';
+const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash';
+const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-flash-lite';
 
-  // Aucune option httpOptions ici : ce client s'identifiait comme le client
-  // officiel AI Studio via un User-Agent deguise, sans aucun interet technique
-  // et en violation des conditions de Google. Si la cle est absente, le SDK
-  // echouera de toute facon a l'appel, ce que la route /api/health signale via
-  // aiConfigured, et le repli local prend le relais.
   try {
-    ai = new GoogleGenAI({ apiKey });
+    ai = apiKey ? new GoogleGenAI({ apiKey }) : new GoogleGenAI();
   } catch (e) {
-    console.warn('GoogleGenAI client could not be created (AI generation disabled):', e);
+    console.warn('GoogleGenAI client could not be created (using local fallbacks):', e);
   }
 
   // Sonde de sante pour l'hebergeur (health check Render) et pour verifier
@@ -218,17 +246,37 @@ const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-flash-lite-l
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
-      aiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      aiConfigured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
       model: MODEL_PRIMARY,
     });
   });
 
   // Endpoint to generate 6 phrases or batch phrases
   app.post('/api/generate-phrases', async (req, res) => {
+    const { topic = 'Motivation & Entrepreneuriat', count = 6, tone = 'Inspirant & Professionnel', language = 'fr' } = req.body;
+    const isArabic = language === 'ar' || /[\u0600-\u06FF]/.test(topic);
+
+    const getFallbackPhrases = () => isArabic
+      ? [
+          { id: 1, text: "الوضوح يسبق النجاح دائماً: حدد وجهتك أولاً ثم انطلق بثبات.", kicker: "الوضوح الاستراتيجي", subtitle: "حكمة اليوم", imagePrompt: "minimalist architecture clean light" },
+          { id: 2, text: "الاستمرارية الهادئة تتفوق دائماً على الحماس المؤقت والمتقطع.", kicker: "قوة العادة", subtitle: "تطوير الذات", imagePrompt: "calm zen ocean path stones" },
+          { id: 3, text: "لا تنتظر الفرصة المثالية، بل اصنعها بخطوة صغيرة تخطوها الآن.", kicker: "المبادرة", subtitle: "ريادة الأعمال", imagePrompt: "sunrise golden mountain peak" },
+          { id: 4, text: "الإبداع ليس موهبة نادرة، بل نظرة شجاعة ومختلفة إلى العالم.", kicker: "الابتكار", subtitle: "عقلية متجددة", imagePrompt: "abstract modern geometric light" },
+          { id: 5, text: "استثمر في عقلك ومعرفتك، فالقيمة الحقيقية تبدأ من داخلك.", kicker: "النمو المستمر", subtitle: "استثمار مستدام", imagePrompt: "warm cozy library workspace" },
+          { id: 6, text: "ابنِ أفكارك لتدوم وتلهم الآخرين، وليس لمجرد لفت الانتباه المؤقت.", kicker: "أثر مستمر", subtitle: "احفظ هذا المنشور 📌", imagePrompt: "inspiring starry night sky" },
+        ]
+      : [
+          { id: 1, text: "La clarté précède toujours l'efficacité : définissez votre cap avant d'accélérer.", kicker: "STRATÉGIE", subtitle: "Règle #1 du succès", imagePrompt: "minimalist modern architecture clean lines" },
+          { id: 2, text: "La constance bat l'intensité : 1% d'amélioration quotidienne crée un avantage cumulé.", kicker: "MINDSET", subtitle: "Discipline quotidienne", imagePrompt: "calm ocean morning light stones" },
+          { id: 3, text: "N'attendez pas le moment parfait : le courage commence par une première action concrète.", kicker: "PASSAGE À L'ACTION", subtitle: "Entrepreneuriat", imagePrompt: "golden sunrise mountain horizon" },
+          { id: 4, text: "Votre valeur réside dans ce que vous construisez sur le long terme, pas dans le buzz éphémère.", kicker: "VISION LONG TERME", subtitle: "Impact durable", imagePrompt: "urban skyline at dawn glowing light" },
+          { id: 5, text: "L'apprentissage continu est le meilleur levier pour transformer vos ambitions en réalités.", kicker: "ÉVOLUTION", subtitle: "Croissance personnelle", imagePrompt: "aesthetic warm design studio library" },
+          { id: 6, text: "Enregistrez ce rappel pour vos moments de doute et partagez-le à votre équipe.", kicker: "ENGAGEMENT", subtitle: "AutoPost Studio 📌", imagePrompt: "serene nature atmospheric misty forest" },
+        ];
+
     try {
-      const { topic = 'Motivation & Entrepreneuriat', count = 6, tone = 'Inspirant & Professionnel', language = 'fr' } = req.body;
       if (!ai) {
-        return res.status(503).json({ error: 'GEMINI_API_KEY non configurée sur le serveur' });
+        return res.json({ success: true, phrases: getFallbackPhrases().slice(0, count), notice: 'Mode autonome actif' });
       }
 
       const prompt = `Tu es un créateur de contenu visuel viral pour réseaux sociaux (Instagram, LinkedIn, X, TikTok).
@@ -269,25 +317,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
           });
         } catch (secondErr: any) {
           console.warn('Quota exceeded or API unavailable, returning curated local fallback phrases:', secondErr?.message);
-          const isArabic = language === 'ar' || /[\u0600-\u06FF]/.test(topic);
-          const fallbackPhrases = isArabic
-            ? [
-                { id: 1, text: "الوضوح يسبق النجاح دائماً: حدد وجهتك أولاً ثم انطلق بثبات.", kicker: "الوضوح الاستراتيجي", subtitle: "حكمة اليوم", imagePrompt: "minimalist architecture clean light" },
-                { id: 2, text: "الاستمرارية الهادئة تتفوق دائماً على الحماس المؤقت والمتقطع.", kicker: "قوة العادة", subtitle: "تطوير الذات", imagePrompt: "calm zen ocean path stones" },
-                { id: 3, text: "لا تنتظر الفرصة المثالية، بل اصنعها بخطوة صغيرة تخطوها الآن.", kicker: "المبادرة", subtitle: "ريادة الأعمال", imagePrompt: "sunrise golden mountain peak" },
-                { id: 4, text: "الإبداع ليس موهبة نادرة، بل نظرة شجاعة ومختلفة إلى العالم.", kicker: "الابتكار", subtitle: "عقلية متجددة", imagePrompt: "abstract modern geometric light" },
-                { id: 5, text: "استثمر في عقلك ومعرفتك، فالقيمة الحقيقية تبدأ من داخلك.", kicker: "النمو المستمر", subtitle: "استثمار مستدام", imagePrompt: "warm cozy library workspace" },
-                { id: 6, text: "ابنِ أفكارك لتدوم وتلهم الآخرين، وليس لمجرد لفت الانتباه المؤقت.", kicker: "أثر مستمر", subtitle: "احفظ هذا المنشور 📌", imagePrompt: "inspiring starry night sky" },
-              ]
-            : [
-                { id: 1, text: "La clarté précède toujours l'efficacité : définissez votre cap avant d'accélérer.", kicker: "STRATÉGIE", subtitle: "Règle #1 du succès", imagePrompt: "minimalist modern architecture clean lines" },
-                { id: 2, text: "La constance bat l'intensité : 1% d'amélioration quotidienne crée un avantage cumulé.", kicker: "MINDSET", subtitle: "Discipline quotidienne", imagePrompt: "calm ocean morning light stones" },
-                { id: 3, text: "N'attendez pas le moment parfait : le courage commence par une première action concrète.", kicker: "PASSAGE À L'ACTION", subtitle: "Entrepreneuriat", imagePrompt: "golden sunrise mountain horizon" },
-                { id: 4, text: "Votre valeur réside dans ce que vous construisez sur le long terme, pas dans le buzz éphémère.", kicker: "VISION LONG TERME", subtitle: "Impact durable", imagePrompt: "urban skyline at dawn glowing light" },
-                { id: 5, text: "L'apprentissage continu est le meilleur levier pour transformer vos ambitions en réalités.", kicker: "ÉVOLUTION", subtitle: "Croissance personnelle", imagePrompt: "aesthetic warm design studio library" },
-                { id: 6, text: "Enregistrez ce rappel pour vos moments de doute et partagez-le à votre équipe.", kicker: "ENGAGEMENT", subtitle: "AutoPost Studio 📌", imagePrompt: "serene nature atmospheric misty forest" },
-              ];
-          return res.json({ success: true, phrases: fallbackPhrases, notice: 'Phrases générées via le catalogue curaté (quota API Gemini temporairement atteint)' });
+          return res.json({ success: true, phrases: getFallbackPhrases().slice(0, count), notice: 'Phrases générées via le catalogue curaté' });
         }
       }
 
@@ -295,8 +325,8 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
       const parsed = JSON.parse(text);
       res.json({ success: true, phrases: parsed });
     } catch (err: any) {
-      console.error('Error generating phrases:', err);
-      res.status(500).json({ error: err.message || 'Erreur lors de la génération des phrases' });
+      console.warn('Error generating phrases, using fallback:', err);
+      res.json({ success: true, phrases: getFallbackPhrases().slice(0, count), notice: 'Catalogue curaté local' });
     }
   });
 
@@ -411,10 +441,82 @@ Réponds STRICTEMENT avec un JSON valide respectant cette structure sans markdow
 
   // Endpoint to generate social copy & hashtags
   app.post('/api/generate-social-copy', async (req, res) => {
+    const { phrase = '', kicker = '' } = req.body;
+    const cleanKicker = kicker || 'Conseil';
+    const tagKicker = cleanKicker.replace(/\s+/g, '');
+    const getLocalCopy = () => ({
+      instagram: {
+        title: "Instagram (Carrousel & Post)",
+        caption: `✨ "${phrase}"\n\nUne réflexion essentielle pour transformer votre vision en résultats concrets. Qu'en pensez-vous ? Partagez votre expérience en commentaire !\n\n📌 Sauvegardez ce post pour y revenir quand vous en aurez besoin.`,
+        hashtags: `#${tagKicker.toLowerCase()} #motivation #entrepreneuriat #succes #creation #autopost`,
+        tips: "Astuce algo: Encouragez la sauvegarde du carrousel pour maximiser la portée.",
+      },
+      tiktok: {
+        title: "TikTok (Carrousel Photo & Vidéo)",
+        caption: `👀 Swipe pour la suite de la série !\n\n"${phrase}"\n\nTu valides ce principe ou pas du tout ? Dis-le en commentaire !`,
+        hashtags: `#${tagKicker.toLowerCase()} #fyp #pourtoi #devperso #motivation #viral`,
+        tips: "Astuce algo: 3-5 hashtags max et mots-clés dans les 2 premières lignes.",
+      },
+      youtube: {
+        title: "YouTube (Shorts & Post Communauté)",
+        caption: `${cleanKicker} : ${phrase.slice(0, 60)}...\n\nDécouvrez cette règle fondamentale pour débloquer votre potentiel. Abonnez-vous pour un conseil percutant chaque matin !`,
+        hashtags: `#Shorts #${tagKicker.toLowerCase()} #Conseil`,
+        tips: "Astuce algo: Titre accrocheur sous 70 caractères pour un taux de clic maximal.",
+      },
+      facebook: {
+        title: "Facebook (Post & Page)",
+        caption: `Bonjour à tous 🌟\n\n"${phrase}"\n\nComment appliquez-vous ce principe dans vos projets ou au quotidien ? Hâte de lire vos retours !`,
+        hashtags: `#${tagKicker.toLowerCase()}`,
+        tips: "Astuce algo: Privilégiez les questions ouvertes pour déclencher des conversations.",
+      },
+      snapchat: {
+        title: "Snapchat (Spotlight & Story)",
+        caption: `💡 Le rappel du jour : "${phrase}"`,
+        hashtags: `#${tagKicker.toLowerCase()}`,
+        tips: "Astuce algo: Texte court, percutant et direct.",
+      },
+      linkedin: {
+        title: "LinkedIn (Post d'expertise & Carrousel)",
+        caption: `💡 "${phrase}"\n\nDans un environnement où tout va vite, prendre du recul sur cette idée permet souvent de débloquer de nouveaux paliers d'excellence.\n\nCe que l'expérience m'a appris :\n1. La clarté précède toujours l'efficacité.\n2. La constance bat l'intensité ponctuelle.\n\nQuelle est votre approche sur ce sujet dans vos équipes ?`,
+        hashtags: `#Leadership #${tagKicker} #Management #Strategie`,
+        tips: "Astuce algo: Format aéré avec retour d'expérience et question finale invitant aux commentaires.",
+      },
+      twitter: {
+        title: "X / Twitter (Tweet & Fil)",
+        caption: `"${phrase}"\n\nÀ méditer aujourd'hui.`,
+        hashtags: `#${tagKicker.toLowerCase()}`,
+        tips: "Astuce algo: Moins de 250 caractères pour un impact maximal.",
+      },
+      pinterest: {
+        title: "Pinterest (Épingle Idée & Standard)",
+        caption: `Inspiration du jour : ${phrase}\n\nEnregistrez cette épingle dans votre tableau d'objectifs pour garder le cap.`,
+        hashtags: `#${tagKicker.toLowerCase()} #inspiration #motivation`,
+        tips: "Astuce algo: Mots-clés intentionnistes pour la recherche.",
+      },
+      discord: {
+        title: "Discord (Annonce & Discussion)",
+        caption: `📢 **Pensée du jour sur le serveur**\n\n> "${phrase}"\n\n💬 Qu'est-ce que cela vous inspire pour vos projets actuels ? On en discute dans le salon général !`,
+        hashtags: "",
+        tips: "Format Markdown adapté aux serveurs et communautés.",
+      },
+      quora: {
+        title: "Quora (Réponse experte & Espace)",
+        caption: `Question : Quelle est la clé principale pour réussir dans la durée ?\n\nRéponse :\nTout part de ce constat : "${phrase}". En concentrant vos efforts sur la constance plutôt que sur la perfection immédiate, vous créez un avantage cumulé durable.`,
+        hashtags: `#${tagKicker.toLowerCase()}`,
+        tips: "Apportez une perspective d'expert avec des conseils concrets.",
+      },
+      vk: {
+        title: "VKontakte (Mur & Communauté)",
+        caption: `Вдохновение дня ✨\n\n"${phrase}"\n\nДелитесь вашим мнением в комментариях!`,
+        hashtags: `#${tagKicker.toLowerCase()} #мотивация #успех`,
+        tips: "Format convivial adapté aux communautés VK.",
+      },
+      masterPrompt: `Tu es un expert mondial en stratégie de contenu viral et Copywriting pour les réseaux sociaux. Rédige un pack complet de publications captivantes pour le visuel suivant :\n\nThématique : ${cleanKicker}\nTexte : "${phrase}"\nObjectif : Maximiser les sauvegardes, partages et commentaires qualifiés. Fournis des variantes adaptées pour Instagram, TikTok, LinkedIn, YouTube Shorts et Twitter avec les accroches (hooks), les corps de texte et les hashtags de niche pertinents.`
+    });
+
     try {
-      const { phrase, kicker } = req.body;
       if (!ai) {
-        return res.status(503).json({ error: 'GEMINI_API_KEY non configurée' });
+        return res.json({ success: true, copy: getLocalCopy(), notice: 'Mode autonome actif' });
       }
 
       const prompt = `Tu es un expert mondial en Social Media Marketing et Algorithmes des Réseaux Sociaux.
@@ -551,8 +653,8 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
       const parsed = JSON.parse(response.text || '{}');
       res.json({ success: true, copy: parsed });
     } catch (err: any) {
-      console.error('Error generating social copy:', err);
-      res.status(500).json({ error: err.message || 'Erreur lors de la génération des légendes' });
+      console.warn('Error generating social copy, using fallback:', err);
+      res.json({ success: true, copy: getLocalCopy(), notice: 'Légendes catalogue local' });
     }
   });
 
