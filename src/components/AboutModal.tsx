@@ -5,9 +5,14 @@ import { adManager } from '../services/adService';
 /**
  * Version affichee dans l'ecran "A propos de".
  *
- * VITE_APP_VERSION est injecte au moment du build par la CI, a partir du tag
- * Git (scripts/version.mjs). En local, sans injection, on retombe sur la
- * version de package.json puis sur 'dev' plutot que d'afficher un chiffre faux.
+ * VITE_APP_VERSION est injecte au moment du build par la CI, depuis le meme job
+ * qui resout la version de l'APK : le site affiche donc exactement la version
+ * embarquee dans l'APK du meme commit, et non un numero qui lui est propre.
+ *
+ * Sans injection — un build local, ou une variable absente en CI — on affiche
+ * le mode Vite (« production ») plutot qu'un numero invente. « production » est
+ * peu parlant pour l'utilisateur final, mais un faux versionCode dans l'ecran
+ * « A propos » serait pire : il ne correspondrait a aucun APK existant.
  */
 const APP_VERSION = (import.meta.env.VITE_APP_VERSION || '').trim();
 

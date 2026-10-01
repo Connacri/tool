@@ -40,6 +40,15 @@ assets/icon.png
 assets/logo.png
 assets/preview-*.png
 
+# Bundle web embarque dans l'APK. C'est un artefact de compilation : il est
+# produit par « npm run build:mobile » puis « npx cap sync android » en CI, a
+# partir du meme commit que le site publie. Le versionner rendait la copie
+# commitee obsolete quelques commits plus tard, sans aucun lien avec le build :
+# l'APK construit hors CI partait donc avec le bundle d'un ancien commit.
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+
 # IntelliJ / Android Studio
 # Seuls les fichiers de configuration de partage (modules.xml, misc.xml,
 # markdown.xml) sont versionnes, comme le fait le .gitignore interne a .idea.

@@ -9,11 +9,111 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # Une release ne doit jamais etre interrompue par un nouveau push.
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+  # Un groupe par run et non par ref : chaque push obtient son propre groupe.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
+  # Ne jamais annuler un run en cours. Avec « cancel-in-progress », deux
+  # pushs rapproches sur main font annuler le premier, qui ne publie alors
+  # aucune release : l'APK de ce commit n'existe nulle part, et son versionCode
+  # reste inutilise. Le group ci-dessus est ainsi purement decoratif.
+  cancel-in-progress: false
 
 jobs:
+  # ==============================================================
+  # JOB 0 : Resolution de la version, partagee par les deux builds
+  # ==============================================================
+  #
+  # Pourquoi un job dedie plutot qu'une resolution dans chaque job :
+  #
+  # Le site et l'APK doivent afficher la MEME version pour un meme commit.
+  # Resoudre la version des deux cotes Independamment produit deux valeurs
+  # differentes : le site ignorait purement et simplement VITE_APP_VERSION, si
+  # bien que « A propos » y affichait « production » (le mode Vite) pendant que
+  # l'APK affichait « 1.0.5-ci.3 ». Deux versions affichees pour un meme
+  # commit, et aucune ne reliant le site a l'APK qu'il Hernie.
+  #
+  # Le risque le plus serieux est ailleurs. Chaque build de main attribue un
+  # versionCode en relevent les slots deja occupes dans les releases
+  # existantes. Si le site et l'APK interrogeaient cette source chacun de leur
+  # cote, ils trouveraient le meme premier slot libre et consommeraient DEUX FOIS
+  # le meme versionCode. Google Play refuse alors le second APK, trois jours
+  # plus tard, sans lien visible avec la cause.
+  #
+  # Une seule resolution, executee une fois, supprime les deux problemes : les
+  # deux builds recoivent la meme version et un seul slot est consomme.
+  resolve-version:
+    name: 🔢 Résolution de la version
+    runs-on: ubuntu-latest
+    # Sans permission d'ecriture : ce job ne fait que lire les tags et l'API.
+    permissions:
+      contents: read
+    outputs:
+      version_name: ${{ steps.version.outputs.raw }}
+      version_code: ${{ steps.version.outputs.VERSION_CODE }}
+      is_prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
+    steps:
+      - name: Cloner le dépôt
+        uses: actions/checkout@v4
+        with:
+          # Les tags sont la source de verite du versionnage. Sans fetch-depth 0,
+          # le clone est superficiel et « git tag --list » ne renvoie rien, ce qui
+          # faisait retomber les builds sur 1.0.0 au lieu de la derniere version
+          # reellement publiee.
+          fetch-depth: 0
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resoudre la version de l'application
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            RESOLVED="$(node scripts/version.mjs "${{ github.ref_name }}")"
+          else
+            # Hors tag : c'est un build de main. On repart de la derniere version
+            # publiee et on passe par le mode --ci, qui attribue un versionCode
+            # libre dans la plage reservee a cette version.
+            BASE_VERSION="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
+            if [ -z "$BASE_VERSION" ]; then
+              echo "::error::Aucun tag v* trouve. Le versionCode du build serait faux : verifier que le checkout recupere bien les tags (fetch-depth: 0)." >&2
+              exit 1
+            fi
+
+            # Les slots de CI deja occupes sont relus dans les noms des releases
+            # existantes, et non dans les tags : un build de main ne cree aucun
+            # tag, et c'est precisement ce qui avait produit les tags build-*
+            # parasites. GITHUB_RUN_NUMBER n'est pas utilise non plus, il est
+            # sans borne et deborderait la plage de neuf codes.
+            #
+            # On interroge l'API GitHub plutot que « gh release list » : « gh »
+            # exige un GH_TOKEN explicite dans un workflow et ne l'est pas ici,
+            # ce qui faisait echouer le run en exit 4. L'API, elle, est une
+            # lecture publique sur un depot public : aucun secret a ajouter a
+            # une etape de build.
+            BASE_TRIMMED="${BASE_VERSION#v}"
+            USED_SLOTS="$(
+              curl -fsSL --retry 3 --max-time 30 \
+                -H 'Accept: application/vnd.github+json' \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+                | node scripts/ci-slots.mjs "$BASE_TRIMMED"
+            )"
+            echo "Slots de CI deja occupes pour $BASE_TRIMMED : ${USED_SLOTS:-aucun}"
+            RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$USED_SLOTS")"
+          fi
+          # Le script ecrit ses variables sur stdout. Elles sont reportees dans
+          # $GITHUB_OUTPUT, seul moyen de les relire depuis les jobs qui dependent
+          # de celui-ci. Aucune dependance n'est installee ici : version.mjs et
+          # ci-slots.mjs n'utilisent que les modules natifs de Node.
+          echo "$RESOLVED" | tee -a "$GITHUB_OUTPUT"
+          # Android n'attend pas de prefixe « v » dans le versionName : le tag
+          # git peut le porter, pas le nom affiche dans la Play Console ni dans
+          # l'ecran « A propos ».
+          RAW_VERSION="$(printf '%s\n' "$RESOLVED" | sed -n 's/^VERSION_NAME=//p')"
+          echo "raw=${RAW_VERSION#v}" >> "$GITHUB_OUTPUT"
+          echo "Version resolue : $RAW_VERSION (versionCode $(printf '%s\n' "$RESOLVED" | sed -n 's/^VERSION_CODE=//p'))"
+
   # ==============================================================
   # JOB 1 : Déploiement Web GitHub Pages
   # ==============================================================
@@ -24,6 +124,7 @@ jobs:
     # aux pushs sur la branche principale, seule référence autorisée par
     # l'environnement github-pages.
     if: github.ref_type != 'tag'
+    needs: resolve-version
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,6 +149,9 @@ jobs:
       - name: Compiler le site web pour GitHub Pages
         run: npm run build
         env:
+          # Repris du job de resolution, jamais recalcule ici : c'est ce qui
+          # garantit que le site affiche la version de l'APK du meme commit.
+          VITE_APP_VERSION: ${{ needs.resolve-version.outputs.version_name }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
           VITE_ADMOB_APP_OPEN_ID: ${{ vars.VITE_ADMOB_APP_OPEN_ID || secrets.VITE_ADMOB_APP_OPEN_ID }}
           VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
@@ -79,18 +183,13 @@ jobs:
   # ==============================================================
   build-android:
     name: 📱 Build Android (APK & AAB)
+    needs: resolve-version
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Cloner le dépôt
         uses: actions/checkout@v4
-        with:
-          # Les tags sont la source de verite du versionnage. Sans fetch-depth 0,
-          # le clone est superficiel et « git tag --list » ne renvoie rien, ce
-          # qui faisait retomber les builds de CI sur 1.0.0 au lieu de la
-          # derniere version reellement publiee.
-          fetch-depth: 0
 
       - name: Configurer Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -122,6 +221,14 @@ jobs:
       - name: Compiler l'application web pour Android (chemins relatifs)
         run: npm run build:mobile
         env:
+          # Repris du job de resolution : le site et l'APK sont construits dans
+          # le meme run et doivent embarquer la MEME version. Les deux flags
+          # Analytics/Performance sont aussi repris ici, alors qu'ils n'etaient
+          # poses que pour le build web : sans cela, l'APK ne pouvait pas etre
+          # coupe alors que le site pouvait l'etre.
+          VITE_APP_VERSION: ${{ needs.resolve-version.outputs.version_name }}
+          VITE_FIREBASE_ANALYTICS_ENABLED: ${{ vars.VITE_FIREBASE_ANALYTICS_ENABLED || 'true' }}
+          VITE_FIREBASE_PERFORMANCE_ENABLED: ${{ vars.VITE_FIREBASE_PERFORMANCE_ENABLED || 'true' }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
           VITE_ADMOB_APP_OPEN_ID: ${{ vars.VITE_ADMOB_APP_OPEN_ID || secrets.VITE_ADMOB_APP_OPEN_ID }}
           VITE_ADMOB_INTERSTITIAL_ID: ${{ vars.VITE_ADMOB_INTERSTITIAL_ID || secrets.VITE_ADMOB_INTERSTITIAL_ID }}
@@ -179,67 +286,33 @@ jobs:
           grep -o 'assets/index-[A-Za-z0-9_-]*\.js' android/app/src/main/assets/public/index.html
           test "$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' android/app/src/main/assets/public/index.html | sort -u | wc -l)" -eq 1
 
-      # ==============================================================
-      # VERSIONNAGE
-      # Source de verite : le tag Git au format SemVer (v1.2.3). Une release
-      # n'est publiee que sur un tag ; un push sur main ne produit que des
-      # artefacts de verification, pour ne pas polluer l'historique de versions.
-      - name: Resoudre la version de l'application
+      # La version a deja ete resolue une seule fois, dans le job
+      # « resolve-version », dont ce job depend. La relire ici empeche toute
+      # divergence : le bundle web, le versionCode Gradle et le nom de la
+      # release viennent de la meme source, pour le meme commit.
+      - name: Reutiliser la version resolue
         id: version
+        env:
+          RESOLVED_VERSION_NAME: ${{ needs.resolve-version.outputs.version_name }}
+          RESOLVED_VERSION_CODE: ${{ needs.resolve-version.outputs.version_code }}
+          RESOLVED_IS_PRERELEASE: ${{ needs.resolve-version.outputs.is_prerelease }}
         run: |
           set -euo pipefail
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            RESOLVED="$(node scripts/version.mjs "${{ github.ref_name }}")"
-          else
-            # Hors tag : c'est un build de main. On repart de la derniere version
-            # publiee et on passe par le mode --ci, qui attribue un versionCode
-            # libre dans la plage reservee a cette version.
-            BASE_VERSION="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
-            if [ -z "$BASE_VERSION" ]; then
-              echo "::error::Aucun tag v* trouve. Le versionCode du build serait faux : verifier que le checkout recupere bien les tags (fetch-depth: 0)." >&2
-              exit 1
-            fi
-
-            # Les slots de CI deja occupes sont relus dans les noms des releases
-            # existantes, et non dans les tags : un build de main ne cree aucun
-            # tag, et c'est precisement ce qui avait produit les tags build-*
-            # parasites. GITHUB_RUN_NUMBER n'est pas utilise non plus, il est
-            # sans borne et deborderait la plage de neuf codes.
-            # Les slots deja occupes sont relus dans les releases existantes, et
-            # non dans les tags git : un build de main ne cree aucun tag, c'est
-            # precisement ce qui avait produit les tags build-* parasites.
-            #
-            # On interroge l'API GitHub plutot que « gh release list » : « gh »
-            # exige un GH_TOKEN explicite dans un workflow et ne l'est pas ici,
-            # ce qui faisait echouer le run en exit 4. L'API, elle, est une
-            # lecture publique sur un depot public : aucun secret a ajouter a
-            # une etape de build.
-            BASE_TRIMMED="${BASE_VERSION#v}"
-            USED_SLOTS="$(
-              curl -fsSL --retry 3 --max-time 30 \
-                -H 'Accept: application/vnd.github+json' \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-                | node scripts/ci-slots.mjs "$BASE_TRIMMED"
-            )"
-            echo "Slots de CI deja occupes pour $BASE_TRIMMED : ${USED_SLOTS:-aucun}"
-            RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$USED_SLOTS")"
+          if [ -z "$RESOLVED_VERSION_NAME" ] || [ -z "$RESOLVED_VERSION_CODE" ]; then
+            echo "::error::Version non transmise par le job resolve-version : le build utiliserait une version fausse ou vide." >&2
+            exit 1
           fi
-          # Le script écrit ses variables dans $GITHUB_ENV, ce qui ne les rend pas
-          # disponibles via steps.<id>.outputs. On les reporte donc aussi dans
-          # $GITHUB_OUTPUT, sans quoi VERSION_CODE et IS_PRERELEASE restent vides
-          # pour les etapes suivantes (notes de release, indicateur prerelease).
-          echo "$RESOLVED" | tee -a "$GITHUB_ENV" | tee -a "$GITHUB_OUTPUT"
-          # On relit le versionName resolu par le script plutot que de le
-          # recomposer ici, pour qu'il ne puisse pas diverger de celui qui est
-          # reellement utilise pour le build.
-          RAW_VERSION="$(printf '%s\n' "$RESOLVED" | sed -n 's/^VERSION_NAME=//p')"
-          echo "raw=$RAW_VERSION" >> "$GITHUB_OUTPUT"
-          # Android n'attend pas de prefixe « v » dans le versionName : le tag
-          # git peut le porter, pas le nom affiche dans la Play Console.
-          echo "android_name=${RAW_VERSION#v}" >> "$GITHUB_OUTPUT"
-          echo "Version resolue : $RAW_VERSION"
-          # L'ecran "A propos de" lit VITE_APP_VERSION.
-          echo "VITE_APP_VERSION=$RAW_VERSION" >> "$GITHUB_ENV"
+          {
+            echo "VERSION_NAME=$RESOLVED_VERSION_NAME"
+            echo "VERSION_CODE=$RESOLVED_VERSION_CODE"
+            echo "IS_PRERELEASE=$RESOLVED_IS_PRERELEASE"
+          } | tee -a "$GITHUB_OUTPUT" | tee -a "$GITHUB_ENV"
+          # Android n'attend pas de prefixe « v » dans le versionName. Le job de
+          # resolution le retire deja ; ce controle reste, parce qu'un « v »
+          # resterait invisible jusqu'a l'upload sur le Play Console.
+          echo "raw=$RESOLVED_VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "android_name=${RESOLVED_VERSION_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "Version : $RESOLVED_VERSION_NAME (versionCode $RESOLVED_VERSION_CODE)"
 
       - name: Compiler l'APK Debug (installable immédiatement)
         run: |
