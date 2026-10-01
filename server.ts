@@ -9,7 +9,10 @@ import type { NextFunction, Request, Response } from 'express';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
-const port = 3000;
+// Render injecte PORT et route le trafic vers ce port ; une valeur codee en
+// dur laisse le service injoignable et le healthCheckPath /api/health echoue.
+// 3000 reste le defaut pour le dev local (vite.config.ts utilise le meme port).
+const port = Number(process.env.PORT) || 3000;
 
 /**
  * Origines autorisees a appeler l'API depuis un navigateur.
