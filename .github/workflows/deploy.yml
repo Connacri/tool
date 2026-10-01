@@ -333,8 +333,12 @@ jobs:
             echo "tag=v${{ github.ref_name }}"          >> "$GITHUB_OUTPUT"
             echo "name=AutoPost Studio $VERSION"      >> "$GITHUB_OUTPUT"
           else
-            # Pas de tag git : le nom porte l'identifiant du run, ce qui reste
-            # unique et permet de retrouver le build sans creer de tag.
+            # Une release GitHub porte toujours un tag, il n'existe pas de
+            # release sans tag. « build-<run> » est donc unavoidable — mais c'est
+            # un tag bien forme et sans ambiguite, alors que le « build-40-<sha> »
+            # d'origine etait un tag a moitie aleatoire difficile a relier a un
+            # build. Ce qui compte est que ces tags restent hors du calcul de
+            # version, ce que garantit le glob « v* » de l'etape de version.
             echo "tag=build-${{ github.run_number }}"  >> "$GITHUB_OUTPUT"
             echo "name=AutoPost Studio $VERSION (build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
           fi
@@ -349,9 +353,12 @@ jobs:
       #  - sur un tag v* : release SemVer propre, c'est la version officielle ;
       #  - sur un push vers main : release d'archive, marquée prerelease et
       #    nommée « build N », pour ne jamais être confondue avec une version
-      #    officielle. Aucun tag git n'est cree dans ce cas : c'est precisely ce
-      #    qui avait produit les tags build-* parasites, qui polluaient l'historique
-      #    des versions.
+      #    officielle.
+      #
+      # Une release GitHub exige un tag, donc ces builds créent un tag « build-N ».
+      # Il ne pollue pas l'historique des versions : le calcul de versionCode ne
+      # lit que les tags « v* » (voir « Resoudre la version de l'application »),
+      # et le relecteur de slots ignore ces tags au profit des noms de release.
       - name: Publier la GitHub Release (APK + AAB)
         uses: softprops/action-gh-release@v2
         with:
