@@ -194,3 +194,79 @@ export async function exportZipArchive(
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   return { success: true, method: 'blob-download' };
 }
+
+/**
+ * Downloads or shares a generated animated video file (MP4/WebM).
+ * Works seamlessly across:
+ * 1. Android APK native runtime via Capacitor
+ * 2. Mobile web browsers via Web Share API
+ * 3. Desktop browsers via standard Blob download
+ */
+export async function exportVideoBlob(
+  videoBlob: Blob,
+  filename: string,
+  title: string = 'Vidéo Réseaux Sociaux - AutoPost Studio'
+): Promise<{ success: boolean; method: string }> {
+  const safeFilename = filename;
+
+  // Case 1: Native Android APK or iOS App via Capacitor
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const base64Data = await blobToBase64(videoBlob);
+      const savedFile = await Filesystem.writeFile({
+        path: safeFilename,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: safeFilename,
+        text: title,
+        url: savedFile.uri,
+        dialogTitle: 'Enregistrer la vidéo ou partager sur vos réseaux',
+      });
+
+      return { success: true, method: 'capacitor-native-share' };
+    } catch (err: any) {
+      console.warn('Native Capacitor video share failed, falling back to Web Share / Blob:', err);
+    }
+  }
+
+  const isMobile =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+
+  // Case 2: Mobile Web browser supporting Web Share Level 2 with video files
+  if (isMobile && typeof navigator.share === 'function') {
+    try {
+      const file = new File([videoBlob], safeFilename, { type: videoBlob.type || 'video/webm' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: safeFilename,
+          text: title,
+        });
+        return { success: true, method: 'web-share-file' };
+      }
+    } catch (shareErr: any) {
+      if (shareErr.name === 'AbortError') {
+        return { success: true, method: 'user-dismissed' };
+      }
+      console.warn('Web Share for video failed, falling back to link download:', shareErr);
+    }
+  }
+
+  // Case 3: Standard Browser Blob download
+  const blobUrl = URL.createObjectURL(videoBlob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = safeFilename;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  return { success: true, method: 'blob-download' };
+}
+

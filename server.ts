@@ -209,7 +209,7 @@ async function startServer() {
 
   app.use('/api', cors);
   app.use('/api', rateLimit);
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '50mb' }));
 
   // Initialize Gemini AI SDK if GEMINI_API_KEY is present
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -698,6 +698,348 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
         return;
       }
       res.status(502).json({ error: `Impossible de contacter le Webhook: ${err.message}` });
+    }
+  });
+
+  // Test Telegram Bot Token
+  app.post('/api/telegram/test-connection', async (req, res) => {
+    try {
+      const { botToken } = req.body;
+      if (!botToken || typeof botToken !== 'string') {
+        return res.status(400).json({ error: 'Token du Bot Telegram manquant.' });
+      }
+      const cleanToken = botToken.trim();
+      const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/getMe`);
+      const data = await tgRes.json();
+      if (!data.ok) {
+        return res.status(400).json({
+          success: false,
+          error: data.description || 'Token de bot Telegram invalide. Vérifiez auprès de @BotFather.',
+        });
+      }
+      return res.json({
+        success: true,
+        bot: data.result,
+        message: `Connecté avec succès au Bot @${data.result.username} (${data.result.first_name}) !`,
+      });
+    } catch (err: any) {
+      return res.status(502).json({ error: `Impossible de joindre l'API Telegram: ${err.message}` });
+    }
+  });
+
+  // Send Story with Images and/or Formatted Story Text to Telegram
+  app.post('/api/telegram/send-story', async (req, res) => {
+    try {
+      const { botToken, chatId, storyText, htmlCaption, images } = req.body;
+      if (!botToken || !chatId) {
+        return res.status(400).json({ error: 'botToken et chatId sont requis pour envoyer sur Telegram.' });
+      }
+      const cleanToken = botToken.trim();
+      const cleanChatId = chatId.trim();
+
+      // If images are provided as base64 array
+      if (Array.isArray(images) && images.length > 0) {
+        const maxBatchSize = 10; // Telegram maximum per sendMediaGroup
+        const batches = [];
+        for (let i = 0; i < images.length; i += maxBatchSize) {
+          batches.push(images.slice(i, i + maxBatchSize));
+        }
+
+        for (let b = 0; b < batches.length; b++) {
+          const batch = batches[b];
+          const formData = new FormData();
+          formData.append('chat_id', cleanChatId);
+
+          const mediaGroup = [];
+          for (let i = 0; i < batch.length; i++) {
+            const imgItem = batch[i];
+            const attachName = `photo_${b}_${i}`;
+
+            const base64Data = (imgItem.base64 || '').replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            const blob = new Blob([buffer], { type: 'image/png' });
+            formData.append(attachName, blob, imgItem.filename || `diapo_${i + 1}.png`);
+
+            const mediaEntry: any = {
+              type: 'photo',
+              media: `attach://${attachName}`,
+            };
+            // Caption on the first photo of the album
+            if (b === 0 && i === 0 && (htmlCaption || storyText)) {
+              mediaEntry.caption = (htmlCaption || storyText).slice(0, 1024);
+              mediaEntry.parse_mode = htmlCaption ? 'HTML' : undefined;
+            }
+            mediaGroup.push(mediaEntry);
+          }
+
+          formData.append('media', JSON.stringify(mediaGroup));
+
+          const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMediaGroup`, {
+            method: 'POST',
+            body: formData,
+          });
+          const tgData = await tgRes.json();
+          if (!tgData.ok) {
+            throw new Error(tgData.description || `Échec envoi lot photos Telegram`);
+          }
+        }
+
+        // If caption was truncated beyond 1024 chars, send the remainder as a message
+        if (htmlCaption && htmlCaption.length > 1024) {
+          await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: cleanChatId,
+              text: htmlCaption,
+              parse_mode: 'HTML',
+            }),
+          });
+        }
+
+        return res.json({
+          success: true,
+          message: `${images.length} images et l'histoire ont été envoyées avec succès sur Telegram (${cleanChatId}) !`,
+        });
+      }
+
+      // No images, send formatted text message
+      const textToSend = htmlCaption || storyText || 'Aucun contenu fourni.';
+      const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: cleanChatId,
+          text: textToSend,
+          parse_mode: htmlCaption ? 'HTML' : undefined,
+        }),
+      });
+      const tgData = await tgRes.json();
+      if (!tgData.ok) {
+        throw new Error(tgData.description || 'Échec envoi message Telegram');
+      }
+
+      return res.json({
+        success: true,
+        message: `Histoire envoyée avec succès sur Telegram (${cleanChatId}) !`,
+      });
+    } catch (err: any) {
+      console.error('Erreur Telegram send-story:', err);
+      return res.status(500).json({ error: err.message || 'Erreur lors de l\'envoi sur Telegram' });
+    }
+  });
+
+  // Telegram Inbound Webhook Listener
+  app.all('/api/telegram/webhook', async (req, res) => {
+    try {
+      const update = req.body;
+      if (!update || (!update.message && !update.channel_post)) {
+        return res.json({ ok: true });
+      }
+
+      const message = update.message || update.channel_post;
+      const chatId = message.chat?.id;
+      const text = message.text || message.caption || '';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+      if (!chatId || !text) {
+        return res.json({ ok: true });
+      }
+
+      const sendReply = async (replyText: string) => {
+        if (!botToken) return;
+        try {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: replyText,
+              parse_mode: 'HTML',
+            }),
+          });
+        } catch (e) {
+          console.warn('Telegram webhook reply failed:', e);
+        }
+      };
+
+      const trimmed = text.trim();
+
+      if (trimmed.startsWith('/start') || trimmed.startsWith('/help') || trimmed.startsWith('/format')) {
+        const guideText =
+          `<b>🤖 Bienvenue sur le Bot AutoPost Studio !</b>\n\n` +
+          `Envoyez-moi votre texte d'histoire découpé avec les <b>3 préfixes officiels</b> :\n\n` +
+          `🔹 <code>:Titre de la diapo :</code> (Titre Kicker en haut)\n` +
+          `🔹 <code>.Votre phrase principale</code> (Obligatoire, chaque point crée une diapo)\n` +
+          `🔹 <code>/date d'aujourd'hui</code> ou <code>/Votre signature</code> (Sous-titre)\n\n` +
+          `<b>Exemple :</b>\n` +
+          `<code>:Les secrets du marketing :\n.Votre attention est précieuse.\n/date d'aujourd'hui</code>\n\n` +
+          `🚀 Vos diapos seront automatiquement prêtes pour le carrousel HD !`;
+        await sendReply(guideText);
+        return res.json({ ok: true });
+      }
+
+      // Check if text uses the prefix format (: . /)
+      const hasPrefixes = /[:./]/.test(trimmed);
+      if (hasPrefixes) {
+        const lines = trimmed.split('\n').filter((l: string) => l.trim().length > 0);
+        const dotCount = lines.filter((l: string) => l.trim().startsWith('.')).length;
+        const count = dotCount > 0 ? dotCount : lines.length;
+
+        const reply =
+          `✅ <b>Histoire reçue avec succès !</b>\n\n` +
+          `📊 <b>${count} diapositives</b> détectées selon les normes du format lot.\n` +
+          `✨ Vous pouvez générer, styliser et exporter vos visuels HD ou vidéos directement sur AutoPost Studio.`;
+        await sendReply(reply);
+      }
+
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error('Erreur Telegram webhook:', err);
+      return res.json({ ok: true });
+    }
+  });
+
+  // Unified Multi-Platform Publishing Dispatcher
+  app.post('/api/publish-multi-platform', async (req, res) => {
+    try {
+      const {
+        platforms = [],
+        telegramConfig,
+        webhookUrl,
+        storyData,
+      } = req.body;
+
+      const results: Record<string, { success: boolean; message: string }> = {};
+
+      // 1. Telegram Dispatch
+      if (platforms.includes('telegram') && telegramConfig?.botToken && telegramConfig?.chatId) {
+        try {
+          const cleanToken = telegramConfig.botToken.trim();
+          const cleanChatId = telegramConfig.chatId.trim();
+
+          if (Array.isArray(storyData?.images) && storyData.images.length > 0) {
+            const formData = new FormData();
+            formData.append('chat_id', cleanChatId);
+
+            const mediaGroup = [];
+            const imagesToSend = storyData.images.slice(0, 10);
+            for (let i = 0; i < imagesToSend.length; i++) {
+              const img = imagesToSend[i];
+              const attachName = `photo_${i}`;
+              const base64Data = (img.base64 || '').replace(/^data:image\/\w+;base64,/, '');
+              const buffer = Buffer.from(base64Data, 'base64');
+              const blob = new Blob([buffer], { type: 'image/png' });
+              formData.append(attachName, blob, img.filename || `diapo_${i + 1}.png`);
+
+              const mediaEntry: any = {
+                type: 'photo',
+                media: `attach://${attachName}`,
+              };
+              if (i === 0 && (storyData.htmlCaption || storyData.storyText)) {
+                mediaEntry.caption = (storyData.htmlCaption || storyData.storyText).slice(0, 1024);
+                mediaEntry.parse_mode = storyData.htmlCaption ? 'HTML' : undefined;
+              }
+              mediaGroup.push(mediaEntry);
+            }
+
+            formData.append('media', JSON.stringify(mediaGroup));
+            const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMediaGroup`, {
+              method: 'POST',
+              body: formData,
+            });
+            const tgData = await tgRes.json();
+            if (tgData.ok) {
+              results.telegram = { success: true, message: `Publié avec succès sur Telegram (${cleanChatId}) !` };
+            } else {
+              results.telegram = { success: false, message: tgData.description || 'Erreur Telegram' };
+            }
+          } else {
+            const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: cleanChatId,
+                text: storyData?.htmlCaption || storyData?.storyText || 'Publication AutoPost Studio',
+                parse_mode: storyData?.htmlCaption ? 'HTML' : undefined,
+              }),
+            });
+            const tgData = await tgRes.json();
+            results.telegram = {
+              success: tgData.ok,
+              message: tgData.ok ? `Message publié sur Telegram (${cleanChatId})` : (tgData.description || 'Erreur Telegram'),
+            };
+          }
+        } catch (err: any) {
+          results.telegram = { success: false, message: err.message };
+        }
+      }
+
+      // 2. Webhook Dispatch for social automation (Make.com, Zapier, Buffer, n8n, etc.)
+      if (webhookUrl && typeof webhookUrl === 'string' && webhookUrl.trim().length > 0) {
+        try {
+          await assertPublicWebhookUrl(webhookUrl);
+          const webhookPayload = {
+            event: 'multi_platform_publish',
+            source: 'AutoPost Studio Hub',
+            targetPlatforms: platforms,
+            createdAt: new Date().toISOString(),
+            series: {
+              title: storyData?.seriesTitle,
+              hashtags: storyData?.hashtags,
+            },
+            story: {
+              text: storyData?.storyText,
+              htmlCaption: storyData?.htmlCaption,
+              slidesCount: storyData?.slides?.length || 0,
+              slides: storyData?.slides || [],
+            },
+            imagesCount: storyData?.images?.length || 0,
+          };
+
+          const whRes = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload),
+            redirect: 'manual',
+            signal: AbortSignal.timeout(12_000),
+          });
+
+          const success = whRes.ok;
+          const msg = success
+            ? 'Données transmises avec succès au Webhook multi-plateformes (Make/Zapier/Buffer).'
+            : `Erreur webhook (${whRes.status})`;
+
+          platforms.forEach((p: string) => {
+            if (p !== 'telegram') {
+              results[p] = { success, message: msg };
+            }
+          });
+        } catch (whErr: any) {
+          platforms.forEach((p: string) => {
+            if (p !== 'telegram') {
+              results[p] = { success: false, message: whErr.message };
+            }
+          });
+        }
+      } else {
+        platforms.forEach((p: string) => {
+          if (p !== 'telegram') {
+            results[p] = {
+              success: true,
+              message: `Prêt pour publication (${p.toUpperCase()}) via connecteur d'automatisation.`,
+            };
+          }
+        });
+      }
+
+      return res.json({
+        success: Object.values(results).some((r) => r.success),
+        results,
+      });
+    } catch (err: any) {
+      console.error('Erreur publish-multi-platform:', err);
+      return res.status(500).json({ error: err.message || 'Erreur publication multi-plateformes' });
     }
   });
 

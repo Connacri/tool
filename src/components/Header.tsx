@@ -16,6 +16,8 @@ import {
   Maximize2,
   Stamp,
   SlidersHorizontal,
+  Film,
+  Send,
 } from 'lucide-react';
 import { AspectRatioType } from '../types';
 
@@ -25,6 +27,8 @@ interface HeaderProps {
   aspectRatio: AspectRatioType;
   onOpenBatchModal: () => void;
   onOpenExportModal: () => void;
+  onOpenVideoModal?: () => void;
+  onOpenTelegramModal?: () => void;
   onOpenAndroidModal: () => void;
   onOpenAboutModal: () => void;
   onQuickAiGenerate: () => void;
@@ -41,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onOpenExportModal,
+  onOpenVideoModal,
+  onOpenTelegramModal,
   onOpenAndroidModal,
   onOpenAboutModal,
   onQuickAiGenerate,
@@ -170,6 +176,32 @@ export const Header: React.FC<HeaderProps> = ({
             <Info className="w-3.5 h-3.5" />
           </button>
 
+          {/* Video Generation Button */}
+          {onOpenVideoModal && (
+            <button
+              onClick={onOpenVideoModal}
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-purple-200 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 rounded-lg transition-colors whitespace-nowrap shadow-sm"
+              title="Générer une vidéo avec transitions prédéfinies (Reels, TikTok, Shorts)"
+            >
+              <Film className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline">Vidéo</span>
+              <span className="sm:hidden font-medium">Vidéo</span>
+            </button>
+          )}
+
+          {/* Telegram & Multi-Platform Bot Button */}
+          {onOpenTelegramModal && (
+            <button
+              onClick={onOpenTelegramModal}
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-sky-200 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-800/60 rounded-lg transition-colors whitespace-nowrap shadow-sm"
+              title="Bot Telegram & Publication Multi-Plateformes (Images & Histoire)"
+            >
+              <Send className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden sm:inline">Bot & Réseaux</span>
+              <span className="sm:hidden font-medium">Bot</span>
+            </button>
+          )}
+
           {/* Export Button */}
           <button
             onClick={onOpenExportModal}
@@ -294,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
             })}
           </div>
 
-          <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs">
+          <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs gap-2">
             <button
               onClick={() => {
                 onOpenAndroidModal();
@@ -303,8 +335,34 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors"
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Télécharger l'App Android</span>
+              <span>App Android</span>
             </button>
+
+            {onOpenVideoModal && (
+              <button
+                onClick={() => {
+                  onOpenVideoModal();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 transition-colors font-medium"
+              >
+                <Film className="w-3.5 h-3.5" />
+                <span>Vidéo Animée</span>
+              </button>
+            )}
+
+            {onOpenTelegramModal && (
+              <button
+                onClick={() => {
+                  onOpenTelegramModal();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 transition-colors font-medium"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Bot Telegram & Réseaux</span>
+              </button>
+            )}
 
             <button
               onClick={() => {

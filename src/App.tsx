@@ -3,6 +3,8 @@ import { Header } from './components/Header';
 import { EditorSidebar } from './components/EditorSidebar';
 import { CanvasPreview } from './components/CanvasPreview';
 import { AutomatedExportModal } from './components/AutomatedExportModal';
+import { VideoExportModal } from './components/VideoExportModal';
+import { TelegramAndMultiPlatformModal } from './components/TelegramAndMultiPlatformModal';
 import { BatchInputModal } from './components/BatchInputModal';
 import { SocialCopyModal } from './components/SocialCopyModal';
 import { AndroidAppModal } from './components/AndroidAppModal';
@@ -63,6 +65,8 @@ export default function App() {
 
   // Modals
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isSocialCopyModalOpen, setIsSocialCopyModalOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
@@ -211,6 +215,8 @@ export default function App() {
         aspectRatio={aspectRatio.id}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenVideoModal={() => setIsVideoModalOpen(true)}
+        onOpenTelegramModal={() => setIsTelegramModalOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         onOpenAboutModal={() => setIsAboutModalOpen(true)}
         onQuickAiGenerate={handleQuickAiGenerate}
@@ -240,6 +246,8 @@ export default function App() {
           setLogo={setLogo}
           onOpenBatchModal={() => setIsBatchModalOpen(true)}
           onOpenExportModal={() => setIsExportModalOpen(true)}
+          onOpenVideoModal={() => setIsVideoModalOpen(true)}
+          onOpenTelegramModal={() => setIsTelegramModalOpen(true)}
           onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
           onQuickAiGenerate={handleQuickAiGenerate}
           onOpenAiModal={() => setIsAiModalOpen(true)}
@@ -278,6 +286,7 @@ export default function App() {
             setActiveTab('slides');
           }}
           onOpenExportModal={() => setIsExportModalOpen(true)}
+          onOpenVideoModal={() => setIsVideoModalOpen(true)}
           onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
           mobileView={mobileView}
           setMobileView={setMobileView}
@@ -297,6 +306,21 @@ export default function App() {
         overlayImage={overlayImage}
         watermark={watermark}
         onOpenSocialCopyModal={() => setIsSocialCopyModalOpen(true)}
+        onOpenVideoModal={() => setIsVideoModalOpen(true)}
+        onOpenTelegramModal={() => setIsTelegramModalOpen(true)}
+      />
+
+      <VideoExportModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        slides={slides}
+        aspectRatio={aspectRatio}
+        typography={typography}
+        logo={logo}
+        gradientBlur={gradientBlur}
+        colorFilter={colorFilter}
+        overlayImage={overlayImage}
+        watermark={watermark}
       />
 
       <BatchInputModal
@@ -306,6 +330,22 @@ export default function App() {
         setSlides={setSlides}
         setCurrentSlideIndex={setCurrentSlideIndex}
         onOpenAiModal={() => setIsAiModalOpen(true)}
+        onOpenTelegramModal={() => setIsTelegramModalOpen(true)}
+      />
+
+      <TelegramAndMultiPlatformModal
+        isOpen={isTelegramModalOpen}
+        onClose={() => setIsTelegramModalOpen(false)}
+        slides={slides}
+        setSlides={setSlides}
+        setCurrentSlideIndex={setCurrentSlideIndex}
+        aspectRatio={aspectRatio}
+        typography={typography}
+        logo={logo}
+        gradientBlur={gradientBlur}
+        colorFilter={colorFilter}
+        overlayImage={overlayImage}
+        watermark={watermark}
       />
 
       <SocialCopyModal

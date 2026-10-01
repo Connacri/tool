@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Layers,
   Info,
+  Send,
 } from 'lucide-react';
 import { SlideItem } from '../types';
 import { BatchFormatInfoModal } from './BatchFormatInfoModal';
@@ -27,6 +28,7 @@ interface BatchInputModalProps {
   setSlides: React.Dispatch<React.SetStateAction<SlideItem[]>>;
   setCurrentSlideIndex: (idx: number) => void;
   onOpenAiModal?: () => void;
+  onOpenTelegramModal?: () => void;
 }
 
 export interface ParsedSlideInput {
@@ -179,6 +181,7 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
   setSlides,
   setCurrentSlideIndex,
   onOpenAiModal,
+  onOpenTelegramModal,
 }) => {
   const [rawText, setRawText] = useState<string>(() => {
     // Generate initial text from existing slides with the prefix syntax
@@ -886,6 +889,23 @@ export const BatchInputModal: React.FC<BatchInputModalProps> = ({
               >
                 Annuler
               </button>
+
+              {onOpenTelegramModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleApply();
+                    onOpenTelegramModal();
+                  }}
+                  disabled={parsedSlides.length === 0}
+                  className="px-3.5 py-2 text-xs font-semibold text-sky-200 bg-sky-950/50 hover:bg-sky-900/70 border border-sky-800/60 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Appliquer et ouvrir le Bot Telegram & Multi-Plateformes"
+                >
+                  <Send className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Envoyer Telegram</span>
+                </button>
+              )}
+
               <button
                 onClick={handleApply}
                 disabled={parsedSlides.length === 0}

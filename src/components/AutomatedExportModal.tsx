@@ -17,6 +17,8 @@ import {
   Check,
   Hash,
   MessageSquare,
+  Film,
+  Bot,
 } from 'lucide-react';
 import JSZip from 'jszip';
 import {
@@ -46,6 +48,8 @@ interface AutomatedExportModalProps {
   overlayImage?: OverlayImageConfig;
   watermark?: WatermarkConfig;
   onOpenSocialCopyModal?: () => void;
+  onOpenVideoModal?: () => void;
+  onOpenTelegramModal?: () => void;
 }
 
 export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
@@ -60,6 +64,8 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
   overlayImage,
   watermark,
   onOpenSocialCopyModal,
+  onOpenVideoModal,
+  onOpenTelegramModal,
 }) => {
   const [activeTab, setActiveTab] = useState<'zip' | 'social' | 'webhook' | 'calendar'>('zip');
 
@@ -422,6 +428,58 @@ export const AutomatedExportModal: React.FC<AutomatedExportModalProps> = ({
                   <li>Logo : {logo.enabled ? logo.brandText : 'Désactivé'}</li>
                 </ul>
               </div>
+
+              {/* Video Generation Option */}
+              {onOpenVideoModal && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-purple-950/40 border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-purple-200 flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Générateur Vidéo & Transitions Prédéfinies</span>
+                    </span>
+                    <p className="text-[11px] text-neutral-400">
+                      Convertir ce carrousel en vidéo animée fluide pour Instagram Reels, TikTok et YouTube Shorts.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenVideoModal();
+                    }}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0 shadow-sm"
+                  >
+                    <Film className="w-3.5 h-3.5" />
+                    <span>Créer la Vidéo</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Telegram & Multi-Platform Option */}
+              {onOpenTelegramModal && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-sky-950/40 via-blue-950/30 to-indigo-950/40 border border-sky-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-sky-200 flex items-center gap-1.5">
+                      <Bot className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Bot Telegram & Publication Multi-Plateformes</span>
+                    </span>
+                    <p className="text-[11px] text-neutral-400">
+                      Envoyer les images et le texte d'histoire normé (: . /) sur Telegram et diffuser sur Instagram, TikTok, LinkedIn...
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenTelegramModal();
+                    }}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0 shadow-sm"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Ouvrir le Bot</span>
+                  </button>
+                </div>
+              )}
 
               {/* Progress bar during generation */}
               {zipProgress !== null && (

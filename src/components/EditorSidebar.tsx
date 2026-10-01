@@ -46,6 +46,7 @@ import {
   Check,
   Grid3X3,
   Lock,
+  Film,
 } from 'lucide-react';
 import { AspectRatioOption, AspectRatioType, ColorFilterConfig, GradientBlurConfig, LogoConfig, OverlayImageConfig, SlideItem, TextAlign, TextDirectionType, TypographyConfig, WatermarkConfig, WebhookConfig } from '../types';
 import { ARABIC_FONTS, ASPECT_RATIOS, COLOR_FILTER_PRESETS, PREDEFINED_LOGOS, PRESET_IMAGES, GRADIENT_BLUR_PRESETS, PRESET_OVERLAYS, WATERMARK_PRESETS, INITIAL_WATERMARK, INITIAL_LOGO } from '../constants/presets';
@@ -82,6 +83,8 @@ interface EditorSidebarProps {
   setLogo: React.Dispatch<React.SetStateAction<LogoConfig>>;
   onOpenBatchModal: () => void;
   onOpenExportModal: () => void;
+  onOpenVideoModal?: () => void;
+  onOpenTelegramModal?: () => void;
   onOpenSocialCopyModal: () => void;
   onQuickAiGenerate: () => void;
   onOpenAiModal?: () => void;
@@ -112,6 +115,8 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   setLogo,
   onOpenBatchModal,
   onOpenExportModal,
+  onOpenVideoModal,
+  onOpenTelegramModal,
   onOpenSocialCopyModal,
   onQuickAiGenerate,
   onOpenAiModal,
@@ -5432,6 +5437,38 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   {aspectRatio.id}
                 </span>
               </button>
+
+              {onOpenVideoModal && (
+                <button
+                  onClick={onOpenVideoModal}
+                  className="w-full p-3 bg-purple-950/50 hover:bg-purple-900/60 border border-purple-800/60 text-purple-200 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors shadow-sm"
+                  title="Générer une vidéo avec transitions prédéfinies (Reels, TikTok, Shorts)"
+                >
+                  <div className="flex items-center gap-2">
+                    <Film className="w-4 h-4 text-purple-400" />
+                    <span>Générer Vidéo avec transitions (Reels/TikTok)</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-purple-900/80 text-purple-300 px-2 py-0.5 rounded">
+                    Vidéo
+                  </span>
+                </button>
+              )}
+
+              {onOpenTelegramModal && (
+                <button
+                  onClick={onOpenTelegramModal}
+                  className="w-full p-3 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-800/60 text-sky-200 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors shadow-sm"
+                  title="Bot Telegram & Publication Multi-Plateformes (Images & Histoire)"
+                >
+                  <div className="flex items-center gap-2">
+                    <Send className="w-4 h-4 text-sky-400" />
+                    <span>Bot Telegram & Multi-Plateformes</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-sky-900/80 text-sky-300 px-2 py-0.5 rounded">
+                    Direct
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={onOpenSocialCopyModal}

@@ -43,6 +43,7 @@ import {
   UserPlus,
   MoreHorizontal,
   Search,
+  Film,
 } from 'lucide-react';
 import {
   AspectRatioOption,
@@ -79,6 +80,7 @@ interface CanvasPreviewProps {
   setLogo?: React.Dispatch<React.SetStateAction<LogoConfig>>;
   onSelectSlide: (idx: number) => void;
   onOpenExportModal: () => void;
+  onOpenVideoModal?: () => void;
   gradientBlur?: GradientBlurConfig;
   setGradientBlur?: React.Dispatch<React.SetStateAction<GradientBlurConfig>>;
   colorFilter?: ColorFilterConfig;
@@ -104,6 +106,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   setLogo,
   onSelectSlide,
   onOpenExportModal,
+  onOpenVideoModal,
   gradientBlur,
   setGradientBlur,
   colorFilter,
@@ -792,13 +795,26 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                   </button>
                 </div>
 
-                <button
-                  onClick={onOpenExportModal}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
-                >
-                  <span>Télécharger ({slides.length})</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {onOpenVideoModal && (
+                    <button
+                      onClick={onOpenVideoModal}
+                      className="text-xs text-purple-300 hover:text-purple-200 bg-purple-950/50 hover:bg-purple-900/60 border border-purple-800/60 font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors shadow-sm"
+                      title="Générer une vidéo animée avec transitions prédéfinies (Reels, TikTok, Shorts)"
+                    >
+                      <Film className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Vidéo ({slides.length})</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onOpenExportModal}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+                  >
+                    <span>Télécharger ({slides.length})</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2363,15 +2379,26 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         <button
           onClick={(e) => handleDownloadSingle(activeSlide, e)}
           disabled={isExportingSingle}
-          className="flex-1 py-2 px-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+          className="flex-1 py-2 px-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors"
         >
           <Download className="w-3.5 h-3.5 text-emerald-400" />
-          <span>PNG HD</span>
+          <span>PNG</span>
         </button>
+
+        {onOpenVideoModal && (
+          <button
+            onClick={onOpenVideoModal}
+            className="flex-1 py-2 px-2 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-purple-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors shadow-sm"
+            title="Générer une vidéo avec transitions prédéfinies"
+          >
+            <Film className="w-3.5 h-3.5 text-purple-400" />
+            <span>Vidéo</span>
+          </button>
+        )}
 
         <button
           onClick={onOpenExportModal}
-          className="flex-1 py-2 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          className="flex-1 py-2 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors shadow-sm"
         >
           <Layers className="w-3.5 h-3.5" />
           <span>Lot ({slides.length})</span>

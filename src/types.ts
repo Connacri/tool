@@ -36,6 +36,29 @@ export type TextPosition = 'top' | 'center' | 'bottom' | 'free';
 export type TextAlign = 'left' | 'center' | 'right';
 export type TextDirectionType = 'auto' | 'ltr' | 'rtl';
 
+export type VideoTransitionType =
+  | 'fade'
+  | 'slide-left'
+  | 'slide-up'
+  | 'zoom'
+  | 'wipe'
+  | 'flash'
+  | 'dip-black';
+
+export interface VideoTransitionOption {
+  id: VideoTransitionType;
+  name: string;
+  description: string;
+  category: 'classique' | 'dynamique' | 'cinematique';
+}
+
+export interface VideoExportConfig {
+  transition: VideoTransitionType;
+  slideDuration: number; // seconds
+  transitionDuration: number; // seconds
+  fps: number;
+}
+
 export interface TypographyConfig {
   fontStyle: FontStyleType;
   customFontFamily?: string; // Instant Google Font name (e.g. 'Playfair Display', 'Outfit', etc.)

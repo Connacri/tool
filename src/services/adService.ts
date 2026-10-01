@@ -34,7 +34,7 @@ import { AdMob, AdmobConsentStatus } from '@capacitor-community/admob';
 
 export interface AdTriggerOptions {
   actionTitle?: string;
-  actionType?: 'single_download' | 'batch_zip' | 'webhook_export';
+  actionType?: 'single_download' | 'batch_zip' | 'webhook_export' | 'video_export';
   slideNumber?: number;
   onAdCompleted: () => void | Promise<void>;
   onAdDismissed?: () => void;
