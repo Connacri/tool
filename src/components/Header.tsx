@@ -225,82 +225,56 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* ============================================================
-          SECONDE LIGNE — mobile et tablette uniquement (xl:hidden)
+          MENU MOBILE ET TABLETTE (xl:hidden)
 
-          Sur grand ecran, les onglets restent au centre de la premiere
-          ligne. En dessous de 1280 px, ils passent ici : le logo et le
-          titre disposent alors de toute la largeur de la ligne 1, et le
-          menu principal est sur sa propre ligne, complet, sans
-          debordement horizontal ni element tronque.
+          Un seul emplacement de navigation en dessous de 1280 px : ce
+          tiroir. Il portait precedemment les memes onglets qu'une barre
+          horizontale placee juste au-dessus, si bien que chaque entree
+          etait disponible deux fois a quelques pixels d'ecart. La barre a
+          ete supprimee : la navigation passe par le bouton hamburger de la
+          premiere ligne.
 
-          La bande defile horizontalement si les onglets debordent, ce
-          qui est preferable a les rendre inaccessibles.
+          Sur grand ecran, le tiroir reste masque (xl:hidden) et les onglets
+          demeurent au centre de la premiere ligne, comme avant.
+
+          Le selecteur Edition / Apercu, qui vivait dans la barre supprimee,
+          a ete deplace ici : sans lui, on ne pouvait plus basculer de vue
+          sur mobile.
           ============================================================ */}
-      <div className="xl:hidden border-t border-neutral-800/80 bg-neutral-950/98">
-        <div className="flex items-center gap-2 px-2.5 sm:px-4 py-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {/* Selecteur de vue : Edition / Apercu */}
-          <div className="flex items-center bg-neutral-900/90 p-0.5 rounded-lg border border-neutral-800 shrink-0">
-            <button
-              onClick={() => setMobileView('editor')}
-              className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-                mobileView === 'editor'
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-              title="Passer en mode éditeur"
-            >
-              <PenTool className="w-3 h-3 text-indigo-400" />
-              <span className="hidden sm:inline">Édition</span>
-            </button>
-            <button
-              onClick={() => setMobileView('preview')}
-              className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
-                mobileView === 'preview'
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-              title="Passer en mode aperçu"
-            >
-              <Eye className="w-3 h-3 text-emerald-400" />
-              <span className="hidden sm:inline">Aperçu</span>
-            </button>
-          </div>
-
-          {/* Separateur */}
-          <span className="w-px h-5 bg-neutral-800 shrink-0" aria-hidden="true" />
-
-          {/* Menu principal */}
-          <nav className="flex items-center gap-0.5 shrink-0">
-            {navTabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setMobileView('editor');
-                  }}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-neutral-800 text-white shadow-sm font-semibold'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-                  }`}
-                >
-                  <tab.icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : ''}`} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* Mobile & Tablet Drawer Menu */}
       {isMobileMenuOpen && (
         <div className="xl:hidden border-t border-neutral-800/80 bg-neutral-950/98 p-3 space-y-3 animate-in slide-in-from-top-2 duration-150 shadow-xl">
-          <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider px-1">
-            Navigation dans les réglages
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-neutral-900/90 p-0.5 rounded-lg border border-neutral-800 shrink-0">
+              <button
+                onClick={() => setMobileView('editor')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+                  mobileView === 'editor'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Passer en mode éditeur"
+              >
+                <PenTool className="w-3 h-3 text-indigo-400" />
+                <span>Édition</span>
+              </button>
+              <button
+                onClick={() => setMobileView('preview')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+                  mobileView === 'preview'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Passer en mode aperçu"
+              >
+                <Eye className="w-3 h-3 text-emerald-400" />
+                <span>Aperçu</span>
+              </button>
+            </div>
+            <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+              Navigation
+            </span>
           </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
             {navTabs.map((tab) => {
               const isActive = activeTab === tab.id;

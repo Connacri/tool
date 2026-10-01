@@ -33,7 +33,7 @@
              declare dans la console AdMob pour le package com.autopost.studio) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2282149611905342~8127393911"
+            android:value="ca-app-pub-2282149611905342~8127093911"
         />
     </application>
 
