@@ -31,6 +31,11 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      # Lu par server.ts sur /api/telegram/webhook pour repondre aux messages
+      # entrants. Sans cette variable l'endpoint ne fait rien (silent no-op).
+      # A saisir dans le dashboard Render, jamais dans ce fichier.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
       - key: GEMINI_MODEL_PRIMARY
         value: gemini-flash-latest
       - key: GEMINI_MODEL_FALLBACK
