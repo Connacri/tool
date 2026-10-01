@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import https from 'node:https';
 import type { NextFunction, Request, Response } from 'express';
 
 dotenv.config();
@@ -144,35 +145,75 @@ function isPrivateAddress(ip: string): boolean {
 
   if (type === 4) {
     const [a, b] = ip.split('.').map(Number);
+    // Le troisieme octet compte, pas seulement le second : la condition
+    // « a === 192 && b === 0 » bloquait tout 192.0.x.x, y compris des
+    // adresses publiques comme 192.0.43.1. Refuser ces hotes par erreur
+    // casse des webhooks legitimes sans gain de securite. Seules les
+    // plages reellement non routables sont conservees.
+    const c = Number(ip.split('.')[2]);
+
     if (a === 0 || a === 10 || a === 127) return true;
     if (a === 169 && b === 254) return true; //dont 169.254.169.254, metadata cloud
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 192 && b === 168) return true;
     if (a === 100 && b >= 64 && b <= 127) return true; //CGNAT
-    if (a === 192 && b === 0) return true;
-    if (a === 198 && (b === 18 || b === 19)) return true;
+    // Plages non routables sur Internet : ni service reel derriere, donc
+    // aucun webhook legitime ne peut y pointer. Teste sur le troisieme
+    // octet pour ne pas bloquer tout 192.0.x.x par erreur.
+    if (a === 192 && b === 0 && (c === 0 || c === 2)) return true; //protocoles IETF, TEST-NET-1
+    if (a === 198 && b === 51 && c === 100) return true; //TEST-NET-2
+    if (a === 203 && b === 0 && c === 113) return true; //TEST-NET-3
+    if (a === 198 && (b === 18 || b === 19)) return true; //benchmark
     if (a >= 224) return true; //multicast et reserves
     return false;
   }
 
   // IPv6 : le ::ffff:0:0/96 encapsule une IPv4, un attaquant peut donc cacher
   // 127.0.0.1 ou 169.254.169.254 derriere cette forme. Il faut decomposer.
+  // La forme hexadecimale est aussi acceptee (::ffff:7f00:1), pas seulement
+  // le dernier groupe en pointilles.
   const lower = ip.toLowerCase();
   const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
   if (mapped) return isPrivateAddress(mapped[1]);
+
+  const mappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mappedHex) {
+    const hi = parseInt(mappedHex[1], 16);
+    const lo = parseInt(mappedHex[2], 16);
+    const v4 = [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff].join('.');
+    return isPrivateAddress(v4);
+  }
 
   if (lower === '::' || lower === '::1') return true;
   const head = parseInt(lower.split(':')[0] || '0', 16);
   if ((head & 0xfe00) === 0xfc00) return true; //fc00::/7, adresses locales uniques
   if ((head & 0xffc0) === 0xfe80) return true; //fe80::/10, lien-local
   if ((head & 0xff00) === 0xff00) return true; //ff00::/8, multicast
+  // 2001:0000::/32 (Teredo) et 2002::/16 (6to4) encapsulent une IPv4 dans
+  // une adresse apparemment publique. Sans ce controle, un tunnel pourrait
+  // atteindre 127.0.0.1 ou 169.254.169.254 en paraissant externe.
+  if (lower.startsWith('2002:')) return true;
+  // Comparaison sur le second groupe seul : c'est lui qui vaut 0 dans
+  // 2001:0000::/32, le reste du prefixe etant fixe.
+  const secondGroup = lower.split(':')[1] || '';
+  if (lower.startsWith('2001:') && parseInt(secondGroup || '1', 16) === 0) return true;
   return false;
 }
 
 /** Erreur de validation d'URL : distinguee des pannes pour repondre en 400. */
 class InvalidWebhookUrl extends Error {}
 
-async function assertPublicWebhookUrl(rawUrl: string): Promise<void> {
+/**
+ * Contrat de callback de dns.lookup. Node le surcharge selon options.all :
+ * un couple (adresse, famille) sans le drapeau, un tableau d'objets avec.
+ */
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address?: string | Array<{ address: string; family: number }>,
+  family?: number,
+) => void;
+
+async function assertPublicWebhookUrl(rawUrl: string): Promise<string[]> {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -194,12 +235,131 @@ async function assertPublicWebhookUrl(rawUrl: string): Promise<void> {
   }
 
   if (addresses.length === 0) {
-    throw new InvalidWebhookUrl(`Aucun adresse pour l'hote "${url.hostname}".`);
+    throw new InvalidWebhookUrl(`Aucune adresse pour l'hote "${url.hostname}".`);
   }
 
   if (addresses.some((entry) => isPrivateAddress(entry.address))) {
     throw new InvalidWebhookUrl('Le webhook pointe vers une adresse reseau interne.');
   }
+
+  return addresses.map((entry) => entry.address);
+}
+
+/**
+ * Resolution DNS epinglee, injectee dans l'agent TLS.
+ *
+ * Sans elle, la protection SSRF a une fenetre : la validation resout l'hote,
+ * puis la connexion le resout a nouveau. Un attaquant au controle de son DNS
+ * peut repondre 203.0.113.5 a la premiere requete (qui passe le controle) et
+ * 127.0.0.1 a la seconde, quelques millisecondes plus tard : la validation
+ * est alors parfaite et la requete part quand meme vers le reseau interne.
+ *
+ * Cette fonction ne renvoie que les adresses deja auditees. Elle n'en invente
+ * aucune et n'en accepte pas de nouvelle, donc la connexion TCP ne peut pas
+ * atterrir ailleurs que sur une adresse validee. Le TLS reste verifie
+ * normalement : seule la resolution est remplacee par son resultat controle.
+ */
+function pinnedLookup(pinned: string[]) {
+  let used = 0;
+  // La forme du callback depend de options.all : Node surcharge le type de
+  // dns.lookup selon ce drapeau. On declare donc une union plutot que de
+  // forcer un seul cas, sinon le type du contrat de Node est contredit.
+  return (
+    _hostname: string,
+    options: { all?: boolean } | number | undefined,
+    callback: LookupCallback,
+  ) => {
+    const wantsAll = typeof options === 'object' && options?.all === true;
+
+    // Node 22 appelle le lookup avec toutes:true et attend alors un tableau
+    // d'objets, pas un couple (adresse, famille). Sans ce cas, la forme hiree
+    // echoue avec ERR_INVALID_IP_ADDRESS et aucune requete ne part.
+    if (wantsAll) {
+      if (used >= pinned.length) {
+        return (callback as (e: Error) => void)(new Error('Aucune adresse valide restante pour cet hote.'));
+      }
+      const remaining = pinned.slice(used++);
+      return (callback as (e: null, r: Array<{ address: string; family: number }>) => void)(
+        null,
+        remaining.map((addr) => ({ address: addr, family: net.isIP(addr) === 6 ? 6 : 4 })),
+      );
+    }
+
+    // Une seule tentative. Passer a l'adresse suivante apres un echec
+    // rouvrirait la faille : ce serait une nouvelle resolution non auditee.
+    if (used >= pinned.length) {
+      return (callback as (e: Error) => void)(new Error('Aucune adresse valide restante pour cet hote.'));
+    }
+    const address = pinned[used++];
+    (callback as (e: null, a: string, f: number) => void)(null, address, net.isIP(address) === 6 ? 6 : 4);
+  };
+}
+
+/**
+ * Envoi d'un webhook dont l'URL a ete validee par assertPublicWebhookUrl.
+ *
+ * Utilise node:https plutot que fetch volontairement : le fetch de Node
+ * s'appuie sur undici, qui refuse un https.Agent comme dispatcher et
+ * resoudrait donc le DNS sans controle. node:https accepte au contraire un
+ * `lookup` injecte, ce qui ferme la fenetre TOCTOU sans dependance
+ * supplementaire.
+ *
+ * Une redirection est refusee : sinon le meme contournement reviendrait par la
+ * porte des redirections.
+ */
+async function fetchValidatedWebhook(
+  url: string,
+  body: string,
+  timeoutMs: number,
+): Promise<{ ok: boolean; status: number; text: string }> {
+  const addresses = await assertPublicWebhookUrl(url);
+  const target = new URL(url);
+  const agent = new https.Agent({
+    keepAlive: false,
+    lookup: pinnedLookup(addresses) as unknown as net.LookupFunction,
+  });
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || 443,
+        path: `${target.pathname}${target.search}`,
+        method: 'POST',
+        agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        // 3xx : la destination n'a pas ete auditee, on ne suit pas.
+        if ((res.statusCode ?? 0) >= 300 && (res.statusCode ?? 0) < 400) {
+          res.resume();
+          req.destroy();
+          reject(new InvalidWebhookUrl('Le webhook a renvoye une redirection, refusee par precaution.'));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          const status = res.statusCode ?? 0;
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            text: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      },
+    );
+
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Delai depasse (${timeoutMs} ms).`));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
 }
 
 async function startServer() {
@@ -797,26 +957,21 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
 
       // Sans cette validation, la route etait une SSRF ouverte : n'importe qui
       // pouvait faire joindre par le serveur le reseau prive de l'hebergeur, et
-      // faire relayer du trafic a sa place.
-      await assertPublicWebhookUrl(webhookUrl);
+      // faire relayer du trafic a sa place. fetchValidatedWebhook en plus
+      // epingle la resolution DNS a ce controle, ce qui ferme la fenetre
+      // TOCTOU entre la verification et la connexion.
+      const whRes = await fetchValidatedWebhook(
+        webhookUrl,
+        JSON.stringify(payload),
+        10_000,
+      );
 
-      const fetchRes = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        // Une redirection renverrait le serveur vers une cible interne meme si
-        // l'URL de depart est propre : elle est refusee plutot que suivie.
-        redirect: 'manual',
-        signal: AbortSignal.timeout(10_000),
-      });
-
-      const text = await fetchRes.text();
       res.json({
-        success: fetchRes.ok,
-        status: fetchRes.status,
-        message: fetchRes.ok
+        success: whRes.ok,
+        status: whRes.status,
+        message: whRes.ok
           ? 'Données transmises avec succès au Webhook de publication automatisée.'
-          : `Erreur du serveur webhook (${fetchRes.status}): ${text.slice(0, 300)}`
+          : `Erreur du serveur webhook (${whRes.status}): ${whRes.text.slice(0, 300)}`
       });
     } catch (err: any) {
       // Une URL rejetee par la validation SSRF est une erreur du client, pas une
@@ -1107,7 +1262,6 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
       // 2. Webhook Dispatch for social automation (Make.com, Zapier, Buffer, n8n, etc.)
       if (webhookUrl && typeof webhookUrl === 'string' && webhookUrl.trim().length > 0) {
         try {
-          await assertPublicWebhookUrl(webhookUrl);
           const webhookPayload = {
             event: 'multi_platform_publish',
             source: 'AutoPost Studio Hub',
@@ -1126,13 +1280,11 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
             imagesCount: storyData?.images?.length || 0,
           };
 
-          const whRes = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(webhookPayload),
-            redirect: 'manual',
-            signal: AbortSignal.timeout(12_000),
-          });
+          const whRes = await fetchValidatedWebhook(
+            webhookUrl,
+            JSON.stringify(webhookPayload),
+            12_000,
+          );
 
           const success = whRes.ok;
           const msg = success
