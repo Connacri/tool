@@ -33,3 +33,20 @@ android/keystore.properties
 assets/icon.png
 assets/logo.png
 assets/preview-*.png
+
+# IntelliJ / Android Studio
+# Seuls les fichiers de configuration de partage (modules.xml, misc.xml,
+# markdown.xml) sont versionnes, comme le fait le .gitignore interne a .idea.
+# Les caches et l'index local sont propres a chaque poste et changent a chaque
+# ouverture : ils ne doivent pas apparaitre dans les diffs.
+.idea/caches/
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/tasks.xml
+.idea/httpRequests/
+.idea/dictionaries/
+.idea/libraries/
+.idea/deployment/
+*.iml
+out/

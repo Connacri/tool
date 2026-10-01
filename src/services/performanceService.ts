@@ -21,12 +21,13 @@
  * supprime avec le code mort, et sur le web il devient un chunk separe qui ne
  * pese pas sur le LCP.
  */
+import {getApp, getApps, initializeApp, type FirebaseApp} from 'firebase/app';
 import type {FirebasePerformance} from 'firebase/performance';
-import {isFirebaseAnalyticsConfigured, isPerformanceEnabledByEnv} from '../utils/firebaseConfig';
-import {getSharedFirebaseApp} from './firebaseApp';
+import {firebaseConfig, isFirebaseAnalyticsConfigured, isPerformanceEnabledByEnv} from '../utils/firebaseConfig';
 
 type PerformanceModule = typeof import('firebase/performance');
 
+let app: FirebaseApp | null = null;
 let perf: FirebasePerformance | null = null;
 let perfModule: PerformanceModule | null = null;
 let initPromise: Promise<void> | null = null;
@@ -64,8 +65,9 @@ export function initPerformance(): Promise<void> {
       // le navigateur ne convient pas (pas de stockage, mode prive strict) et le
       // catch plus bas absorbe ce cas.
 
+      app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       perfModule = await import('firebase/performance');
-      perf = perfModule.getPerformance(await getSharedFirebaseApp());
+      perf = perfModule.getPerformance(app);
     } catch (error) {
       console.warn('[performance] Initialisation Firebase Performance ignoree :', error);
       disabled = true;

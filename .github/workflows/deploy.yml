@@ -206,17 +206,43 @@ jobs:
           if [ "${{ github.ref_type }}" = "tag" ]; then
             RESOLVED="$(node scripts/version.mjs "${{ github.ref_name }}")"
           else
-            # Hors tag : c'est un build de CI, pas une release. On repart de la
-            # derniere version publiee et on passe par le mode --ci, qui conserve
-            # le versionCode de cette release au lieu de consommer un slot de
-            # prerelease. GITHUB_RUN_NUMBER n'etant pas borne, l'ancien
-            # « -build.<run> » echouait a partir du run 10.
+            # Hors tag : c'est un build de main. On repart de la derniere version
+            # publiee et on passe par le mode --ci, qui attribue un versionCode
+            # libre dans la plage reservee a cette version.
             BASE_VERSION="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
             if [ -z "$BASE_VERSION" ]; then
               echo "::error::Aucun tag v* trouve. Le versionCode du build serait faux : verifier que le checkout recupere bien les tags (fetch-depth: 0)." >&2
               exit 1
             fi
-            RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$GITHUB_RUN_NUMBER")"
+
+            # Les slots de CI deja occupes sont relus dans les noms des releases
+            # existantes, et non dans les tags : un build de main ne cree aucun
+            # tag, et c'est precisement ce qui avait produit les tags build-*
+            # parasites. GITHUB_RUN_NUMBER n'est pas utilise non plus, il est
+            # sans borne et deborderait la plage de neuf codes.
+            # gh release list ne renvoie que tagName, or nos releases d'archive
+            # portent un nom de tag « build-<run> » sans le suffixe -ci.N.
+            # C'est donc le nom de la release qui doit etre lu, pas son tag.
+            BASE_TRIMMED="${BASE_VERSION#v}"
+            USED_SLOTS="$(
+              gh release list --limit 200 --json name \
+                | BASE="$BASE_TRIMMED" node -e '
+                    const base = process.env.BASE;
+                    let raw = "";
+                    process.stdin.on("data", (c) => (raw += c));
+                    process.stdin.on("end", () => {
+                      const slots = [];
+                      for (const { name } of JSON.parse(raw || "[]")) {
+                        // Format : « AutoPost Studio 1.0.5-ci.2 (build 123) ».
+                        const m = /AutoPost Studio (\d+\.\d+\.\d+)-ci\.(\d+)/.exec(name ?? "");
+                        if (m && m[1] === base) slots.push(Number(m[2]));
+                      }
+                      process.stdout.write([...new Set(slots)].sort((a, b) => a - b).join(","));
+                    });
+                  '
+            )"
+            echo "Slots de CI deja occupes pour $BASE_TRIMMED : ${USED_SLOTS:-aucun}"
+            RESOLVED="$(node scripts/version.mjs --ci "$BASE_VERSION" "$USED_SLOTS")"
           fi
           # Le script écrit ses variables dans $GITHUB_ENV, ce qui ne les rend pas
           # disponibles via steps.<id>.outputs. On les reporte donc aussi dans
@@ -301,22 +327,45 @@ jobs:
           retention-days: 90
 
       # ==============================================================
+      # Identite de la release, differente selon le declencheur.
+      # ==============================================================
+      - name: Determiner l'identite de la release
+        id: release
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.raw }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=v${{ github.ref_name }}"          >> "$GITHUB_OUTPUT"
+            echo "name=AutoPost Studio $VERSION"      >> "$GITHUB_OUTPUT"
+          else
+            # Pas de tag git : le nom porte l'identifiant du run, ce qui reste
+            # unique et permet de retrouver le build sans creer de tag.
+            echo "tag=build-${{ github.run_number }}"  >> "$GITHUB_OUTPUT"
+            echo "name=AutoPost Studio $VERSION (build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ==============================================================
       # Les artefacts Actions expirent au bout de 90 jours. Les pièces
       # jointes d'une GitHub Release, elles, n'expirent jamais : c'est le
       # seul endroit où conserver durablement l'APK et l'AAB signés.
       #
-      # Publication uniquement sur un tag SemVer. Sur un push vers main, ce
-      # build n'est qu'une vérification : pas de release, pas de tag, donc
-      # l'historique de versions reste propre.
+      # Publication dans les deux cas, mais pas de la même façon :
+      #
+      #  - sur un tag v* : release SemVer propre, c'est la version officielle ;
+      #  - sur un push vers main : release d'archive, marquée prerelease et
+      #    nommée « build N », pour ne jamais être confondue avec une version
+      #    officielle. Aucun tag git n'est cree dans ce cas : c'est precisely ce
+      #    qui avait produit les tags build-* parasites, qui polluaient l'historique
+      #    des versions.
       - name: Publier la GitHub Release (APK + AAB)
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: AutoPost Studio ${{ steps.version.outputs.raw }}
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.name }}
           commit: ${{ github.sha }}
           # Une prerelease SemVer (1.2.0-rc.1) est marquee comme telle sur
-          # GitHub, ce qui evite qu'elle soit prise pour une version stable.
+          # GitHub, ce qui evite qu'elle soit prise pour une version stable. Les
+          # builds de main le sont aussi, pour la meme raison.
           prerelease: ${{ steps.version.outputs.IS_PRERELEASE == 'true' }}
           fail_on_unmatched_files: false
           body: |

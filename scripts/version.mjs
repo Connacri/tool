@@ -52,16 +52,56 @@
  *
  * Builds de CI (--ci)
  * -------------------
- * Un build hors tag n'est pas une release et ne doit surtout pas consommer un
- * slot de prerelease : GITHUB_RUN_NUMBER est non borne (on en est deja a 69)
- * alors que chaque version finale n'en reserve que neuf, donc la CI cassait
- * des que le compteur depassait 9.
+ * Un build hors tag n'est pas une release : il ne doit pas consommer un slot de
+ * prerelease, sinon le compteur de runs (non borne, deja a 69) deborderait la
+ * plage de neuf codes de sa version de base.
  *
- * Un build de CI reprend donc le versionCode de la version de base, et ne
- * change que le nom, suffixe -ci.<run>. Deux proprietes en decoulent :
- * l'artefact est identifiable (nom affiche « 1.0.4-ci.69 ») et il ne peut pas
- * etre publie par accident a la place d'une release, puisque son versionCode
- * est deja pris par elle.
+ * Chaque version finale reserve donc une plage complete pour ses builds de CI :
+ * elle occupe le premier code, et les suivants jusqu'a la version finale
+ * suivante sont attribues aux builds de main.
+ *
+ *   1.0.5        -> 1000050   (release, la finale)
+ *   1.0.5-ci.1   -> 1000051   (push sur main)
+ *   1.0.5-ci.2   -> 1000052
+ *   1.0.6        -> 1000060   (relance la plage au multiple de 10 suivant)
+ *
+ * Deux proprietes en decoulent, toutes deux exigees par Google Play :
+ * chaque APK a un versionCode unique, et l'ordre de publication reste coherent
+ * (les builds de main occupent des codes strictement croissants, tous inferieurs
+ * a la prochaine finale).
+ *
+ * Pourquoi une plage et non le versionCode de la base : Play refuse deux APK de
+ * meme versionCode. Repartager celui de la base rendait l'archive de CI
+ * inutilisable pour une soumission, alors que ces builds sont justement
+ * installables et distribues.
+ *
+ * Comment les slots deja pris sont connus
+ * --------------------------------------
+ * Ni par les tags git, ni par GITHUB_RUN_NUMBER.
+ *
+ * Pas les tags : un build de main ne cree volontairement aucun tag (c'est
+ * exactement ce qui a pollu le depot de tags build-* parasites), donc l'historique
+ * des tags ne dit rien des codes deja distribues. Tenter cette deduplication
+ * attribuait 1000051 a tous les builds, en boucle.
+ *
+ * Pas GITHUB_RUN_NUMBER : il est sans borne (on en est deja a 69) et ne tient
+ * pas dans une plage de neuf codes.
+ *
+ * La seule source qui reflete ce que Google Play a recu est l'ensemble des
+ * releases publiees. Comme chaque build de main produit desormais une release,
+ * lister leurs noms suffit : le workflow extrait les suffixes « -ci.N » deja
+ * utilises et les transmet a ce script, qui attribue le premier slot libre. Le
+ * resultat est alors stable face a un run rejoue, a un build parallele ou a un
+ * artefact expire, sans jamais reutiliser un code.
+ *
+ * Le suffixe « -ci.N » est un nom d'archive, pas une SemVer Android : il ne
+ * doit jamais passer par parseVersion, qui l'interpreterait comme une prerelease
+ * et lui attribuerait un autre code (1.0.5-ci.1 valait 1000041 par cette voie au
+ * lieu de 1000051).
+ *
+ * Borne de la plage : CI_SLOTS codes par version, soit 9 apres la finale. Au
+ * dela, le build echoue explicitement plutot que de deborder sur la version
+ * suivante.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -72,9 +112,12 @@ const MAX_VERSION_CODE = 2100000000;
 const MAJOR_LIMIT = 1999;
 const MINOR_LIMIT = 999;
 const PATCH_LIMIT = 999;
-// Codes reserves a chaque version finale pour ses prereleases. La finale
-// occupe le dernier de la plage, les prereleases les precedents.
+// Codes reserves a chaque version finale pour ses prereleases. La finale occupe
+// le premier de la plage, les prereleases les precedents (base - 9 a base - 1).
 const PRERELEASE_SLOTS = 9;
+// Codes reserves a chaque version finale pour ses builds de main, apres elle
+// (base + 1 a base + 9). Les deux plages se rejoignent sans jamais se recouvrir.
+const CI_SLOTS = 9;
 
 function fail(message) {
   console.error(`[version] ERREUR : ${message}`);
@@ -183,31 +226,60 @@ export function parseVersion(raw) {
 }
 
 /**
- * Version d'un build de CI : meme versionCode que la version de base, nom
- * suffixe -ci.<run> pour qu'il ne soit pas confondu avec une release. Voir la
- * note « Builds de CI » en tete de fichier.
+ * Version d'un build de main, hors tag : versionCode dans la plage CI de la
+ * version de base, nom suffixe -ci.<slot> pour qu'il ne soit jamais confondu
+ * avec une release. Voir la note « Builds de CI » en tete de fichier.
+ *
+ * `usedSlots` est la liste des slots deja occupes pour cette version de base,
+ * relevee par le workflow dans les noms des releases existantes.
  */
-export function buildCiVersion(baseVersion, runNumber) {
-  const run = Number(runNumber);
-  if (!Number.isInteger(run) || run < 1) {
-    fail(`numero de run de CI invalide : "${runNumber}" (entier positif attendu).`);
-  }
+export function buildCiVersion(baseVersion, usedSlots = []) {
   const base = parseVersion(baseVersion);
   const parts = /^(\d+)\.(\d+)\.(\d+)/.exec(base.versionName);
-  return {
-    versionName: `${parts[1]}.${parts[2]}.${parts[3]}-ci.${run}`,
-    versionCode: base.versionCode,
-    isPrerelease: true,
-    isRelease: false,
-  };
+  const taken = new Set(usedSlots.map(Number));
+
+  for (let slot = 1; slot <= CI_SLOTS; slot += 1) {
+    const code = base.versionCode + slot;
+    if (code > MAX_VERSION_CODE) break;
+    if (!taken.has(slot)) {
+      return {
+        versionName: `${parts[1]}.${parts[2]}.${parts[3]}-ci.${slot}`,
+        versionCode: code,
+        isPrerelease: true,
+        isRelease: false,
+      };
+    }
+  }
+
+  fail(
+    `plus de slot de versionCode libre pour les builds de CI de ${base.versionName} ` +
+      `(${CI_SLOTS} codes reserves, de ${base.versionCode + 1} a ${base.versionCode + CI_SLOTS} : ` +
+      `slots ${Array.from(taken).sort((a, b) => a - b).join(', ')} deja pris). ` +
+      'Publiez une nouvelle version (par exemple 1.0.6) pour ouvrir une plage neuve.'
+  );
+}
+
+/**
+ * Relit les slots de CI deja occupes, passes par le workflow sous forme de
+ * liste « N,N,N » (les suffixes -ci.N des noms de releases existants).
+ * Les entrees invalides sont ignorees : mieux vaut un slot reutilise qu'un
+ * build qui echoue, et le workflow construit cette liste depuis la seule API
+ * qui fait foi.
+ */
+function parseUsedSlots(raw) {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((slot) => Number.isInteger(slot) && slot >= 1 && slot <= CI_SLOTS);
 }
 
 function main() {
   const arg = process.argv[2];
   if (arg === '--ci') {
     const baseVersion = process.argv[3] ?? readGitTag();
-    const runNumber = process.argv[4];
-    emit(buildCiVersion(baseVersion, runNumber));
+    const usedSlots = parseUsedSlots(process.argv[4] ?? process.env.USED_CI_SLOTS ?? '');
+    emit(buildCiVersion(baseVersion, usedSlots));
     return;
   }
   const source = arg ?? readGitTag() ?? '';
