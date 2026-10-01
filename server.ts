@@ -218,24 +218,115 @@ async function startServer() {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   let ai: GoogleGenAI | null = null;
 
-  /**
-   * Modeles appeles, du plus capable au plus econome.
-   *
-   * Les valeurs par defaut visent le palier gratuit de Google AI Studio, qui
-   * ne couvre plus que la serie 2.5 depuis le 1er avril 2026 : la serie Pro
-   * est passee en payant, et un compte gratuit ne peut pas appeler
-   * gemini-3.x. Sans carte bancaire, gemini-2.5-flash tient 10 requetes
-   * par minute et 250 par jour, gemini-2.5-flash-lite 15 et 1 000.
-   *
-   * Ils restent configurables : les modeles gratuits changent, et un compte
-   * payant dispose de modeles plus recents qu'il vaut mieux pouvoir viser
-   * sans toucher au code.
-   */
+/**
+ * Modeles appeles, du plus capable au plus econome.
+ *
+ * Les valeurs par defaut visent le palier gratuit de Google AI Studio, qui
+ * ne couvre plus que la serie 2.5 depuis le 1er avril 2026 : la serie Pro
+ * est passee en payant, et un compte gratuit ne peut pas appeler
+ * gemini-3.x. Sans carte bancaire, gemini-2.5-flash tient 10 requetes
+ * par minute et 250 par jour, gemini-2.5-flash-lite 15 et 1 000.
+ *
+ * Ils restent configurables : les modeles gratuits changent, et un compte
+ * payant dispose de modeles plus recents qu'il vaut mieux pouvoir viser
+ * sans toucher au code.
+ */
 // Alias stables plutot que des noms de version figes : Google retire
 // gemini-2.5-flash pour les nouveaux comptes, et un nom fige casse des
 // mois apres la sortie du modele. « -latest » suit la derniere version stable.
 const MODEL_PRIMARY = process.env.GEMINI_MODEL_PRIMARY || 'gemini-2.5-flash';
 const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-flash-lite';
+
+/**
+ * Nature d'un echec d'appel a Gemini.
+ *
+ * La distinction est operationnelle : un quota se resorbe seul, une cle
+ * invalide ou un projet non autorise ne se resorbe pas tant qu'un humain
+ * n'a pas corrige la configuration dans la console Google. Les confondre,
+ * comme le faisait le message « quota API Gemini temporairement atteint »,
+ * envoie chercher une panne qui n'existe pas pendant des jours.
+ */
+type GeminiFailure =
+  | 'quota'          // 429 / RESOURCE_EXHAUSTED : se resorbe seul
+  | 'permission'     // 403 / PERMISSION_DENIED : cle, projet ou modele refuse
+  | 'model'          // 404 / NOT_FOUND : le modele demande n'existe plus
+  | 'network'        // timeout, DNS, 5xx : reseau ou service Google indisponible
+  | 'unknown';
+
+interface GeminiErrorInfo {
+  kind: GeminiFailure;
+  status?: number;
+  reason: string;
+  /** true si une action humaine est necessaire pour retablir Gemini. */
+  needsAction: boolean;
+}
+
+/**
+ * Classe une erreur du SDK Gemini a partir du code HTTP et du libelle
+ * renvoye par l'API. Le SDK expose le statut sur `status` ou `code`, selon
+ * la version ; les deux sont donc testes, et le message sert de secours
+ * quand aucun des deux n'est present.
+ */
+function classifyGeminiError(err: any): GeminiErrorInfo {
+  const status = Number(err?.status ?? err?.code) || undefined;
+  const raw = String(err?.message ?? err ?? '').toLowerCase();
+
+  const has = (...needles: string[]) => needles.some((n) => raw.includes(n));
+
+  if (status === 429 || has('resource_exhausted', 'quota exceeded', 'rate limit', 'too many requests')) {
+    return { kind: 'quota', status, reason: 'quota epuise', needsAction: false };
+  }
+
+  // « Your project has been denied access » est la forme exacte du 403
+  // renvoie quand la cle est valide mais le projet n'a pas acces a
+  // l'API, ou quand le modele demande est reserve a un palier payant.
+  if (status === 403 || has('permission_denied', 'permission denied', 'denied access', 'api key not valid', 'forbidden')) {
+    return { kind: 'permission', status, reason: 'acces refuse par Google (cle, projet ou modele non autorise)', needsAction: true };
+  }
+
+  if (status === 404 || has('not found', 'is not found', 'unsupported model', 'no such model')) {
+    return { kind: 'model', status, reason: 'modele introuvable ou retire', needsAction: true };
+  }
+
+  if (status === 400 || has('invalid argument', 'invalid_argument')) {
+    return { kind: 'unknown', status, reason: 'requete refusee par Google (400)', needsAction: true };
+  }
+
+  if (status === 401 || has('unauthenticated', 'unauthorized', 'api key')) {
+    return { kind: 'permission', status, reason: 'cle API absente ou invalide (401)', needsAction: true };
+  }
+
+  if (status && status >= 500) {
+    return { kind: 'network', status, reason: `erreur serveur Google (${status})`, needsAction: false };
+  }
+
+  if (has('fetch failed', 'econnrefused', 'enotfound', 'etimedout', 'socket hang up', 'timeout', 'aborted')) {
+    return { kind: 'network', reason: 'reseau injoignable', needsAction: false };
+  }
+
+  return { kind: 'unknown', status, reason: raw.slice(0, 200) || 'erreur non identifiee', needsAction: true };
+}
+
+/**
+ * Notice destinee au client, honnete sur la cause. Une panne de
+ * configuration ne doit pas etre presentee comme une indisponibilite
+ * temporaire : c'est ce qui fait perdre du temps a chercher du mauvais cote.
+ */
+function userNotice(info: GeminiErrorInfo, engine: 'phrases' | 'copies'): string {
+  const label = engine === 'phrases' ? 'Phrases' : 'Légendes';
+  switch (info.kind) {
+    case 'quota':
+      return `${label} générées via le catalogue local (quota Gemini épuisé, réessaie plus tard)`;
+    case 'permission':
+      return `${label} générées via le moteur local (Google refuse la clé ou le modèle — configuration à corriger)`;
+    case 'model':
+      return `${label} générées via le moteur local (modèle Gemini indisponible — configuration à corriger)`;
+    case 'network':
+      return `${label} générées via le moteur local (Gemini injoignable)`;
+    default:
+      return `${label} générées via le moteur local (appel Gemini en échec)`;
+  }
+}
 
   try {
     ai = apiKey ? new GoogleGenAI({ apiKey }) : new GoogleGenAI();
@@ -243,14 +334,24 @@ const MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-flash-li
     console.warn('GoogleGenAI client could not be created (using local fallbacks):', e);
   }
 
+  // Dernier echec d'appel a Gemini, par modele. Sert a distinguer une panne
+  // de configuration d'un deploiement simplement en attente de trafic : sans
+  // cela, health repond « ok » et un 403 passe inapercu jusqu'a ce qu'un
+  // utilisateur se plaigne de recevoir des textes de repli.
+  const lastFailure = new Map<string, GeminiErrorInfo>();
+  /** Marque le deploiement en panne tant que Gemini n'a pas reussi une fois. */
+  let geminiEverWorked = false;
+
   // Sonde de sante pour l'hebergeur (health check Render) et pour verifier
   // qu'un deploiement repond. Volontairement sans authentification et sans
   // appel a Gemini : elle doit rester rapide et ne rien consummer du quota.
   app.get('/api/health', (_req, res) => {
+    const last = lastFailure.get(MODEL_PRIMARY);
     res.json({
-      status: 'ok',
+      status: last && !geminiEverWorked && last.needsAction ? 'degraded' : 'ok',
       aiConfigured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
       model: MODEL_PRIMARY,
+      ...(last ? { lastFailure: { kind: last.kind, status: last.status ?? null, reason: last.reason, needsAction: last.needsAction } } : {}),
     });
   });
 
@@ -309,7 +410,9 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
           },
         });
       } catch (firstErr: any) {
-        console.warn(`Echec sur ${MODEL_PRIMARY}, repli sur ${MODEL_FALLBACK} :`, firstErr?.message);
+        const info = classifyGeminiError(firstErr);
+        lastFailure.set(MODEL_PRIMARY, info);
+        console.warn(`[gemini] Echec sur ${MODEL_PRIMARY} (${info.kind}/${info.status ?? '-'}) : ${info.reason}`);
         try {
           response = await ai.models.generateContent({
             model: MODEL_FALLBACK,
@@ -318,14 +421,24 @@ Réponds UNIQUEMENT avec un tableau JSON valide respectant ce schéma exact, san
               responseMimeType: 'application/json',
             },
           });
+          lastFailure.delete(MODEL_FALLBACK);
         } catch (secondErr: any) {
-          console.warn('Quota exceeded or API unavailable, returning curated local fallback phrases:', secondErr?.message);
-          return res.json({ success: true, phrases: getFallbackPhrases().slice(0, count), notice: 'Phrases générées via le catalogue curaté' });
+          const info2 = classifyGeminiError(secondErr);
+          lastFailure.set(MODEL_FALLBACK, info2);
+          console.warn(`[gemini] ${MODEL_PRIMARY} puis ${MODEL_FALLBACK} en echec (${info2.kind}/${info2.status ?? '-'}) : ${info2.reason}`);
+          if (info2.needsAction) {
+            console.error(
+              `[gemini] ACTION REQUISE : ${info2.reason}. Verifier la cle API et l'acces au modele ${MODEL_PRIMARY} dans la console Google AI Studio. Le repli local ci-dessous ne consumera aucun quota.`,
+            );
+          }
+          return res.json({ success: true, phrases: getFallbackPhrases().slice(0, count), notice: userNotice(info2, 'phrases') });
         }
       }
 
       const text = response?.text || '[]';
       const parsed = JSON.parse(text);
+      lastFailure.delete(MODEL_PRIMARY);
+      geminiEverWorked = true;
       res.json({ success: true, phrases: parsed });
     } catch (err: any) {
       console.warn('Error generating phrases, using fallback:', err);
@@ -567,7 +680,9 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
           },
         });
       } catch (firstErr: any) {
-        console.warn(`Echec sur ${MODEL_PRIMARY}, repli sur ${MODEL_FALLBACK} :`, firstErr?.message);
+        const info = classifyGeminiError(firstErr);
+        lastFailure.set(MODEL_PRIMARY, info);
+        console.warn(`[gemini] Echec sur ${MODEL_PRIMARY} (${info.kind}/${info.status ?? '-'}) : ${info.reason}`);
         try {
           response = await ai.models.generateContent({
             model: MODEL_FALLBACK,
@@ -576,8 +691,17 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
               responseMimeType: 'application/json',
             },
           });
+          lastFailure.delete(MODEL_FALLBACK);
         } catch (secondErr: any) {
-          console.warn('Gemini quota exhausted for social copy, returning structured local fallback:', secondErr?.message);
+          const info = classifyGeminiError(secondErr);
+          console.warn(
+            `[gemini] ${MODEL_PRIMARY} puis ${MODEL_FALLBACK} en echec (${info.kind}/${info.status ?? '-'}) : ${info.reason}`,
+          );
+          if (info.needsAction) {
+            console.error(
+              `[gemini] ACTION REQUISE : ${info.reason}. Verifier la cle API et l'acces au modele ${MODEL_PRIMARY} dans la console Google AI Studio. Le repli local ci-dessous ne consumera aucun quota.`,
+            );
+          }
           const cleanKicker = kicker || 'Conseil';
           const tagKicker = cleanKicker.replace(/\s+/g, '');
           const localCopy = {
@@ -649,11 +773,13 @@ Réponds STRICTEMENT avec un objet JSON valide suivant cette structure exacte:
             },
             masterPrompt: `Tu es un expert mondial en stratégie de contenu viral et Copywriting pour les réseaux sociaux. Rédige un pack complet de publications captivantes pour le visuel suivant :\n\nThématique : ${cleanKicker}\nTexte : "${phrase}"\nObjectif : Maximiser les sauvegardes, partages et commentaires qualifiés. Fournis des variantes adaptées pour Instagram, TikTok, LinkedIn, YouTube Shorts et Twitter avec les accroches (hooks), les corps de texte et les hashtags de niche pertinents.`
           };
-          return res.json({ success: true, copy: localCopy, notice: 'Légendes générées via le moteur local (quota API Gemini temporairement atteint)' });
+          return res.json({ success: true, copy: localCopy, notice: userNotice(info, 'copies') });
         }
       }
 
       const parsed = JSON.parse(response.text || '{}');
+      lastFailure.delete(MODEL_PRIMARY);
+      geminiEverWorked = true;
       res.json({ success: true, copy: parsed });
     } catch (err: any) {
       console.warn('Error generating social copy, using fallback:', err);
