@@ -220,21 +220,20 @@ jobs:
             # tag, et c'est precisement ce qui avait produit les tags build-*
             # parasites. GITHUB_RUN_NUMBER n'est pas utilise non plus, il est
             # sans borne et deborderait la plage de neuf codes.
-            # Les slots deja occupes sont relus dans les NOMS des releases, pas
-            # dans les tags : un build de main ne cree aucun tag, et c'est
+            # Les slots deja occupes sont relus dans les releases existantes, et
+            # non dans les tags git : un build de main ne cree aucun tag, c'est
             # precisement ce qui avait produit les tags build-* parasites.
             #
-            # --json name, et non tagName : le tag d'une release d'archive vaut
-            # « build-<run> » et ne porte donc pas le suffixe -ci.N. C'est le nom
-            # affiche (« AutoPost Studio 1.0.5-ci.2 (build 123) ») qui le porte.
-            #
-            # Le parsing est dans scripts/ci-slots.mjs plutot qu'un node -e
-            # inline : ici, le quoting YAML/bash imbriques rendait le bloc
-            # fragile, et il a echoue en CI (exit 4) alors qu'il passait en
-            # local. Un script se teste, se lint et se lit.
+            # On interroge l'API GitHub plutot que « gh release list » : « gh »
+            # exige un GH_TOKEN explicite dans un workflow et ne l'est pas ici,
+            # ce qui faisait echouer le run en exit 4. L'API, elle, est une
+            # lecture publique sur un depot public : aucun secret a ajouter a
+            # une etape de build.
             BASE_TRIMMED="${BASE_VERSION#v}"
             USED_SLOTS="$(
-              gh release list --limit 200 --json name \
+              curl -fsSL --retry 3 --max-time 30 \
+                -H 'Accept: application/vnd.github+json' \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
                 | node scripts/ci-slots.mjs "$BASE_TRIMMED"
             )"
             echo "Slots de CI deja occupes pour $BASE_TRIMMED : ${USED_SLOTS:-aucun}"
