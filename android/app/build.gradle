@@ -84,15 +84,39 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // Firebase Android. Declenchees seulement si le fichier de configuration
+    // existe (voir l'appel conditionnel du plugin plus bas) : sans lui, le
+    // module compile, mais Analytics et Performance n'ont ni SDK ni cle, et
+    // aucun evenement n'est envoye.
+    //
+    // Le BoM fixe les versions entre elles, ce qui evite le cas classique
+    // d'un firebase-analytics 23.x avec un firebase-core 22.x : Firebase
+    // refuse de demarrer dans cette situation, et l'erreur est extremement
+    // difficile a relier a sa cause reelle.
+    if (file('google-services.json').exists()) {
+        implementation platform('com.google.firebase:firebase-bom:34.19.0')
+        // Rattachement des evenements a un profil d'utilisateur, pour mesurer
+        // les conversions annoncees dans l'ecran A propos de.
+        implementation 'com.google.firebase:firebase-analytics'
+        // Traces de performance : demarrage de l'app, rendu de l'ecran, appels
+        // reseau lents. Necessite la SHA-1 du certificat de signature
+        // enregistree dans la console Firebase, sinon aucun evenement n'arrive.
+        implementation 'com.google.firebase:firebase-perf'
+    }
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// Le fichier de configuration est optionnel : sans lui, l'application compile
+// et fonctionne, mais sans Firebase. Avec lui, le plugin rend sa
+// configuration au SDK Android, ce qui active Analytics et Performance.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.lifecycle(
+        'google-services.json absent : Firebase Android desactive ' +
+        '(Analytics et Performance ne remonteront rien). Attendu dans ' +
+        'android/app/google-services.json pour le paquet com.autopost.studio.'
+    )
 }

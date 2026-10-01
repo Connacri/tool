@@ -19,6 +19,12 @@ android/captures/
 android/*.iml
 android/.idea/
 
+# Second arbre Gradle historiquement dupliqué, sans rôle : la CI compilait
+# uniquement android/, et les copies vers android-project n'étaient jamais
+# relues. Supprimé le 2026-10-01 ; l'entrée reste pour qu'un vieux clone ou
+# un IDE ne le réimporte pas.
+android-project/
+
 # Keystore de signature Play Store — JAMAIS commité (mot de passe + clé
 # privée irremplaçable). Voir android/KEYSTORE_README.md pour la procédure.
 # Règles globales : un .keystore déposé à la racine par un build local ou

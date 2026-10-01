@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993757724772",
+    "project_id": "tool-ee60c",
+    "storage_bucket": "tool-ee60c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993757724772:android:f32f89f8a81e0ac5631f71",
+        "android_client_info": {
+          "package_name": "com.autopost.studio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbq9MVQ067LVkiU6FoBzfhTCxDsW9WGiQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

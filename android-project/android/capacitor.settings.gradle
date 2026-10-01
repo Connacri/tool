@@ -1,6 +1,0 @@
-def capacitorDir = new File('../node_modules/@capacitor/android/capacitor')
-if (!capacitorDir.exists()) {
-    capacitorDir = new File('../../node_modules/@capacitor/android/capacitor')
-}
-include ':capacitor-android'
-project(':capacitor-android').projectDir = capacitorDir
