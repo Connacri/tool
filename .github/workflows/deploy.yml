@@ -382,7 +382,11 @@ jobs:
           set -euo pipefail
           VERSION="${{ steps.version.outputs.raw }}"
           if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "tag=v${{ github.ref_name }}"          >> "$GITHUB_OUTPUT"
+            # ref_name est deja le tag complet, prefixe « v » compris. Le
+            # preceder d'un « v » produisait « vv1.0.6 » : la release etait
+            # publiee hors du tag pousse, donc invisible pour qui Cherche
+            # l'archive a partir du tag de la version.
+            echo "tag=${{ github.ref_name }}"         >> "$GITHUB_OUTPUT"
             echo "name=AutoPost Studio $VERSION"      >> "$GITHUB_OUTPUT"
           else
             # Une release GitHub porte toujours un tag, il n'existe pas de
