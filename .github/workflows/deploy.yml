@@ -65,6 +65,16 @@ jobs:
         with:
           node-version: 22
 
+      - name: Verifier le calcul de version
+        run: |
+          # Avant de resoudre quoi que ce soit. Une erreur dans version.mjs ne
+          # fait pas echouer le build : elle produit un versionCode compile dans
+          # l'APK, et Google Play ne le refuse que des semaines plus tard, sans
+          # lien visible avec la ligne qui l'a cause. Ces verifications
+          # verrouillent les regles dont depend l'acceptation par Play :
+          # croissance stricte, unicite, et frontiere avec la finale suivante.
+          node scripts/version.test.mjs
+
       - name: Resoudre la version de l'application
         id: version
         run: |
