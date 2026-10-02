@@ -1,9 +1,9 @@
 # Blueprint Render pour le backend AutoPost Studio (server.ts).
 #
-# L'app web est hebergee sur Firebase Hosting, qui reecrit toutes les routes
-# vers index.html : un appel a /api/... y renvoie du HTML, pas du JSON. Le
-# backend doit donc vivre sur une autre origine, et le front doit connaitre
-# cette origine via VITE_API_BASE_URL au moment du build.
+# L'app web est hebergee sur GitHub Pages, qui sert dist/ tel quel et ne
+# renvoie pas de JSON sur /api/... : le backend doit donc vivre sur une autre
+# origine, et le front doit connaitre cette origine via VITE_API_BASE_URL au
+# moment du build.
 #
 # Deploiement : rendre ce fichier dans le dashboard Render, ou
 #   render blueprints launch
